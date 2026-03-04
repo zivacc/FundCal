@@ -1,140 +1,231 @@
-# 基金费率计算器
+# 基金费率计算器 FundCal
 
-多基金费用对比工具，支持分段卖出费率、年化按日收取费用，并标注费用曲线交叉点。
+多基金费率对比工具：输入或拉取基金费率，在同一张图上展示不同基金在各持有期限下的累计费用曲线，并自动标注交叉点（"从第 N 天开始，B 比 A 更划算"）。
 
-#todo：关联基金比较功能（数据已就绪）
+**在线体验**：[https://zivacc.github.io/FundCal/](https://zivacc.github.io/FundCal/)
 
-#todo：REITS的年化费率计算方式
+---
 
-#todo：买入分段费率
+## 核心功能
 
-## 功能
+| 功能 | 说明 |
+|------|------|
+| **费率计算** | 支持买入费率（含申购折扣）、分段卖出费率（7/30/90/180/365/730天+永久段）、年化运作费率（管理费+托管费+销售服务费，按日累计） |
+| **多基金图表对比** | 同一图表展示多条费用曲线，支持自定义显示天数范围 |
+| **交叉点标注** | 自动计算并标出曲线交叉点，显示交叉日的累计费率与折算年化费率 |
+| **按代码拉取费率** | 输入 6 位基金代码，自动从数据中加载该基金的完整费率信息 |
+| **搜索联想** | 支持按基金代码、名称、拼音首字母搜索，实时下拉匹配 |
+| **按指数选基金** | 点击「指数」按钮，按跟踪标的批量浏览和添加基金 |
+| **批量导入/导出** | 支持从文本、CSV、Excel、`.ziva` 快照文件导入基金，也可导出当前状态 |
+| **缓存基金列表** | 浏览全部已缓存基金，支持搜索、筛选、排序、分页 |
+| **统计分析** | 按跟踪标的、基金公司、业绩基准三个维度聚合统计，支持搜索和展开详情 |
+| **联接基金穿透** | 自动识别联接基金与母基金关系，支持穿透比较 |
 
-- **一次性费用**：买入费率、分段卖出费率（7/30/90/180/365/730/永久）
-- **年化费用**：管理费+托管费+销售费，按日平均收取
-- **多基金对比**：同一图表展示多条费用曲线
-- **交叉点标注**：标出持有到某天数后「更划算」的基金发生变化的时间点，并显示该点累计费率及折算年化费率
-- **API 扩展**：`js/api-adapter.js` 预留接口，可接入自动获取基金费率
+---
 
-## 使用
+## 快速开始
+
+### 方式一：在线使用（零配置）
+
+直接访问 [https://zivacc.github.io/FundCal/](https://zivacc.github.io/FundCal/)，所有功能均可用（读取仓库中的静态数据）。
+
+### 方式二：本地运行
 
 ```bash
-# 使用任意静态服务器（如 npx serve）
-npx serve .
-
-# 或 Python
-python -m http.server 8080
+# Windows：双击 start.bat
+# Mac/Linux：
+chmod +x start.sh && ./start.sh
+# 或：
+npm run dev
 ```
 
-然后访问 `http://localhost:3456`（或对应端口）。
+浏览器访问 `http://localhost:3456`。
 
-## 费率输入说明
+会同时启动静态文件服务（端口 3456）和 API 服务（端口 3457）。
 
-- **买入费率**：如 `0.1` 或 `0.1%` 表示 0.1%
-- **年化费率**：管理费+托管费+销售费合计，如 `1.5%`
-- **卖出费率**：按持有天数分段，天数越大费率通常越低
+---
+
+## 三种部署模式
+
+本项目设计为**同一份代码**适配三种环境，前端自动检测运行环境：
+
+| 模式 | 数据来源 | 适用场景 |
+|------|---------|---------|
+| **本地开发** | API 服务 `localhost:3457` | 开发调试，实时爬取数据 |
+| **服务器部署** | Nginx 反代 `/api/fund` → Node API | 公网访问，PM2 常驻 |
+| **GitHub Pages** | 仓库中的静态 JSON 文件 | 免费托管，无需服务器 |
+
+检测逻辑（`js/config.js` 可手动覆盖）：
+- `localhost` / `127.0.0.1` → 调用本地 API
+- `*.github.io` → 读取静态文件
+- 其他域名 → 走 Nginx 反向代理
+
+---
 
 ## 项目结构
 
 ```
 FundCal/
-├── index.html
-├── css/style.css
+│
+├── index.html                     主页面：费率计算器
+├── cached-funds.html              缓存基金列表页
+├── cached-fund-stats.html         缓存基金统计页
+│
 ├── js/
-│   ├── app.js
-│   ├── fee-calculator.js
-│   └── api-adapter.js      # 优先读本地 /api/fund/:code/fee
+│   ├── config.js                  全局配置（API 地址覆盖）
+│   ├── app.js                     主应用（卡片、图表、交叉点、存储）
+│   ├── api-adapter.js             API 适配器（API 优先，静态文件回退）
+│   ├── fee-calculator.js          费率计算核心（分段卖出、年化、交叉点）
+│   ├── utils.js                   通用工具（颜色、格式化、弹窗）
+│   ├── search-utils.js            搜索过滤与排序
+│   ├── import-utils.js            导入解析（文本/CSV/Excel/.ziva）
+│   ├── index-picker.js            按指数选择基金弹窗
+│   ├── fund-cache-page.js         缓存基金列表页逻辑
+│   └── fund-stats-page.js         缓存基金统计页逻辑
+│
+├── css/
+│   └── style.css                  全局样式（深色主题）
+│
 ├── data/
-│   ├── funds/              # 本地费率缓存（爬虫写入）
-│   │   ├── index.json      # 已缓存基金代码列表
-│   │   └── 000001.json     # 单只基金费率
-│   └── allfund/            # 聚合与索引（脚本生成）
-│       ├── allfund.json    # 全量基金聚合（由 crawl-all-fund-fee + 聚合 得到）
-│       ├── search-index.json   # 联想搜索索引（code/name/拼音首字母），build-search-index.js
-│       ├── feeder-index.json   # 联接(feeder)/母基金(master)索引，build-feeder-index.js
-│       ├── feeder-master-overrides.json # 可选：联接名与场内名不一致时 masterKey→母基金代码
-│       └── overseas-codes.json  # 中港互认基金代码列表（可选）
+│   ├── allfund/
+│   │   ├── allfund.json           ★ 全量基金聚合（~49MB，已入库）
+│   │   ├── search-index.json      搜索索引（code/name/拼音首字母）
+│   │   ├── feeder-index.json      联接基金/母基金索引
+│   │   ├── fund-stats.json        统计数据（按标的/公司/基准聚合）
+│   │   ├── feeder-master-overrides.json  联接名覆盖配置
+│   │   └── overseas-codes.json    中港互认基金代码
+│   └── funds/                     ★ 单只基金缓存（26000+ 文件，不入库）
+│       ├── index.json             已缓存代码列表
+│       └── {code}.json            单只基金费率 JSON
+│
 ├── scripts/
-│   ├── crawl-fund-fee.js   # 爬虫：单只/多只费率
-│   ├── crawl-all-fund-fee.js # 爬虫：全量基金费率
-│   ├── build-allfund.js    # 聚合 data/funds 为 data/allfund/allfund.json
-│   ├── build-search-index.js  # 生成 search-index.json，供页面联想补全
-│   ├── build-feeder-index.js  # 生成 feeder-index.json，供联接穿透/关联基金比较
-│   └── serve-fund-api.js   # 本地 API：/api/fund/:code/fee、/codes、/search-index、/feeder-index
-└── README.md
+│   ├── dev-server.js              本地开发启动器（静态 + API 并行）
+│   ├── serve-fund-api.js          API 服务（端口 3457）
+│   ├── crawl-fund-fee.js          爬虫：单只/多只基金费率
+│   ├── crawl-all-fund-fee.js      爬虫：全量基金费率
+│   ├── build-allfund.js           聚合 data/funds/ → allfund.json
+│   ├── build-search-index.js      生成 search-index.json
+│   ├── build-feeder-index.js      生成 feeder-index.json
+│   ├── build-fund-stats.js        生成 fund-stats.json
+│   └── deploy.sh                  服务器部署/更新脚本
+│
+├── nginx/
+│   └── fundcal.conf               Nginx 配置模板（含 CORS）
+│
+├── .github/workflows/
+│   └── deploy-pages.yml           GitHub Actions 自动部署 Pages
+│
+├── pics/
+│   └── klogo.png                  网站图标
+│
+├── start.bat                      Windows 一键启动
+├── start.sh                       Linux/Mac 一键启动
+├── ecosystem.config.cjs           PM2 服务器配置
+├── package.json                   项目依赖与脚本
+└── .gitignore                     Git 忽略规则
 ```
 
-## 本地费率缓存（爬虫 + 调用）
+---
 
-费率变动不频繁，可将数据抓取到本地再供计算器或后续接口使用。
+## 数据流：爬取 → 构建 → 使用
 
-### 1. 抓取并写入本地
+```
+天天基金/东方财富网页
+        ↓ crawl-fund-fee.js / crawl-all-fund-fee.js
+  data/funds/{code}.json（单只基金费率）
+        ↓ build-allfund.js
+  data/allfund/allfund.json（全量聚合）
+        ↓ build-search-index / build-feeder-index / build-fund-stats
+  search-index.json / feeder-index.json / fund-stats.json（索引与统计）
+        ↓
+  前端页面 / API 服务 / GitHub Pages
+```
 
-数据来源：天天基金 / 东方财富 `fundf10.eastmoney.com/jjfl_<代码>.html`。
+### 爬取数据
 
 ```bash
-# 抓取单只或多只（6 位基金代码）
+# 单只/多只
 node scripts/crawl-fund-fee.js 000001 110011
 
-# 拉取全部基金（并发抓取，默认 100 路并发）
+# 全量（~26000只，默认 100 路并发）
 node scripts/crawl-all-fund-fee.js
-# 可选：--force 全量重抓；--concurrency=15 并发数；--delay=50 启动间隔(ms)；--retry=2 失败重试次数；--limit=N 仅抓前 N 只
-node scripts/crawl-all-fund-fee.js --concurrency=15 --retry=2 --limit=10
+# 可选参数：--force --concurrency=15 --delay=50 --retry=2 --limit=N
 ```
 
-- 写入目录：`data/funds/`
-- 单只文件：`data/funds/<代码>.json`，包含：
-  - `code`：基金代码
-  - `name`：基金名称
-  - `buyFee`：买入费率（最优惠折扣后）
-  - `sellFeeSegments`：按持有天数分段的赎回费率（含无上限段）
-  - `annualFee`：年化运作费用（管理费+托管费+销售服务费合计）
-  - `tradingStatus`：申购 / 赎回状态
-  - `operationFees`：管理费率、托管费率、销售服务费率及合计
-  - `trackingTarget`：跟踪标的（指数基金等）
-  - `fundManager`：基金管理人（基金公司）
-  - `performanceBenchmark`：业绩比较基准
-  - `source, updatedAt`：数据来源与抓取时间
-- 索引：`data/funds/index.json` 记录已缓存代码与更新时间
+每只基金的缓存文件包含：代码、名称、买入费率、分段卖出费率、年化运作费率、申赎状态、跟踪标的、基金公司、业绩基准等。
 
-### 2. 本地 API 供前端调用
+### 构建索引
 
 ```bash
-# 默认端口 3457，可选：node scripts/serve-fund-api.js 3458
-node scripts/serve-fund-api.js
+npm run build-all          # 一键构建所有索引
+
+# 或分步执行：
+node scripts/build-allfund.js         # 聚合 → allfund.json
+npm run build-search-index            # 搜索索引
+npm run build-feeder-index            # 联接基金索引
+npm run build-fund-stats              # 统计数据
 ```
 
-- 接口：`GET http://localhost:3457/api/fund/:code/fee`
-- 前端 `fetchFundFeeFromAPI(code)` 会请求同源或配置的该地址，拿到数据后通过 `transformApiDataToFundConfig` 转为计算器格式
-
-### 3. 按代码加载（页面内拉取费率）
-
-页面顶部提供「基金代码」输入框和「拉取费率」按钮，可从本地缓存拉取该基金的费率并新增为一张基金卡片。
-
-**使用前请确保：**
-
-1. 该基金已存在于 `data/allfund/allfund.json`（可由 `crawl-all-fund-fee.js` 全量抓取后生成，或先 `crawl-fund-fee.js` 抓取单只再运行 `build-allfund.js` 聚合）
-2. 已启动本地 API：`node scripts/serve-fund-api.js`（默认端口 3457）。API 从 `data/allfund/allfund.json` 读取费率
-3. 前端能访问该 API：页面默认请求 `http://localhost:3457/api/fund`。若 API 使用其他地址或端口，可在控制台设置 `window.FUND_FEE_API_BASE = 'http://localhost:端口/api/fund'` 覆盖
-
-输入 6 位基金代码后点击「拉取费率」或回车即可添加该基金；未找到或网络错误时会在输入框旁提示。
-
-### 4. 联接基金 / 母基金索引（用于穿透与关联比较）
-
-命名：**联接基金** = feeder fund，**母基金**（场内 ETF/LOF 等）= master fund。
-
-所有名称中含「联接」的基金视为联接基金 (feeder)。构建索引后可快速查找：**某基金对应的母基金 (master)** 以及 **同一母基金下的全部联接份额 (feederCodes)**。
+### 更新 GitHub Pages 数据
 
 ```bash
-# 依赖 data/allfund/allfund.json（先运行 crawl-all-fund-fee 并聚合生成 allfund.json）
-npm run build-feeder-index
-# 或：node scripts/build-feeder-index.js
+# 爬取 + 构建 + 推送
+node scripts/crawl-all-fund-fee.js
+node scripts/build-allfund.js
+npm run build-all
+git add -A && git commit -m "更新基金数据" && git push
 ```
 
-- 输出：`data/allfund/feeder-index.json`
-- 结构：
-  - `feederByMasterKey`：按母基金名称 key（联接名前半段，如「华夏沪深300ETF」）索引，每项含 `masterCode`（母基金代码，若无则为 null）、`masterName`、`feederCodes`（该母基金下的全部联接基金代码）
-  - `codeToFeeder`：按基金代码索引，每项含 `masterKey`、`isFeeder`、`masterCode`、`masterName`、`feederCodes`，便于由任意一只基金反查母基金与同组联接
-- API：`GET http://localhost:3457/api/fund/feeder-index` 返回上述 JSON，供前端「联接基金费率穿透」与「关联基金比较」使用。
+推送后 GitHub Actions 会自动部署，几分钟内生效。
 
-**场内名与联接名不一致时**：部分联接基金名称中的「联接」前半段与场内母基金名称不同（例如「工银上海金ETF联接」对应场内「工银瑞信黄金ETF」518660）。可在 `data/allfund/feeder-master-overrides.json` 中配置覆盖：`"overrides": { "`工`银上海金ETF": "518660" }`（key 为联接名前半段 masterKey，value 为母基金 6 位代码）。重新运行 `npm run build-feeder-index` 后生效。
+---
+
+## API 接口
+
+本地 API 服务（`node scripts/serve-fund-api.js`，默认端口 3457）：
+
+| 接口 | 说明 |
+|------|------|
+| `GET /api/fund/{code}/fee` | 单只基金费率 |
+| `GET /api/fund/codes` | 已缓存基金代码列表 |
+| `GET /api/fund/all-codes` | 全市场基金代码（从天天基金实时拉取） |
+| `GET /api/fund/search-index` | 搜索索引 |
+| `GET /api/fund/feeder-index` | 联接基金/母基金索引 |
+| `GET /api/fund/stats` | 基金统计（按标的/公司/基准） |
+
+> GitHub Pages 模式下不需要 API 服务，前端直接读取仓库中的静态 JSON 文件。
+
+---
+
+## 联接基金穿透
+
+系统自动识别名称中含"联接"的基金，构建联接基金 ↔ 母基金的关联索引。
+
+- **索引文件**：`data/allfund/feeder-index.json`
+- **覆盖配置**：`data/allfund/feeder-master-overrides.json`（联接名与场内名不一致时使用）
+
+---
+
+## npm scripts 速查
+
+| 命令 | 说明 |
+|------|------|
+| `npm run dev` | 本地开发（静态 3456 + API 3457） |
+| `npm run serve` | 仅静态文件服务 |
+| `npm run api` | 仅 API 服务 |
+| `npm run build-all` | 构建所有索引 |
+| `npm run build-search-index` | 构建搜索索引 |
+| `npm run build-feeder-index` | 构建联接基金索引 |
+| `npm run build-fund-stats` | 构建统计数据 |
+
+---
+
+## 部署指南
+
+详见 [docs/DEPLOY-ALIYUN.md](docs/DEPLOY-ALIYUN.md)，涵盖：
+- 本地开发配置
+- 阿里云 ECS 部署（一键脚本 / 手动）
+- GitHub Pages 部署
+- Git 同步工作流
+- 域名 + HTTPS 配置
+- 故障排查

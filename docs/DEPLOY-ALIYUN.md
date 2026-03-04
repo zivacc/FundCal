@@ -1,31 +1,23 @@
-# 基金费率计算器 - 部署与开发指南
+# 部署与运维指南
 
-同一份代码，既可在本地电脑调试，也可在服务器（阿里云 ECS 等）上部署。
+同一份代码支持三种部署方式：本地开发、阿里云 ECS 服务器、GitHub Pages 纯静态托管。
 
 ---
 
-## 一、本地开发（Windows / Mac / Linux）
+## 一、本地开发
 
-### 快速启动
+### 一键启动
 
-**Windows：** 双击 `start.bat`
+| 系统 | 方式 |
+|------|------|
+| Windows | 双击 `start.bat` |
+| Mac / Linux | `chmod +x start.sh && ./start.sh` |
+| 任意系统 | `npm run dev` |
 
-**Mac / Linux：**
-```bash
-chmod +x start.sh
-./start.sh
-```
+启动后会同时运行：
 
-**或使用 npm：**
-```bash
-npm run dev
-```
-
-以上命令会同时启动：
-- **静态文件服务**：`http://localhost:3456`（浏览器访问此地址）
-- **API 服务**：`http://localhost:3457`
-
-> 前端代码会自动检测运行环境：本地 → `localhost:3457`；服务器 → `/api/fund`（Nginx 反代），无需手动切换。
+- **静态文件服务**：`http://localhost:3456`（浏览器打开此地址）
+- **API 服务**：`http://localhost:3457`（前端自动连接）
 
 ### 单独启动
 
@@ -34,75 +26,121 @@ npm run serve    # 仅静态文件服务（端口 3456）
 npm run api      # 仅 API 服务（端口 3457）
 ```
 
-### 数据构建
+### 构建索引
 
 ```bash
-npm run build-all    # 一键构建所有索引（search-index + feeder-index + fund-stats）
+npm run build-all    # 一键构建 search-index + feeder-index + fund-stats
 ```
+
+> 前端会自动检测 `localhost` 环境并使用 `http://localhost:3457/api/fund`，无需手动配置。
 
 ---
 
-## 二、服务器部署（阿里云 ECS）
+## 二、GitHub Pages 部署（推荐，免费）
 
-### 1. 前置准备
+### 原理
 
-1. **购买 ECS**
-   - 登录 [阿里云控制台](https://ecs.console.aliyun.com)
-   - 镜像：**Alibaba Cloud Linux 3** 或 **Ubuntu 22.04**
-   - 规格：1 核 2G 即可
-   - 系统盘 40GB 足够
+前端页面由 GitHub Pages 托管，数据直接从仓库中的静态 JSON 文件读取，**完全不需要后端服务器**。
 
-2. **安全组放行端口**：22（SSH）、80（HTTP）、443（HTTPS，可选）
-
-3. **获取公网 IP**
-
-### 2. 上传项目（推荐使用 Git）
-
-**首次部署（在服务器上）：**
-
-```bash
-# 安装 git（如未装）
-dnf install -y git   # 或 apt install -y git
-
-mkdir -p /var/www && cd /var/www
-git clone 你的仓库地址 fundcal
-cd fundcal
+```
+用户浏览器
+    ↓
+GitHub Pages (zivacc.github.io/FundCal/)
+    ↓ 直接读取
+仓库中的静态 JSON
+  - data/allfund/allfund.json      → 全量基金数据
+  - data/allfund/search-index.json → 搜索索引
+  - data/allfund/feeder-index.json → 联接基金索引
+  - data/allfund/fund-stats.json   → 统计数据
 ```
 
-### 3. 一键初始化部署
+### 开启步骤
+
+1. 打开 [仓库 Settings → Pages](https://github.com/zivacc/FundCal/settings/pages)
+2. **Source** 选择 **GitHub Actions**
+3. 保存
+
+每次推送到 `main` 分支，`.github/workflows/deploy-pages.yml` 会自动部署。
+
+### 更新数据
 
 ```bash
-cd /var/www/fundcal
+# 本地爬取并构建
+node scripts/crawl-all-fund-fee.js
+node scripts/build-allfund.js
+npm run build-all
+
+# 推送到 GitHub（自动触发部署）
+git add -A
+git commit -m "更新基金数据"
+git push
+```
+
+### 可选：连接远程 API
+
+如果希望 GitHub Pages 调用阿里云上的 API（获得更快的响应），编辑 `js/config.js`：
+
+```javascript
+window.FUND_FEE_API_BASE = 'http://你的阿里云公网IP/api/fund';
+```
+
+前端会优先调用 API，API 不可用时自动回退到静态文件。
+
+---
+
+## 三、阿里云 ECS 服务器部署
+
+### 1. 准备
+
+1. **购买 ECS**：镜像选 Alibaba Cloud Linux 3 或 Ubuntu 22.04，1 核 2G 即可，系统盘 40GB
+2. **安全组放行端口**：22（SSH）、80（HTTP）、443（HTTPS，可选）
+3. 记下**公网 IP**
+
+### 2. 首次部署（一键）
+
+```bash
+ssh root@你的公网IP
+
+# 安装 git 并克隆
+dnf install -y git          # Ubuntu: apt install -y git
+mkdir -p /var/www && cd /var/www
+git clone https://github.com/zivacc/FundCal.git fundcal
+cd fundcal
+
+# 一键初始化
 bash scripts/deploy.sh --init
 ```
 
-此命令会自动：
+`deploy.sh --init` 会自动完成：
 - 安装 Nginx、Node.js、PM2（如未装）
-- 复制 Nginx 配置
-- 安装 npm 依赖
-- 启动 API 服务（PM2 管理）
+- 复制 `nginx/fundcal.conf` 到 `/etc/nginx/conf.d/`
+- `npm install` 安装依赖
+- PM2 启动 API 服务（端口 3457）
+- 重载 Nginx
 
-### 4. 日常更新（git pull + 重启）
+完成后访问 `http://你的公网IP` 即可使用。
+
+### 3. 日常更新
 
 ```bash
 cd /var/www/fundcal
 bash scripts/deploy.sh
 ```
 
-此命令会自动：`git pull` → `npm install` → 重启 PM2 → 重载 Nginx
+自动执行：`git pull` → `npm install` → PM2 重启 → Nginx 重载
 
-### 5. 手动操作（如不用自动脚本）
+### 4. 手动操作（不用自动脚本时）
 
 #### 安装环境
 
 ```bash
 # Nginx
-dnf install -y nginx    # Ubuntu: apt install -y nginx
+dnf install -y nginx              # Ubuntu: apt install -y nginx
 systemctl enable nginx && systemctl start nginx
 
-# Node.js
+# Node.js 20
 curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
-dnf install -y nodejs   # Ubuntu: apt install -y nodejs
+dnf install -y nodejs             # Ubuntu: apt install -y nodejs
 
 # PM2
 npm install -g pm2
@@ -110,12 +148,16 @@ npm install -g pm2
 
 #### 配置 Nginx
 
-项目已提供模板 `nginx/fundcal.conf`，直接复制即可：
-
 ```bash
 cp nginx/fundcal.conf /etc/nginx/conf.d/fundcal.conf
 nginx -t && systemctl reload nginx
 ```
+
+`nginx/fundcal.conf` 已包含：
+- 静态文件服务（root → `/var/www/fundcal`）
+- `/api/` 反向代理到 `127.0.0.1:3457`
+- CORS 头（允许 GitHub Pages 等跨域调用）
+- 安全规则（禁止访问 `scripts/`、`node_modules/`、隐藏文件）
 
 #### 启动 API 服务
 
@@ -124,144 +166,148 @@ cd /var/www/fundcal
 npm install
 pm2 start ecosystem.config.cjs
 pm2 save
-pm2 startup   # 按提示执行，实现开机自启
+pm2 startup     # 按提示执行生成的命令，实现开机自启
+```
+
+#### PM2 常用命令
+
+```bash
+pm2 list                 # 查看进程
+pm2 logs fund-api        # 查看日志
+pm2 restart fund-api     # 重启
+pm2 stop fund-api        # 停止
 ```
 
 ---
 
-## 三、本地与服务器同步（Git 工作流）
+## 四、域名与 HTTPS（可选）
 
-### 推荐方案：Git + 远程仓库（GitHub / Gitee）
+1. **域名解析**：在阿里云「域名解析」添加 A 记录，指向 ECS 公网 IP
 
-```
-本地电脑  ←→  GitHub/Gitee  ←→  阿里云服务器
-  编辑开发       版本管理中心        生产部署
-```
+2. **Nginx 绑定域名**：编辑 `/etc/nginx/conf.d/fundcal.conf`，`server_name _` 改为 `server_name fund.yourdomain.com`
 
-### 初始设置
-
-**1. 创建远程仓库**
-
-在 [GitHub](https://github.com/new) 或 [Gitee](https://gitee.com/projects/new)（国内更快）创建新仓库。
-
-**2. 本地关联并推送**
-
-```powershell
-# 在本地 FundCal 目录
-git remote add origin https://github.com/你的用户名/fundcal.git
-git branch -M main
-git push -u origin main
-```
-
-**3. 服务器克隆**
+3. **申请 HTTPS 证书**：
 
 ```bash
-# 在服务器上
-cd /var/www
-git clone https://github.com/你的用户名/fundcal.git
+# Alibaba Cloud Linux / CentOS
+dnf install -y certbot python3-certbot-nginx
+certbot --nginx -d fund.yourdomain.com
+
+# Ubuntu
+apt install -y certbot python3-certbot-nginx
+certbot --nginx -d fund.yourdomain.com
 ```
 
-### 日常工作流
+证书会自动续期。
+
+---
+
+## 五、Git 同步工作流
+
+### 架构
 
 ```
-本地修改 → git add → git commit → git push
-                                      ↓
-服务器更新 ← bash scripts/deploy.sh（自动 git pull + 重启）
+本地电脑  ──git push──→  GitHub  ←──git pull──  阿里云服务器
+ (开发)                 (版本中心)               (生产)
+                            ↓
+                     GitHub Pages (静态托管)
 ```
 
-**本地开发完成后推送：**
+### 日常流程
 
-```powershell
+**本地改完推送：**
+
+```bash
 git add -A
-git commit -m "描述修改内容"
+git commit -m "描述修改"
 git push
 ```
 
-**服务器上更新：**
+**服务器更新：**
 
 ```bash
 cd /var/www/fundcal
-bash scripts/deploy.sh    # 自动拉取、安装依赖、重启服务
+bash scripts/deploy.sh
 ```
 
-### 数据文件同步
+### 数据文件说明
 
-`data/funds/` 和 `data/allfund/allfund.json` 是爬虫生成的大文件，**不纳入 Git**。
-同步方式：
+| 文件 | 是否入库 | 说明 |
+|------|:---:|------|
+| `data/allfund/allfund.json` | 是 | 全量聚合（~49MB），GitHub Pages 直接读取 |
+| `data/allfund/search-index.json` | 是 | 搜索索引 |
+| `data/allfund/feeder-index.json` | 是 | 联接基金索引 |
+| `data/allfund/fund-stats.json` | 是 | 统计数据 |
+| `data/funds/*.json` | 否 | 单只基金缓存（26000+ 文件，仅本地/服务器使用） |
+| `node_modules/` | 否 | 依赖目录 |
+
+`data/funds/` 不入库，同步方式：
 
 ```bash
-# 本地 → 服务器（SCP）
+# SCP 上传
 scp -r data/funds root@你的公网IP:/var/www/fundcal/data/
-scp data/allfund/allfund.json root@你的公网IP:/var/www/fundcal/data/allfund/
 
 # 或在服务器上直接爬取
 cd /var/www/fundcal
 node scripts/crawl-all-fund-fee.js
+node scripts/build-allfund.js
 npm run build-all
 ```
 
 ---
 
-## 四、可选：绑定域名与 HTTPS
+## 六、环境配置说明
 
-1. **域名**：在阿里云添加 **A 记录** 指向 ECS 公网 IP
+### js/config.js
 
-2. **Nginx 中写域名**：编辑 `/etc/nginx/conf.d/fundcal.conf`，将 `server_name _` 改为 `server_name fund.yourdomain.com`
+全局配置文件，控制 API 基地址。大多数情况下**无需修改**（自动检测）。
 
-3. **HTTPS（Let's Encrypt）**
-   ```bash
-   dnf install -y certbot python3-certbot-nginx   # Ubuntu: apt install -y
-   certbot --nginx -d fund.yourdomain.com
-   ```
+```javascript
+// 三种环境自动适配：
+// - localhost      → http://localhost:3457/api/fund
+// - *.github.io    → 读取静态文件（不走 API）
+// - 其他域名       → /api/fund（Nginx 反代）
+
+// 手动覆盖（可选）：
+// window.FUND_FEE_API_BASE = 'http://你的服务器IP/api/fund';
+```
+
+### ecosystem.config.cjs
+
+PM2 配置，服务器部署时使用。默认运行 `serve-fund-api.js`，端口 3457。
+
+### nginx/fundcal.conf
+
+Nginx 配置模板，包含静态服务、API 反代、CORS、安全规则。部署时复制到 `/etc/nginx/conf.d/`。
 
 ---
 
-## 五、项目结构速查
+## 七、故障排查
 
-```
-FundCal/
-├── start.bat / start.sh        ← 本地一键启动
-├── ecosystem.config.cjs        ← PM2 服务器配置
-├── nginx/fundcal.conf          ← Nginx 配置模板
-├── scripts/
-│   ├── dev-server.js           ← 本地开发并发启动器
-│   ├── serve-fund-api.js       ← API 服务
-│   ├── deploy.sh               ← 服务器部署/更新脚本
-│   ├── crawl-*.js              ← 爬虫脚本
-│   └── build-*.js              ← 索引构建脚本
-├── js/
-│   ├── api-adapter.js          ← API 地址自动适配（本地/服务器）
-│   └── ...
-├── data/
-│   ├── funds/                  ← 单只基金费率（.gitignore 排除）
-│   └── allfund/
-│       ├── allfund.json        ← 全量聚合（.gitignore 排除）
-│       └── *.json              ← 索引文件（纳入 Git）
-└── .gitignore
-```
-
----
-
-## 六、故障排查
-
-| 现象 | 可能原因 | 处理建议 |
-|------|---------|---------|
-| 无法访问 80 端口 | 安全组未放行 | 检查安全组入方向规则 |
-| 502 Bad Gateway | API 未启动 | `pm2 list` 检查；`pm2 restart fund-api` |
-| 拉取费率失败 | API 地址不对 | 本地自动用 `localhost:3457`，服务器自动用 `/api/fund` |
-| 静态资源 404 | 权限问题 | `chown -R nginx:nginx /var/www/fundcal` |
+| 现象 | 可能原因 | 处理 |
+|------|---------|------|
+| 无法访问 80 端口 | 安全组未放行 | 检查阿里云安全组入方向规则 |
+| 502 Bad Gateway | API 未启动 | `pm2 list` → `pm2 restart fund-api` |
+| 拉取费率失败 | API 地址不对 | 检查 `js/config.js`，或确认环境自动检测是否正确 |
+| 静态资源 404 | 文件权限 | `chown -R nginx:nginx /var/www/fundcal` |
+| GitHub Pages 数据旧 | 未推送更新 | `git push` 后等待 Actions 部署完成（2-3 分钟） |
 | git push 被拒 | 远程有新提交 | `git pull --rebase` 后再 push |
+| 统计页数据异常 | fund-stats.json 未重建 | `npm run build-fund-stats` 后重新推送 |
 
 ---
 
-## 七、常用命令速查
+## 八、命令速查
 
 | 场景 | 命令 |
 |------|------|
-| 本地一键启动 | `start.bat` 或 `npm run dev` |
+| 本地一键启动 | `start.bat` / `start.sh` / `npm run dev` |
+| 仅启动 API | `npm run api` |
+| 仅启动静态服务 | `npm run serve` |
 | 构建所有索引 | `npm run build-all` |
+| 爬取全量基金 | `node scripts/crawl-all-fund-fee.js` |
+| 聚合数据 | `node scripts/build-allfund.js` |
 | 服务器首次部署 | `bash scripts/deploy.sh --init` |
 | 服务器更新 | `bash scripts/deploy.sh` |
 | 查看 API 日志 | `pm2 logs fund-api` |
 | 重启 API | `pm2 restart fund-api` |
-| 本地推送 | `git add -A && git commit -m "..." && git push` |
+| 推送更新 | `git add -A && git commit -m "..." && git push` |
