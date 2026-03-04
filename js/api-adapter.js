@@ -6,9 +6,10 @@
 
 /**
  * 自动判断 API 基地址：
- * - 手动覆盖：设置 window.FUND_FEE_API_BASE 即可指定
+ * - 手动覆盖：在 config.js 中设置 window.FUND_FEE_API_BASE 即可指定
  * - 本地开发：hostname 为 localhost/127.0.0.1 → http://localhost:3457/api/fund
- * - 服务器部署：其他情况 → /api/fund（走 Nginx 反向代理）
+ * - GitHub Pages：hostname 含 github.io → 需在 config.js 中配置，否则返回 null
+ * - 自建服务器：其他情况 → /api/fund（走 Nginx 反向代理）
  */
 export function getFeeApiBase() {
   if (typeof window !== 'undefined' && window.FUND_FEE_API_BASE) return window.FUND_FEE_API_BASE;
@@ -17,9 +18,15 @@ export function getFeeApiBase() {
     if (h === 'localhost' || h === '127.0.0.1') {
       return 'http://localhost:3457/api/fund';
     }
+    if (h.endsWith('.github.io')) return null;
     return '/api/fund';
   }
   return 'http://localhost:3457/api/fund';
+}
+
+/** 检查当前环境是否为 GitHub Pages 且未配置 API 地址 */
+export function isApiAvailable() {
+  return getFeeApiBase() !== null;
 }
 
 /**

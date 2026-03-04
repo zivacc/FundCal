@@ -7,6 +7,7 @@ function getFeeApiBase() {
     if (h === 'localhost' || h === '127.0.0.1') {
       return 'http://localhost:3457/api/fund';
     }
+    if (h.endsWith('.github.io')) return null;
     return '/api/fund';
   }
   return 'http://localhost:3457/api/fund';
