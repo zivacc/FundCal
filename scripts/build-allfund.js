@@ -1,6 +1,6 @@
 /**
  * 聚合 data/funds 目录下的单只基金文件，生成 data/allfund/allfund.json
- * 方便后续 API 与前端一次性加载全部基金信息。
+ * 这是以前开发的遗产
  *
  * 使用：
  *   node scripts/build-allfund.js

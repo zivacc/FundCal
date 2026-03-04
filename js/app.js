@@ -48,6 +48,7 @@ function readFundFromCard(card) {
   const code = (card.dataset.fundCode || '').trim() || undefined;
   const rawBuyFee = parseRate(card.querySelector('.input-buy-fee')?.value);
   const buyFee = rawBuyFee * buyFeeDiscountFactor;
+  const _rawBuyFee = rawBuyFee;
   const annualFee = parseRate(card.querySelector('.input-annual-fee')?.value);
   const unboundedRate = parseRate(card.querySelector('.input-unbounded-rate')?.value);
   const segments = [];
@@ -73,7 +74,7 @@ function readFundFromCard(card) {
     segments.push({ days: lastSeg.days, rate: unboundedRate, unbounded: true });
     segments.sort((a, b) => a.days - b.days || (a.unbounded ? 1 : 0) - (b.unbounded ? 1 : 0));
   }
-  const fund = { name, buyFee, sellFeeSegments: segments, annualFee, unboundedSellFeeRate: unboundedRate };
+  const fund = { name, buyFee, _rawBuyFee, sellFeeSegments: segments, annualFee, unboundedSellFeeRate: unboundedRate };
   if (code) fund.code = code;
   return fund;
 }
@@ -211,7 +212,10 @@ function getStateFromDOM() {
     skipFirst7: !!skipFirst7El?.checked,
     showTooltip: showTooltipEl ? !!showTooltipEl.checked : true,
     penetrateFeeder: penetrateFeederEl ? !!penetrateFeederEl.checked : false,
-    funds: Array.from(cards).map(card => readFundFromCard(card))
+    funds: Array.from(cards).map(card => {
+      const f = readFundFromCard(card);
+      return { ...f, buyFee: f._rawBuyFee };
+    })
   };
 }
 
