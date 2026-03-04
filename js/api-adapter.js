@@ -1,15 +1,37 @@
 /**
  * 基金费率 API 适配器
- * 优先读取本地缓存：需先运行 scripts/crawl-fund-fee.js 拉取数据，
- * 并运行 scripts/serve-fund-api.js 提供 /api/fund/:code/fee
+ * 优先使用 API 服务；API 不可用时自动回退到静态 JSON 文件（GitHub Pages 纯静态模式）
  */
+
+/* ========== 静态数据缓存（allfund.json 按需加载，全局只加载一次） ========== */
+
+let _allfundCache = null;
+let _allfundLoading = null;
+
+async function loadAllfundStatic() {
+  if (_allfundCache) return _allfundCache;
+  if (_allfundLoading) return _allfundLoading;
+  _allfundLoading = (async () => {
+    try {
+      const res = await fetch('data/allfund/allfund.json');
+      if (!res.ok) return null;
+      _allfundCache = await res.json();
+      return _allfundCache;
+    } catch { return null; }
+  })();
+  const result = await _allfundLoading;
+  _allfundLoading = null;
+  return result;
+}
+
+/* ========== 环境检测 ========== */
 
 /**
  * 自动判断 API 基地址：
- * - 手动覆盖：在 config.js 中设置 window.FUND_FEE_API_BASE 即可指定
- * - 本地开发：hostname 为 localhost/127.0.0.1 → http://localhost:3457/api/fund
- * - GitHub Pages：hostname 含 github.io → 需在 config.js 中配置，否则返回 null
- * - 自建服务器：其他情况 → /api/fund（走 Nginx 反向代理）
+ * - 手动覆盖：在 config.js 中设置 window.FUND_FEE_API_BASE
+ * - 本地开发：localhost/127.0.0.1 → http://localhost:3457/api/fund
+ * - GitHub Pages：→ null（使用纯静态模式）
+ * - 自建服务器：→ /api/fund（Nginx 反向代理）
  */
 export function getFeeApiBase() {
   if (typeof window !== 'undefined' && window.FUND_FEE_API_BASE) return window.FUND_FEE_API_BASE;
@@ -24,107 +46,109 @@ export function getFeeApiBase() {
   return 'http://localhost:3457/api/fund';
 }
 
-/** 检查当前环境是否为 GitHub Pages 且未配置 API 地址 */
 export function isApiAvailable() {
   return getFeeApiBase() !== null;
 }
 
+/* ========== 通用：先试 API，失败回退静态文件 ========== */
+
+async function tryApiFetch(urlPath, fallback) {
+  const base = getFeeApiBase();
+  if (base) {
+    try {
+      const sep = base.endsWith('/') ? '' : '/';
+      const res = await fetch(`${base}${sep}${urlPath}`);
+      if (res.ok) return await res.json();
+    } catch { /* API 不可用，走 fallback */ }
+  }
+  return fallback();
+}
+
+async function tryStaticFetch(staticPath) {
+  try {
+    const res = await fetch(staticPath);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch { return null; }
+}
+
+/* ========== 公开 API 函数 ========== */
+
 /**
- * 从 API 获取搜索索引（code、name、initials），供联想补全
- * @returns {Promise<Array<{code:string,name:string,initials:string}>>} 失败或空返回 []
+ * 搜索索引（code、name、initials）
+ * API: /search-index | 静态: data/allfund/search-index.json
  */
 export async function fetchSearchIndexFromAPI() {
-  try {
-    const base = getFeeApiBase();
-    const url = base.endsWith('/') ? `${base}search-index` : `${base}/search-index`;
-    const res = await fetch(url);
-    if (!res.ok) return [];
-    const data = await res.json();
-    return Array.isArray(data) ? data : [];
-  } catch (e) {
-    return [];
-  }
+  const data = await tryApiFetch('search-index', () => tryStaticFetch('data/allfund/search-index.json'));
+  return Array.isArray(data) ? data : [];
 }
 
 /**
- * 从 API 获取已缓存的基金代码列表
- * @returns {Promise<string[]>} 6 位代码数组，失败或空返回 []
+ * 已缓存基金代码列表
+ * API: /codes | 静态: 从 allfund.json 提取
  */
 export async function fetchFundCodesFromAPI() {
-  try {
-    const res = await fetch(`${getFeeApiBase()}/codes`);
-    if (!res.ok) return [];
-    const data = await res.json();
-    const codes = data.codes;
-    return Array.isArray(codes) ? codes.filter(c => String(c).trim().length === 6) : [];
-  } catch (e) {
-    return [];
-  }
+  const data = await tryApiFetch('codes', async () => {
+    const all = await loadAllfundStatic();
+    if (!all) return null;
+    return { codes: all.codes || Object.keys(all.funds || all) };
+  });
+  if (!data) return [];
+  const codes = data.codes ?? data;
+  return Array.isArray(codes) ? codes.filter(c => String(c).trim().length === 6) : [];
 }
 
 /**
- * 从 API 获取联接/母基金索引（feeder-index），供联接基金穿透使用
- * @returns {Promise<{feederByMasterKey:Object, codeToFeeder:Object}>} 失败返回 { feederByMasterKey: {}, codeToFeeder: {} }
+ * 联接/母基金索引
+ * API: /feeder-index | 静态: data/allfund/feeder-index.json
  */
 export async function fetchFeederIndexFromAPI() {
-  try {
-    const base = getFeeApiBase();
-    const url = base.endsWith('/') ? `${base}feeder-index` : `${base}/feeder-index`;
-    const res = await fetch(url);
-    if (!res.ok) return { feederByMasterKey: {}, codeToFeeder: {} };
-    const data = await res.json();
-    return {
-      feederByMasterKey: data.feederByMasterKey || {},
-      codeToFeeder: data.codeToFeeder || {}
-    };
-  } catch (e) {
-    return { feederByMasterKey: {}, codeToFeeder: {} };
-  }
+  const empty = { feederByMasterKey: {}, codeToFeeder: {} };
+  const data = await tryApiFetch('feeder-index', () => tryStaticFetch('data/allfund/feeder-index.json'));
+  if (!data) return empty;
+  return {
+    feederByMasterKey: data.feederByMasterKey || {},
+    codeToFeeder: data.codeToFeeder || {}
+  };
 }
 
 /**
- * 从 API 获取全部基金代码（天天基金全市场列表，供随机抽取）
- * @returns {Promise<string[]>} 6 位代码数组，失败或空返回 []
+ * 全市场基金代码（供随机抽取）
+ * API: /all-codes | 静态: 从 allfund.json 提取（无外部源时复用缓存数据）
  */
 export async function fetchAllFundCodesFromAPI() {
-  try {
-    const res = await fetch(`${getFeeApiBase()}/all-codes`);
-    if (!res.ok) return [];
-    const data = await res.json();
-    const codes = data.codes;
-    return Array.isArray(codes) ? codes.filter(c => String(c).trim().length === 6) : [];
-  } catch (e) {
-    return [];
-  }
+  const data = await tryApiFetch('all-codes', async () => {
+    const all = await loadAllfundStatic();
+    if (!all) return null;
+    return { codes: all.codes || Object.keys(all.funds || all) };
+  });
+  if (!data) return [];
+  const codes = data.codes ?? data;
+  return Array.isArray(codes) ? codes.filter(c => String(c).trim().length === 6) : [];
 }
 
 /**
- * 从本地缓存或 API 获取基金费率并转换为计算器所需格式
- * @param {string} fundCode - 6 位基金代码
- * @returns {Promise<Object|null>} 基金费率配置，失败返回 null
+ * 单只基金费率
+ * API: /:code/fee | 静态: 从 allfund.json 中按代码查找
  */
 export async function fetchFundFeeFromAPI(fundCode) {
   const code = String(fundCode).trim().replace(/\D/g, '');
   if (code.length !== 6) return null;
-  try {
-    const res = await fetch(`${getFeeApiBase()}/${code}/fee`);
-    if (!res.ok) return null;
-    const data = await res.json();
-    return transformApiDataToFundConfig(data);
-  } catch (e) {
-    return null;
-  }
+
+  const data = await tryApiFetch(`${code}/fee`, async () => {
+    const all = await loadAllfundStatic();
+    if (!all) return null;
+    const funds = all.funds || all;
+    return funds[code] || null;
+  });
+  if (!data) return null;
+  return transformApiDataToFundConfig(data);
 }
 
+/* ========== 数据格式转换 ========== */
+
 /**
- * 将 API 返回的数据转换为计算器标准格式
- * @param {Object} apiData - API 原始数据
- * @returns {Object} { name, buyFee, sellFeeSegments, annualFee }
- */
-/**
- * 将 API/本地缓存返回的数据转换为计算器标准格式
- * @param {Object} apiData - 含 name, buyFee, sellFeeSegments, annualFee（或等价字段）
- * @returns {Object} { name, buyFee, sellFeeSegments, annualFee }
+ * 将 API/静态缓存返回的数据转换为计算器标准格式
  */
 export function transformApiDataToFundConfig(apiData) {
   const buy = apiData.buyFee ?? apiData.purchaseFee ?? 0;

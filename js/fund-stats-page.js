@@ -102,13 +102,22 @@ function renderSection(containerId, items, total, titleForEmpty, metaSuffix, vie
 async function ensureSearchIndexInitialsMap() {
   if (searchIndexInitialsMap) return searchIndexInitialsMap;
   searchIndexInitialsMap = new Map();
-  try {
-    const base = getFeeApiBaseSafe();
-    const url = base.endsWith('/') ? `${base}search-index` : `${base}/search-index`;
-    const res = await fetch(url);
-    if (!res.ok) return searchIndexInitialsMap;
-    const list = await res.json();
-    if (!Array.isArray(list)) return searchIndexInitialsMap;
+  let list = null;
+  const base = getFeeApiBaseSafe();
+  if (base) {
+    try {
+      const url = base.endsWith('/') ? `${base}search-index` : `${base}/search-index`;
+      const res = await fetch(url);
+      if (res.ok) list = await res.json();
+    } catch { /* 尝试静态文件 */ }
+  }
+  if (!list) {
+    try {
+      const res = await fetch('data/allfund/search-index.json');
+      if (res.ok) list = await res.json();
+    } catch { /* 忽略 */ }
+  }
+  if (Array.isArray(list)) {
     for (const item of list) {
       const code = String(item.code || '').trim();
       if (!code) continue;
@@ -116,8 +125,6 @@ async function ensureSearchIndexInitialsMap() {
       if (!initials) continue;
       searchIndexInitialsMap.set(code, initials);
     }
-  } catch {
-    // 忽略错误，保留空 map
   }
   return searchIndexInitialsMap;
 }
@@ -230,20 +237,40 @@ function getViewItemByLabel(viewKey, label) {
   return v.items.find(item => item.label === label) || null;
 }
 
+let _statsAllfundCache = null;
+async function loadAllfundForStats() {
+  if (_statsAllfundCache) return _statsAllfundCache;
+  try {
+    const res = await fetch('data/allfund/allfund.json');
+    if (res.ok) _statsAllfundCache = await res.json();
+  } catch { /* ignore */ }
+  return _statsAllfundCache;
+}
+
 async function fetchFundDetailByCode(code) {
   if (fundDetailCache[code]) return fundDetailCache[code];
-  try {
-    const base = getFeeApiBaseSafe();
-    const url = base.endsWith('/') ? `${base}${code}/fee` : `${base}/${code}/fee`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('failed');
-    const data = await res.json();
-    fundDetailCache[code] = data;
-    return data;
-  } catch {
-    fundDetailCache[code] = null;
-    return null;
+  const base = getFeeApiBaseSafe();
+  if (base) {
+    try {
+      const url = base.endsWith('/') ? `${base}${code}/fee` : `${base}/${code}/fee`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        fundDetailCache[code] = data;
+        return data;
+      }
+    } catch { /* 尝试静态回退 */ }
   }
+  const all = await loadAllfundForStats();
+  if (all) {
+    const funds = all.funds || all;
+    if (funds[code]) {
+      fundDetailCache[code] = funds[code];
+      return funds[code];
+    }
+  }
+  fundDetailCache[code] = null;
+  return null;
 }
 
 async function loadFundsForCard(viewKey, label) {
@@ -423,17 +450,29 @@ function bindCardInteractions() {
 
 async function loadStats() {
   try {
-    setStatus('正在从本地 API 读取统计信息...');
+    setStatus('正在读取统计信息...');
     setProgress(15);
+
+    let data = null;
     const base = getFeeApiBase();
-    const url = base.endsWith('/') ? `${base}stats` : `${base}/stats`;
-    const res = await fetch(url);
-    if (!res.ok) {
-      setStatus('读取统计信息失败，请检查本地 API 服务。', true);
+    if (base) {
+      try {
+        const url = base.endsWith('/') ? `${base}stats` : `${base}/stats`;
+        const res = await fetch(url);
+        if (res.ok) data = await res.json();
+      } catch { /* API 不可用，尝试静态文件 */ }
+    }
+    if (!data) {
+      try {
+        const res = await fetch('data/allfund/fund-stats.json');
+        if (res.ok) data = await res.json();
+      } catch { /* 静态文件也不可用 */ }
+    }
+    if (!data) {
+      setStatus('读取统计信息失败。请确认 API 服务或静态数据文件可用。', true);
       setProgress(0);
       return;
     }
-    const data = await res.json();
     const total = data.total || 0;
     const trackingFundCount = data.trackingFundCount || 0;
     renderSummary(total);

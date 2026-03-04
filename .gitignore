@@ -1,9 +1,10 @@
 # 依赖
 node_modules/
 
-# 大型数据文件（由爬虫/构建生成，不入库；服务器上单独管理）
-data/allfund/allfund.json
+# 单只基金缓存文件（26000+ 个文件，不入库）
 data/funds/
+
+# allfund.json 已纳入 Git，供 GitHub Pages 纯静态模式使用
 
 # 系统文件
 .DS_Store

@@ -187,54 +187,19 @@ function renderTable() {
   `).join('');
 }
 
-function getApiBase() {
-  if (typeof window !== 'undefined' && window.FUND_FEE_API_BASE) return window.FUND_FEE_API_BASE;
-  const h = window.location.hostname;
-  if (h === 'localhost' || h === '127.0.0.1') return 'http://localhost:3457/api/fund';
-  if (h.endsWith('.github.io')) return null;
-  return '/api/fund';
-}
-
 async function loadCachedFunds() {
   try {
-    setStatus('正在从本地汇总文件读取缓存基金列表...');
+    setStatus('正在读取缓存基金列表...');
     setProgress(0, 1);
 
-    let allfundRes = await fetch('data/allfund/allfund.json').catch(() => null);
-    if (!allfundRes || !allfundRes.ok) {
-      const apiBase = getApiBase();
-      if (apiBase) {
-        setStatus('静态文件不可用，尝试从 API 加载...');
-        const [codesRes, searchRes] = await Promise.all([
-          fetch(`${apiBase}/codes`).catch(() => null),
-          fetch(`${apiBase}/search-index`).catch(() => null)
-        ]);
-        if (codesRes && codesRes.ok) {
-          const codesData = await codesRes.json();
-          const codes = codesData.codes || [];
-          if (codes.length) {
-            const batchSize = 50;
-            const allResults = {};
-            for (let i = 0; i < codes.length; i += batchSize) {
-              const batch = codes.slice(i, i + batchSize);
-              const promises = batch.map(c => fetch(`${apiBase}/${c}/fee`).then(r => r.ok ? r.json().then(d => ({ code: c, ...d })) : null).catch(() => null));
-              const results = await Promise.all(promises);
-              for (const r of results) { if (r) allResults[r.code] = r; }
-              setProgress(Math.min(i + batchSize, codes.length) / codes.length * 100);
-            }
-            allfundRes = new Response(JSON.stringify({ codes, funds: allResults }), { status: 200, headers: { 'Content-Type': 'application/json' } });
-          }
-        }
-      }
-      if (!allfundRes || !allfundRes.ok) {
-        const msg = getApiBase() === null
-          ? '此页面需要 API 服务。请在 js/config.js 中配置 FUND_FEE_API_BASE 指向你的服务器。'
-          : '读取 data/allfund/allfund.json 失败，请检查文件是否存在或 API 服务是否可用。';
-        setStatus(msg, true);
-        return;
-      }
+    const [allfundRes, indexRes] = await Promise.all([
+      fetch('data/allfund/allfund.json'),
+      fetch('data/allfund/search-index.json').catch(() => null)
+    ]);
+    if (!allfundRes.ok) {
+      setStatus('读取 data/allfund/allfund.json 失败，请检查数据文件是否存在。', true);
+      return;
     }
-    const indexRes = await fetch('data/allfund/search-index.json').catch(() => null);
 
     /** @type {{codes?:string[], funds?:Record<string, any>} & Record<string, any>} */
     const data = await allfundRes.json();
