@@ -49,7 +49,8 @@ function buildStats(allfund) {
     const fundManager = (f.fundManager || '').trim();
     const performanceBenchmark = (f.performanceBenchmark || '').trim();
 
-    if (trackingTarget) {
+    const isNoTracking = !trackingTarget || trackingTarget === '该基金无跟踪标的' || trackingTarget.includes('该基金无跟踪标的');
+    if (!isNoTracking) {
       trackingFundCount += 1;
       const key = trackingTarget;
       let entry = trackingMap.get(key);
