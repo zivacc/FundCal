@@ -1,0 +1,19 @@
+{
+  "name": "fund-fee-calculator",
+  "version": "1.0.0",
+  "description": "基金费率计算器 - 多基金费用对比与交叉点分析",
+  "type": "module",
+  "devDependencies": {
+    "pinyin-pro": "^3.28.0"
+  },
+  "scripts": {
+    "dev": "node scripts/dev-server.js",
+    "api": "node scripts/serve-fund-api.js 3457",
+    "serve": "npx serve . -p 3456",
+    "build-search-index": "node scripts/build-search-index.js",
+    "build-feeder-index": "node scripts/build-feeder-index.js",
+    "build-fund-stats": "node scripts/build-fund-stats.js",
+    "build-all": "npm run build-search-index && npm run build-feeder-index && npm run build-fund-stats",
+    "deploy": "bash scripts/deploy.sh"
+  }
+}

@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>基金费率计算器</title>
+  <link rel="icon" type="image/png" href="pics/klogo.png">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <header class="page-header">
+      <div>
+        <h1>基金费率计算器</h1>
+        <p class="subtitle">对比多只基金在不同持有期限下的累计费率，并标注交点</p>
+      </div>
+      <div class="page-header-right">
+        <a href="cached-funds.html" class="btn btn-secondary" id="open-cached-funds" title="查看所有已缓存基金，并进行搜索和排序">缓存基金列表</a>
+        <a href="cached-fund-stats.html" class="btn btn-secondary" id="open-cached-fund-stats" title="查看缓存基金统计">统计</a>
+      </div>
+    </header>
+
+      <div class="actions actions-above-cards">
+        <div class="fund-search-wrap">
+          <input type="text" id="fund-search-input" class="fund-search-input" placeholder="输入基金代码 / 名称 / 拼音首字母" autocomplete="off" aria-autocomplete="list" aria-controls="fund-search-dropdown">
+          <ul id="fund-search-dropdown" class="fund-search-dropdown" role="listbox" aria-hidden="true"></ul>
+        </div>
+        <div class="actions-above-cards-center">
+          <button type="button" class="btn btn-card" id="add-fund" title="添加自定义基金卡片">添加自定义基金卡片</button>
+          <button type="button" class="btn btn-secondary" id="import-funds" title="从文本/CSV/Excel/.ziva 批量导入基金或恢复快照">导入</button>
+          <button type="button" class="btn btn-secondary" id="export-funds" title="导出当前页面所有设置和基金为 .ziva 快照文件">导出</button>
+          <button type="button" class="btn btn-secondary" id="open-index-picker" title="按跟踪指数选择基金">指数</button>
+        </div>
+        <div class="actions-above-cards-right">
+          <button type="button" class="btn btn-secondary" id="demo-btn" title="加载 004400、004401、023910">示例数据</button>
+          <button type="button" class="btn btn-secondary" id="random-data" title="从已缓存中随机 3–8 只">随机数据</button>
+          <button type="button" class="btn btn-secondary" id="clear-storage" title="清除所有基金卡片并清除本地暂存">清除所有</button>
+        </div>
+      </div>
+    <div class="fund-cards" id="fund-cards"></div>
+
+    <div class="actions">
+      <div class="form-row calc-days-row">
+        <label for="calc-days-min">显示天数</label>
+        <input type="number" id="calc-days-min" value="" min="0" placeholder="起始" title="起始天数，空则与结束二选一或自动">
+        <span class="calc-days-sep">–</span>
+        <input type="number" id="calc-days-max" value="" min="0" placeholder="结束" title="结束天数">
+        <button type="button" class="btn btn-sm btn-secondary calc-days-quick-btn" id="calc-days-60" title="结束天数设为 60">60</button>
+        <button type="button" class="btn btn-sm btn-secondary calc-days-quick-btn" id="calc-days-365" title="结束天数设为 365">365</button>
+        <button type="button" class="btn btn-sm btn-secondary calc-days-quick-btn" id="calc-days-max-btn" title="结束天数设为最大（7300）">MAX</button>
+        <div class="calc-discount-wrap" title="按折扣系数调整所有基金买入费率，仅影响计算，不改动输入框数值">
+          <span class="calc-discount-label">买入</span>
+          <select id="buy-fee-discount" class="toggle-select" aria-label="买入费率折扣">
+            <option value="0.1">一折</option>
+            <option value="1">原价</option>
+            <option value="0.01">0.1折</option>
+            <option value="0">免申购</option>
+          </select>
+        </div>
+        <button type="button" class="btn btn-sm btn-secondary" id="clear-calc-days" title="清空显示区间">清除</button>
+      </div>
+    </div>
+
+    <div class="chart-container">
+      <div class="chart-main">
+        <div class="chart-main-left">
+          <div class="chart-wrapper">
+            <canvas id="chart-canvas"></canvas>
+          </div>
+          <div class="optimal-band" id="optimal-band" aria-hidden="true"></div>
+        </div>
+        <aside class="chart-main-right" id="chart-main-right" aria-label="参与图表计算的基金列表">
+          <button type="button" class="chart-fund-list-toggle" id="chart-fund-list-toggle" title="收起/展开列表"><span class="chart-fund-list-toggle-arrow">‹</span></button>
+          <div class="chart-fund-list-body">
+            <div class="chart-fund-list-header">
+              <span>显示基金</span>
+              <span id="chart-fund-list-hint" class="chart-fund-list-hint"></span>
+              <button type="button" class="btn btn-sm btn-secondary chart-fund-list-show-all" id="chart-fund-list-show-all">全部显示</button>
+              <button type="button" class="btn btn-sm btn-secondary chart-fund-list-hide-all" id="chart-fund-list-hide-all">全部隐藏</button>
+            </div>
+            <div class="chart-fund-list" id="chart-fund-list">
+              <!-- 由 js/app.js 动态渲染 -->
+            </div>
+          </div>
+        </aside>
+      </div>
+      <div class="chart-footer">
+        <div class="chart-footer-left">
+          <div class="crossover-legend" id="crossover-legend">
+            <p class="none">请添加基金并填写费率</p>
+          </div>
+        </div>
+        <div class="chart-footer-right">
+          <div class="chart-options">
+            <label class="toggle-btn" for="skip-first-7" title="显示 7 天至结束（自动时 7–自动最大值），弱化前 6 天高费率影响">
+              <input type="checkbox" id="skip-first-7" class="toggle-btn-input" aria-hidden="true">
+              <span class="toggle-btn-text">忽略惩罚期</span>
+            </label>
+            <label class="toggle-btn" for="show-tooltip" title="鼠标悬停在图表曲线上时显示详细费率信息">
+              <input type="checkbox" id="show-tooltip" class="toggle-btn-input" checked aria-hidden="true">
+              <span class="toggle-btn-text">数据悬浮窗</span>
+            </label>
+            <label class="toggle-btn toggle-btn-inline hide-penetrate-linked" title="联接基金年化费率穿透：联接年化 + 母基金年化，买入/卖出费率不变" aria-hidden="true">
+              <input type="checkbox" id="penetrate-linked" class="toggle-btn-input" aria-hidden="true">
+              <span class="toggle-btn-text">联接基金穿透</span>
+            </label>
+            <button type="button" class="btn btn-secondary btn-random-bottom" id="random-data-bottom" title="从已缓存中随机 3–8 只">随机数据</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 导入弹窗：支持文本粘贴 / 拖入 / 选择文件 -->
+  <div class="modal-backdrop" id="fund-import-modal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="fund-import-modal-title">
+      <div class="modal-header">
+        <h2 id="fund-import-modal-title">导入基金</h2>
+        <button type="button" class="modal-close-btn" id="fund-import-modal-close" aria-label="关闭导入窗口">×</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-intro">可以直接粘贴任意文本（如聊天记录、网文）或选择 CSV / Excel 文件，系统会自动识别其中的基金代码或完整基金名称。</p>
+        <div class="import-main">
+          <div class="import-file-wrap" id="fund-import-dropzone">
+            <div class="import-file-inner">
+              <p class="import-file-title">拖入 / 选择文件</p>
+              <p class="import-file-subtitle">支持文本（.txt）、CSV（.csv）、Excel（.xls / .xlsx），优先读取首列内容</p>
+              <input type="file" id="fund-import-file" class="modal-file-input" accept=".txt,.csv,.ziva,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+              <label for="fund-import-file" class="btn btn-sm btn-secondary import-file-select-btn">选择文件</label>
+              <p class="import-file-hint" id="fund-import-file-name"></p>
+            </div>
+          </div>
+          <div class="import-text-wrap">
+            <textarea id="fund-import-text" class="modal-textarea" placeholder="在这里粘贴包含基金代码或完整名称的文本（例如：&#10;看看 000001 华夏成长混合 和 110011 易方达优选混合A ...）"></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <div class="modal-footer-left">
+          <span class="modal-hint">识别逻辑：从文本中提取 6 位基金代码和完整基金名称；从 CSV/Excel 的首列读取代码或名称。</span>
+        </div>
+        <div class="modal-footer-right">
+          <button type="button" class="btn btn-secondary" id="fund-import-modal-cancel">取消</button>
+          <button type="button" class="btn btn-primary" id="fund-import-start">开始识别</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 导入结果确认弹窗 -->
+  <div class="modal-backdrop" id="fund-import-confirm-modal" aria-hidden="true">
+    <div class="modal modal-confirm" role="dialog" aria-modal="true" aria-labelledby="fund-import-confirm-title">
+      <div class="modal-header">
+        <h2 id="fund-import-confirm-title">确认导入基金</h2>
+        <button type="button" class="modal-close-btn" id="fund-import-confirm-close" aria-label="关闭确认窗口">×</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-intro">已识别出以下基金，可以在这里删除不需要或识别错误的条目：</p>
+        <div class="fund-import-result-list" id="fund-import-result-list">
+          <!-- 识别结果列表 -->
+        </div>
+        <p class="modal-empty-hint" id="fund-import-empty-hint" hidden>当前没有可导入的基金，请返回重新选择。</p>
+      </div>
+      <div class="modal-footer">
+        <div class="modal-footer-left">
+          <span class="modal-hint">点击右侧「删除」可移除单条记录，「返回」可以回到上一步重新选择，「确认导入」会为每只基金新增一张基金卡片。</span>
+        </div>
+        <div class="modal-footer-right">
+          <button type="button" class="btn btn-secondary" id="fund-import-confirm-cancel">返回</button>
+          <button type="button" class="btn btn-primary" id="fund-import-confirm-apply">确认导入</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 指数选择弹窗 -->
+  <div class="modal-backdrop" id="index-picker-modal" aria-hidden="true">
+    <div class="modal modal-index-picker" role="dialog" aria-modal="true" aria-labelledby="index-picker-title">
+      <div class="modal-header">
+        <h2 id="index-picker-title">按指数选择基金</h2>
+        <button type="button" class="modal-close-btn" id="index-picker-close" aria-label="关闭指数选择窗口">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="index-picker-top">
+          <p class="modal-intro">先选择一个跟踪指数，再在下方勾选需要添加的基金。</p>
+          <div class="index-picker-search-row">
+            <div class="fund-search-wrap index-picker-search-wrap">
+              <input
+                type="text"
+                id="index-picker-search-input"
+                class="fund-search-input"
+                placeholder="输入指数名称 / 拼音首字母，例如：沪深300 / hs300 / 黄金9999 / hj9999"
+                autocomplete="off">
+            </div>
+          </div>
+          <div class="index-picker-index-list" id="index-picker-index-list">
+            <!-- 跟踪指数卡片列表 -->
+          </div>
+        </div>
+        <div class="index-picker-divider"></div>
+        <div class="index-picker-bottom">
+          <div class="index-picker-bottom-header">
+            <div class="index-picker-bottom-title">
+              <span id="index-picker-selected-index-label">未选择指数</span>
+              <span id="index-picker-selected-count" class="index-picker-selected-count"></span>
+            </div>
+            <div class="index-picker-bottom-actions">
+              <button type="button" class="btn btn-sm btn-secondary" id="index-picker-select-all">全选</button>
+              <button type="button" class="btn btn-sm btn-secondary" id="index-picker-select-linked">联接基金</button>
+              <button type="button" class="btn btn-sm btn-secondary" id="index-picker-select-enhanced">增强</button>
+              <button type="button" class="btn btn-sm btn-secondary" id="index-picker-invert-selection">反选</button>
+            </div>
+          </div>
+          <div class="index-picker-fund-list" id="index-picker-fund-list">
+            <!-- 指数对应基金列表 -->
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <div class="modal-footer-left">
+          <span class="modal-hint" id="index-picker-hint">已选择 0 只基金。</span>
+        </div>
+        <div class="modal-footer-right">
+          <button type="button" class="btn btn-secondary" id="index-picker-cancel">取消</button>
+          <button type="button" class="btn btn-primary" id="index-picker-apply">添加</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Excel 解析库（用于读取 .xls/.xlsx） -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,518 @@
+/**
+ * 基金费率爬虫：从天天基金/东方财富 fundf10 费率页抓取并写入本地
+ * 数据存于 data/funds/[code].json，便于后续前端或接口调用
+ * 使用：node scripts/crawl-fund-fee.js [基金代码1] [基金代码2] ...
+ * 示例：node scripts/crawl-fund-fee.js 000001 110011
+ */
+
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const DATA_DIR = path.join(__dirname, '..', 'data', 'funds');
+const INDEX_PATH = path.join(DATA_DIR, 'index.json');
+
+const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+
+/**
+ * 解析有上限区间的天数上限（该段适用区间的右端点）
+ * "小于7天" -> 7；"大于等于7天，小于365天" -> 365；"大于等于365天，小于730天" -> 730；"大于等于1年，小于2年" -> 730
+ */
+function parseDaysUpperBound(text) {
+  if (!text || typeof text !== 'string') return 730;
+  const t = text.trim();
+  const lessThanDay = t.match(/小于\s*(\d+)\s*天/);
+  if (lessThanDay) return parseInt(lessThanDay[1], 10);
+  const lessThanYear = t.match(/小于\s*(\d+)\s*年/);
+  if (lessThanYear) return parseInt(lessThanYear[1], 10) * 365;
+  const lessThanMonth = t.match(/小于\s*(\d+)\s*[个]?月/);
+  if (lessThanMonth) return Math.round(parseInt(lessThanMonth[1], 10) * 30.44);
+  const dayMatch = t.match(/(\d+)\s*天/);
+  if (dayMatch) return parseInt(dayMatch[1], 10);
+  const yearMatch = t.match(/(\d+)\s*年/);
+  if (yearMatch) return parseInt(yearMatch[1], 10) * 365;
+  return 730;
+}
+
+/**
+ * 判断适用期限是否为「大于等于某期限」无上限（表格中通常为最后一行）
+ * 如 "大于等于7天"、"大于等于8年" 为 true；"大于等于1年，小于2年" 为 false
+ */
+function isUnboundedPeriod(text) {
+  if (!text || typeof text !== 'string') return false;
+  const t = text.trim();
+  return (/大于等于|不少于|不低于/.test(t) && !/小于/.test(t));
+}
+
+/**
+ * 解析无上限区间的起始天数（仅当 isUnboundedPeriod 为 true 时语义正确）
+ * "大于等于7天" -> 7；"大于等于8年" -> 2920
+ */
+function parseDaysStartUnbounded(text) {
+  if (!text || typeof text !== 'string') return 0;
+  const t = text.trim();
+  const dayMatch = t.match(/(\d+)\s*天/);
+  const yearMatch = t.match(/(\d+)\s*年/);
+  if (dayMatch) return parseInt(dayMatch[1], 10);
+  if (yearMatch) return parseInt(yearMatch[1], 10) * 365;
+  const monthMatch = t.match(/(\d+)\s*[个]?月/);
+  if (monthMatch) return Math.round(parseInt(monthMatch[1], 10) * 30.44);
+  return 0;
+}
+
+/** 解析费率百分比字符串为小数 */
+function parseRatePercent(str) {
+  if (str === undefined || str === null || str === '' || str === '---') return 0;
+  const m = String(str).match(/([\d.]+)/);
+  return m ? parseFloat(m[1]) / 100 : 0;
+}
+
+/** 从表格 HTML 中提取行，每行为单元格文本数组 */
+function parseTableRows(tableHtml) {
+  const rows = (tableHtml || '').match(/<tr[^>]*>[\s\S]*?<\/tr>/gi) || [];
+  const result = [];
+  for (const row of rows) {
+    const cells = row.match(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi);
+    if (!cells || cells.length === 0) continue;
+    const getText = (cell) => cell.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim();
+    result.push(cells.map(getText));
+  }
+  return result;
+}
+
+/**
+ * 从「基本概况」页面抓取基础信息：
+ * - 跟踪标的
+ * - 基金管理人
+ * - 业绩比较基准
+ * - 基金类型（例如：货币型-普通货币、混合型-偏股 等）
+ * URL 形如：https://fundf10.eastmoney.com/jbgk_<code>.html
+ */
+async function fetchFundBasicInfo(code) {
+  const url = `https://fundf10.eastmoney.com/jbgk_${code}.html`;
+  try {
+    const res = await fetch(url, { headers: { 'User-Agent': UA } });
+    if (!res.ok) return { trackingTarget: '', fundManager: '', performanceBenchmark: '', fundType: '' };
+    const html = await res.text();
+    // 直接解析页面中的所有表格行，查找目标字段所在的单元格
+    const rows = parseTableRows(html);
+    let trackingTarget = '';
+    let fundManager = '';
+    let performanceBenchmark = '';
+    let fundType = '';
+    for (const row of rows) {
+      for (let i = 0; i < row.length; i++) {
+        const label = row[i];
+        if (!label) continue;
+        if (!fundManager && /基金管理人/.test(label) && i + 1 < row.length) {
+          fundManager = row[i + 1].trim();
+        }
+        if (!performanceBenchmark && /业绩比较基准/.test(label) && i + 1 < row.length) {
+          performanceBenchmark = row[i + 1].trim();
+        }
+        if (!trackingTarget && /跟踪标的/.test(label) && i + 1 < row.length) {
+          trackingTarget = row[i + 1].trim();
+        }
+        // 基金类型：通常在「基金类型」字段对应的下一格，比如 “货币型-普通货币”
+        if (!fundType && /基金类型/.test(label) && i + 1 < row.length) {
+          fundType = row[i + 1].trim();
+        }
+      }
+    }
+    return { trackingTarget, fundManager, performanceBenchmark, fundType };
+  } catch {
+    return { trackingTarget: '', fundManager: '', performanceBenchmark: '', fundType: '' };
+  }
+}
+
+/**
+ * 从海外基金基本资料页抓取基金名称等基础信息
+ * URL 形如：https://overseas.1234567.com.cn/f10/FundBaseInfo/<code>
+ */
+async function fetchOverseasFundBaseInfo(code) {
+  const url = `https://overseas.1234567.com.cn/f10/FundBaseInfo/${code}`;
+  try {
+    const res = await fetch(url, { headers: { 'User-Agent': UA } });
+    if (!res.ok) return { name: '' };
+    const html = await res.text();
+    const rows = parseTableRows(html);
+    let name = '';
+    for (const row of rows) {
+      for (let i = 0; i < row.length; i++) {
+        const label = row[i];
+        if (!label) continue;
+        if (!name && /基金名称/.test(label) && i + 1 < row.length) {
+          name = row[i + 1].trim();
+        }
+      }
+    }
+    return { name };
+  } catch {
+    return { name: '' };
+  }
+}
+
+/**
+ * 抓取海外/中港互认基金费率页（overseas.1234567.com.cn/f10/FundSaleInfo/<code>）
+ * 返回与境内基金相同结构的对象，便于前端统一处理。
+ */
+async function fetchOverseasFundFee(code) {
+  const url = `https://overseas.1234567.com.cn/f10/FundSaleInfo/${code}`;
+  let html;
+  try {
+    const res = await fetch(url, { headers: { 'User-Agent': UA } });
+    if (!res.ok) return null;
+    html = await res.text();
+  } catch (e) {
+    console.error(`[${code}] 海外费率页请求失败:`, e.message);
+    return null;
+  }
+
+  // 基金名称：优先从海外基金基本资料页获取，其次从费率页标题中提取
+  let name = `基金${code}`;
+  try {
+    const baseInfo = await fetchOverseasFundBaseInfo(code);
+    if (baseInfo?.name && baseInfo.name.trim().length >= 2) {
+      name = baseInfo.name.trim();
+    }
+  } catch {
+    // 忽略基础信息抓取错误，退回到费率页解析
+  }
+  if (!name || name === `基金${code}`) {
+    const nameMatch = html.match(/>\s*([^<（(]{2,})[（(]\s*${code}\s*[）)]/);
+    if (nameMatch) {
+      name = nameMatch[1].trim();
+    }
+  }
+
+  // 运作费用：管理费 / 托管费
+  let managementFee = 0;
+  let custodyFee = 0;
+  const opsBlock = html.match(/运作费用[\s\S]*?<table[^>]*>([\s\S]*?)<\/table>/);
+  if (opsBlock) {
+    const block = opsBlock[1];
+    const mgmtMatch = block.match(/管理费[^%]*?([\d.]+)%/);
+    if (mgmtMatch) managementFee = parseFloat(mgmtMatch[1]) / 100;
+    const custMatch = block.match(/托管费[^%]*?([\d.]+)%/);
+    if (custMatch) custodyFee = parseFloat(custMatch[1]) / 100;
+  }
+  const salesServiceFee = 0;
+  const totalOperationFee = managementFee + custodyFee + salesServiceFee;
+  const operationFees = {
+    managementFee,
+    custodyFee,
+    salesServiceFee,
+    total: totalOperationFee
+  };
+
+  // 申购费用：直接取金额最小区间（首条）的费率作为 buyFee
+  const subscribeFrontSegments = [];
+  const purchaseFrontSegments = [];
+  const purchaseBackSegments = [];
+  let buyFee = 0;
+  const buyBlock = html.match(/申购费用[\s\S]*?<table[^>]*>([\s\S]*?)<\/table>/);
+  if (buyBlock) {
+    const rows = parseTableRows(buyBlock[1]);
+    for (const row of rows) {
+      const rowText = row.join(' ');
+      if (!/[\d.]+%/.test(rowText)) continue;
+      const rateMatch = rowText.match(/([\d.]+)%/);
+      if (!rateMatch) continue;
+      const rate = parseFloat(rateMatch[1]) / 100;
+      const amountCondition = row[0] || '---';
+      const periodCondition = row[1] || '---';
+      purchaseFrontSegments.push({
+        amountCondition,
+        periodCondition,
+        rate
+      });
+      if (buyFee === 0) {
+        buyFee = rate;
+      }
+    }
+  }
+
+  // 赎回费用：转换为 sellFeeSegments
+  const redeemSegments = [];
+  const redeemBlock = html.match(/赎回费用[\s\S]*?<table[^>]*>([\s\S]*?)<\/table>/);
+  if (redeemBlock) {
+    const rows = parseTableRows(redeemBlock[1]);
+    for (const row of rows) {
+      const rowText = row.join(' ');
+      if (!/[\d.]+%/.test(rowText)) continue;
+      const rateMatch = rowText.match(/([\d.]+)%/);
+      if (!rateMatch) continue;
+      const rate = parseFloat(rateMatch[1]) / 100;
+      // 默认第二列为“持有期限”
+      const periodRaw = row[1] || row[0] || '---';
+      const periodText = periodRaw.trim();
+      const unbounded = isUnboundedPeriod(periodText);
+      const days = unbounded ? parseDaysStartUnbounded(periodText) : parseDaysUpperBound(periodText);
+      redeemSegments.push({
+        periodCondition: periodText,
+        days,
+        rate,
+        ...(unbounded && { unbounded: true })
+      });
+    }
+    redeemSegments.sort((a, b) => (a.days || 0) - (b.days || 0));
+  }
+
+  const sellFeeSegments = redeemSegments.length > 0
+    ? redeemSegments.map(s => ({ days: s.days, rate: s.rate, ...(s.unbounded && { unbounded: true }) }))
+    : [{ days: 730, rate: 0 }];
+
+  return {
+    code,
+    name,
+    source: 'eastmoney-overseas',
+    updatedAt: new Date().toISOString(),
+    tradingStatus: null,
+    operationFees,
+    subscribeFrontSegments,
+    purchaseFrontSegments,
+    purchaseBackSegments,
+    redeemSegments,
+    buyFee,
+    sellFeeSegments,
+    annualFee: totalOperationFee
+  };
+}
+
+/**
+ * 抓取单只基金费率页 HTML，解析为计算器所需结构
+ * @param {string} code - 6位基金代码
+ * @returns {Promise<Object|null>} { name, buyFee, sellFeeSegments, annualFee, code, updatedAt } 或 null
+ */
+async function fetchFundFee(code) {
+  // 968 开头为中港互认/海外基金，使用海外费率页解析逻辑
+  if (/^968\d{3}$/.test(code)) {
+    return fetchOverseasFundFee(code);
+  }
+  const url = `https://fundf10.eastmoney.com/jjfl_${code}.html`;
+  let html;
+  try {
+    const res = await fetch(url, { headers: { 'User-Agent': UA } });
+    if (!res.ok) return null;
+    html = await res.text();
+  } catch (e) {
+    console.error(`[${code}] 请求失败:`, e.message);
+    return null;
+  }
+
+  const nameMatch = html.match(/<title>([^<(]+)(?:\([\d]+\))?[^<]*<\/title>/);
+  const name = nameMatch ? nameMatch[1].trim() : `基金${code}`;
+
+  // ---------- 0. 基本信息补充：跟踪标的、基金管理人、业绩比较基准、基金类型（来自 jbgk 页面） ----------
+  const { trackingTarget, fundManager, performanceBenchmark, fundType } = await fetchFundBasicInfo(code);
+
+  // ---------- 1. 交易状态：申购状态、赎回状态 ----------
+  let subscribeStatus = '';
+  let redeemStatus = '';
+  const tradingBlock = html.match(/交易状态[\s\S]*?<table[^>]*>([\s\S]*?)<\/table>/);
+  if (tradingBlock) {
+    const rows = parseTableRows(tradingBlock[1]);
+    for (const row of rows) {
+      const full = row.join(' ');
+      const subIdx = row.findIndex(c => /申购状态/.test(c));
+      const redIdx = row.findIndex(c => /赎回状态/.test(c));
+      if (subIdx >= 0 && subIdx + 1 < row.length) subscribeStatus = row[subIdx + 1] || subscribeStatus;
+      if (redIdx >= 0 && redIdx + 1 < row.length) redeemStatus = row[redIdx + 1] || redeemStatus;
+    }
+  }
+  const tradingStatus = { subscribe: subscribeStatus, redeem: redeemStatus };
+
+  // ---------- 2. 运作费用：管理、托管、销售服务、总运作费率 ----------
+  let managementFee = 0;
+  let custodyFee = 0;
+  let salesServiceFee = 0;
+  const opsBlock = html.match(/运作费用[\s\S]*?<table[^>]*>([\s\S]*?)<\/table>/);
+  if (opsBlock) {
+    const block = opsBlock[1];
+    const mgmtMatch = block.match(/管理费率[\s\S]*?([\d.]+)%/);
+    if (mgmtMatch) managementFee = parseFloat(mgmtMatch[1]) / 100;
+    const custMatch = block.match(/托管费率[\s\S]*?([\d.]+)%/);
+    if (custMatch) custodyFee = parseFloat(custMatch[1]) / 100;
+    const salesMatch = block.match(/销售服务费率[\s\S]*?([\d.]+)%/);
+    if (salesMatch && !/---|\-\-\-/.test(salesMatch[0])) salesServiceFee = parseFloat(salesMatch[1]) / 100;
+  }
+  const totalOperationFee = managementFee + custodyFee + salesServiceFee;
+  const operationFees = {
+    managementFee,
+    custodyFee,
+    salesServiceFee,
+    total: totalOperationFee
+  };
+
+  // ---------- 3. 申赎费率：认购（前端）、申购（前端）、申购（后端）、赎回 ----------
+  const subscribeFrontSegments = [];
+  const subFrontSection = html.match(/认购费率（前端）[\s\S]*?<table[^>]*>([\s\S]*?)<\/table>/);
+  if (subFrontSection) {
+    const rows = parseTableRows(subFrontSection[1]);
+    for (const row of rows) {
+      if (/适用金额|适用期限/.test(row.join(' ')) && !/[\d.]+%/.test(row.join(' '))) continue;
+      const rateStr = row.find(c => /[\d.]+%/.test(c));
+      if (!rateStr) continue;
+      const amountCondition = row[0] || '---';
+      const periodCondition = row[1] || '---';
+      subscribeFrontSegments.push({
+        amountCondition,
+        periodCondition,
+        rate: parseRatePercent(rateStr)
+      });
+    }
+  }
+
+  const purchaseFrontSegments = [];
+  const buySection = html.match(/申购费率（前端）[\s\S]*?<table[^>]*>([\s\S]*?)<\/table>/);
+  let buyFeeFront = null;
+  if (buySection) {
+    const rows = parseTableRows(buySection[1]);
+    for (const row of rows) {
+      const rowText = row.join(' ');
+      if (/适用金额|适用期限/.test(row[0] + (row[1] || '')) && !/[\d.]+%/.test(rowText)) continue;
+      const rateStrs = [...rowText.matchAll(/([\d.]+)%/g)].map(m => m[1] + '%');
+      if (rateStrs.length === 0) continue;
+      const amountCondition = row[0] || '---';
+      const periodCondition = row[1] || '---';
+      const rates = rateStrs.map(s => parseRatePercent(s));
+      const rate = rates[0];
+      const discountCandidates = rates.filter(r => r > 0.0001 && r < 0.005);
+      const rateDiscount = discountCandidates.length ? Math.min(...discountCandidates) : (rate < 0.005 ? rate : 0);
+      // buyFeeFront：使用金额最小区间（通常为首行）的「优惠前」费率
+      if (buyFeeFront === null) {
+        buyFeeFront = rate;
+      }
+      purchaseFrontSegments.push({
+        amountCondition,
+        periodCondition,
+        rate,
+        rateDiscount: rateDiscount !== rate && rateDiscount > 0 ? rateDiscount : undefined
+      });
+    }
+  }
+
+  const purchaseBackSegments = [];
+  const buyBackSection = html.match(/申购费率（后端）[\s\S]*?<table[^>]*>([\s\S]*?)<\/table>/);
+  if (buyBackSection) {
+    const rows = parseTableRows(buyBackSection[1]);
+    for (const row of rows) {
+      if (/适用期限|申购费率/.test(row.join(' ')) && !/[\d.]+%/.test(row.join(' '))) continue;
+      const rateStr = row.find(c => /[\d.]+%/.test(c));
+      if (!rateStr) continue;
+      const periodCondition = row.find(c => /[天年月]|小于|大于/.test(c)) || row[0] || '---';
+      const periodText = /\d+\s*[天年月]/.test(periodCondition) ? periodCondition : (row[0] || row[1] || '---');
+      const unbounded = isUnboundedPeriod(periodText);
+      const days = unbounded ? parseDaysStartUnbounded(periodText) : parseDaysUpperBound(periodText);
+      purchaseBackSegments.push({
+        periodCondition: periodText,
+        days,
+        rate: parseRatePercent(rateStr),
+        ...(unbounded && { unbounded: true })
+      });
+    }
+    purchaseBackSegments.sort((a, b) => (a.days || 0) - (b.days || 0));
+  }
+
+  const redeemSegments = [];
+  const redeemSection = html.match(/赎回费率[\s\S]*?<table[^>]*>([\s\S]*?)<\/table>/);
+  if (redeemSection) {
+    const rows = parseTableRows(redeemSection[1]);
+    for (const row of rows) {
+      if (/适用期限|赎回费率|适用金额/.test(row.join(' ')) && !/[\d.]+%/.test(row.join(' '))) continue;
+      const rateStr = row.find(c => /[\d.]+%/.test(c));
+      if (!rateStr) continue;
+      const periodText = /\d+\s*[天年月]/.test(row[1]) ? row[1] : (/\d+\s*[天年月]/.test(row[0]) ? row[0] : row[0] || row[1]);
+      const unbounded = isUnboundedPeriod(periodText);
+      const days = unbounded ? parseDaysStartUnbounded(periodText) : parseDaysUpperBound(periodText);
+      redeemSegments.push({
+        periodCondition: periodText,
+        days,
+        rate: parseRatePercent(rateStr),
+        ...(unbounded && { unbounded: true })
+      });
+    }
+    redeemSegments.sort((a, b) => a.days - b.days);
+  }
+  const sellFeeSegments = redeemSegments.length > 0
+    ? redeemSegments.map(s => ({ days: s.days, rate: s.rate, ...(s.unbounded && { unbounded: true }) }))
+    : [{ days: 730, rate: 0 }];
+
+  // 买入费率：优先使用前端申购费率表中金额最小区间（首条记录）的原始费率；
+  // 如无前端申购费率，则退回到后端申购费率表的首条记录。
+  let buyFee = 0;
+  if (buyFeeFront != null) {
+    buyFee = buyFeeFront;
+  } else if (purchaseBackSegments.length > 0) {
+    buyFee = purchaseBackSegments[0].rate ?? 0;
+  }
+
+  return {
+    code,
+    name,
+    source: 'eastmoney',
+    updatedAt: new Date().toISOString(),
+    trackingTarget,
+    fundManager,
+    performanceBenchmark,
+    fundType,
+    tradingStatus,
+    operationFees,
+    subscribeFrontSegments,
+    purchaseFrontSegments,
+    purchaseBackSegments,
+    redeemSegments,
+    buyFee,
+    sellFeeSegments,
+    annualFee: totalOperationFee
+  };
+}
+
+/** 写入单只基金 JSON 并更新索引 */
+function saveFund(data) {
+  if (!data || !data.code) return;
+  const filePath = path.join(DATA_DIR, `${data.code}.json`);
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
+  const indexPath = path.join(DATA_DIR, 'index.json');
+  let index = { description: '本地基金费率缓存索引，由 scripts/crawl-fund-fee.js 更新', codes: [], lastUpdated: {} };
+  if (fs.existsSync(indexPath)) {
+    try {
+      index = JSON.parse(fs.readFileSync(indexPath, 'utf8'));
+    } catch (_) {}
+  }
+  if (!index.codes.includes(data.code)) index.codes.push(data.code);
+  index.codes.sort();
+  index.lastUpdated[data.code] = data.updatedAt;
+  fs.writeFileSync(indexPath, JSON.stringify(index, null, 2), 'utf8');
+}
+
+/** 主流程：按参数基金代码依次抓取并落盘 */
+async function main() {
+  const codes = process.argv.slice(2).filter(c => /^\d{6}$/.test(c));
+  if (codes.length === 0) {
+    console.log('用法: node scripts/crawl-fund-fee.js <基金代码1> [代码2] ...');
+    console.log('示例: node scripts/crawl-fund-fee.js 000001 110011');
+    process.exit(1);
+  }
+  for (const code of codes) {
+    process.stdout.write(`抓取 ${code} ... `);
+    const data = await fetchFundFee(code);
+    if (data) {
+      saveFund(data);
+      const op = data.operationFees || {};
+      console.log(`OK  ${data.name} 申购${(data.buyFee*100).toFixed(2)}% 运作${((op.total ?? data.annualFee)*100).toFixed(2)}% 申/${data.tradingStatus?.subscribe || '-'} 赎/${data.tradingStatus?.redeem || '-'}`);
+    } else {
+      console.log('失败');
+    }
+    await new Promise(r => setTimeout(r, 800));
+  }
+}
+
+export { fetchFundFee, saveFund, DATA_DIR };
+
+// 仅在被直接运行（带基金代码参数）时执行，被 import 时不执行
+if (process.argv[2] && /^\d{6}$/.test(String(process.argv[2]))) {
+  main().catch(e => { console.error(e); process.exit(1); });
+}

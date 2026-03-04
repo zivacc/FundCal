@@ -1,0 +1,6 @@
+{
+  "description": "联接名称与场内母基金名称不一致时，在此指定「联接名前半段(masterKey) -> 母基金代码」。build-feeder-index.js 会优先使用此处映射。",
+  "overrides": {
+    "工银黄金ETF": "518660"
+  }
+}

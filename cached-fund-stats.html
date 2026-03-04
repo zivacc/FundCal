@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>缓存基金统计 - 基金费率计算器</title>
+  <link rel="icon" type="image/png" href="pics/klogo.png">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <header class="page-header">
+      <div class="page-header-left">
+        <h1>缓存基金统计</h1>
+        <p class="subtitle">基于本地缓存的全部基金，按跟踪标的、基金公司、业绩基准进行聚合统计</p>
+      </div>
+      <div class="page-header-right">
+        <a href="cached-funds.html" class="btn btn-secondary" title="返回缓存基金列表">缓存列表</a>
+        <a href="index.html" class="btn btn-secondary" title="返回费率计算器">返回计算器</a>
+      </div>
+    </header>
+
+    <div id="fund-stats-status" class="cached-funds-status">正在加载缓存基金统计...</div>
+    <div class="cached-funds-progress">
+      <div class="cached-funds-progress-bar" id="fund-stats-progress-bar"></div>
+    </div>
+
+    <section class="fund-stats-summary" id="fund-stats-summary"></section>
+
+    <section class="fund-stats-section">
+      <div class="actions actions-above-cards" style="margin-bottom: 0.75rem;">
+        <div class="fund-search-wrap">
+          <input
+            type="text"
+            id="fund-stats-search-input"
+            class="fund-search-input"
+            placeholder="搜索跟踪指数名称 / 拼音首字母"
+            autocomplete="off">
+        </div>
+      </div>
+      <div class="fund-stats-toggle" role="tablist" aria-label="缓存基金统计维度切换">
+        <button type="button" class="fund-stats-toggle-btn fund-stats-toggle-btn-active" data-key="tracking" data-index="0" role="tab" aria-selected="true">
+          按跟踪标的统计
+        </button>
+        <button type="button" class="fund-stats-toggle-btn" data-key="manager" data-index="1" role="tab" aria-selected="false">
+          按基金公司统计
+        </button>
+        <button type="button" class="fund-stats-toggle-btn" data-key="benchmark" data-index="2" role="tab" aria-selected="false">
+          按业绩基准统计
+        </button>
+        <div class="fund-stats-toggle-slider" aria-hidden="true"></div>
+      </div>
+      <div class="fund-stats-toggle-subtitle" id="fund-stats-toggle-subtitle"></div>
+      <div class="fund-stats-main">
+        <div class="fund-stats-main-left">
+          <div class="fund-stats-grid" id="fund-stats-grid"></div>
+        </div>
+        <aside class="fund-stats-main-right" aria-label="统计维度对应基金列表">
+          <section class="fund-stats-detail-section" id="fund-stats-detail-section">
+            <div id="fund-stats-detail"></div>
+          </section>
+        </aside>
+      </div>
+    </section>
+  </div>
+
+  <script type="module" src="js/fund-stats-page.js"></script>
+</body>
+</html>
+

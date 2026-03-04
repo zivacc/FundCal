@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>缓存基金列表 - 基金费率计算器</title>
+  <link rel="icon" type="image/png" href="pics/klogo.png">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <header class="page-header">
+      <div class="page-header-left">
+        <h1>缓存基金列表</h1>
+        <p class="subtitle">读取本地 API 缓存中的基金，并支持快速查询、筛选与排序</p>
+      </div>
+      <div class="page-header-right">
+        <a href="cached-fund-stats.html" class="btn btn-secondary" title="查看缓存基金统计">统计</a>
+        <a href="index.html" class="btn btn-secondary" title="返回费率计算器">返回计算器</a>
+      </div>
+    </header>
+
+    <div class="cached-funds-toolbar">
+      <div class="cached-funds-search-wrap">
+        <span class="cached-funds-search-icon" aria-hidden="true">
+          <img src="pics/klogo.png" alt="" class="cached-funds-search-icon-img">
+        </span>
+        <input
+          type="text"
+          id="cached-funds-search"
+          class="cached-funds-search-input"
+          placeholder="搜索：代码 / 名称 / 名称首字母（支持模糊匹配）"
+          autocomplete="off"
+        >
+        <button
+          type="button"
+          id="cached-funds-search-clear"
+          class="cached-funds-search-clear"
+          title="清空搜索"
+          aria-label="清空搜索"
+        >×</button>
+      </div>
+      <select id="cached-funds-sort" class="cached-funds-sort-select" title="排序方式">
+        <option value="code-asc">代码 ↑</option>
+        <option value="code-desc">代码 ↓</option>
+        <option value="name-asc">名称 ↑</option>
+        <option value="name-desc">名称 ↓</option>
+        <option value="annual-desc">年化费率 ↓</option>
+        <option value="annual-asc">年化费率 ↑</option>
+        <option value="buy-desc">买入费率 ↓</option>
+        <option value="buy-asc">买入费率 ↑</option>
+      </select>
+    </div>
+
+    <div id="cached-funds-status" class="cached-funds-status">正在加载缓存基金列表...</div>
+    <div class="cached-funds-progress">
+      <div class="cached-funds-progress-bar" id="cached-funds-progress-bar"></div>
+    </div>
+
+    <div class="cached-funds-table-wrap">
+      <table class="cached-funds-table" aria-describedby="cached-funds-status">
+        <thead>
+          <tr>
+            <th>原始数据</th>
+            <th data-sort-key="code">代码</th>
+            <th data-sort-key="name">名称</th>
+            <th>基金类型</th>
+            <th data-sort-key="buyFee">买入费率</th>
+            <th data-sort-key="annualFee">年化费率</th>
+            <th>卖出费率分段</th>
+            <th>跟踪标的</th>
+            <th>业绩基准</th>
+            <th>基金公司</th>
+            <th>交易状态</th>
+            <th>更新时间</th>
+          </tr>
+        </thead>
+        <tbody id="cached-funds-tbody">
+          <!-- 数据加载后填充 -->
+        </tbody>
+      </table>
+    </div>
+
+    <div class="cached-funds-pagination">
+      <div class="cached-funds-pagination-left">
+        <span id="cached-funds-count"></span>
+      </div>
+      <div class="cached-funds-pagination-right">
+        <button type="button" class="btn btn-sm" id="cached-funds-prev">上一页</button>
+        <span id="cached-funds-page-info" class="cached-funds-page-info"></span>
+        <button type="button" class="btn btn-sm" id="cached-funds-next">下一页</button>
+        <input
+          type="number"
+          id="cached-funds-page-input"
+          class="cached-funds-page-input"
+          min="1"
+          placeholder="页码"
+          title="输入页码后回车或失焦跳转"
+        >
+        <button type="button" class="btn btn-sm" id="cached-funds-last" title="跳到最后一页">尾页</button>
+        <select id="cached-funds-page-size" class="cached-funds-page-size" title="每页条数">
+          <option value="50">每页 50 条</option>
+          <option value="100" selected>每页 100 条</option>
+          <option value="200">每页 200 条</option>
+          <option value="500">每页 500 条</option>
+          <option value="1000">每页 1000 条</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- 查看 allfund 原始数据弹窗 -->
+  <div class="modal-backdrop" id="fund-json-modal" aria-hidden="true">
+    <div class="modal modal-json" role="dialog" aria-modal="true" aria-labelledby="fund-json-modal-title">
+      <div class="modal-header">
+        <h2 id="fund-json-modal-title">allfund 原始数据</h2>
+        <button type="button" class="modal-close-btn" id="fund-json-close" aria-label="关闭原始数据窗口">×</button>
+      </div>
+      <div class="modal-body">
+        <pre id="fund-json-content" class="modal-json-pre"></pre>
+        <div id="fund-json-table" class="modal-json-table" hidden></div>
+      </div>
+      <div class="modal-footer">
+        <div class="modal-footer-right">
+          <button type="button" class="btn btn-secondary" id="fund-json-to-table">转为表格</button>
+          <button type="button" class="btn btn-secondary" id="fund-json-cancel">关闭</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/fund-cache-page.js"></script>
+</body>
+</html>
+

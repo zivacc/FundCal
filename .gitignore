@@ -1,0 +1,25 @@
+# 依赖
+node_modules/
+
+# 大型数据文件（由爬虫/构建生成，不入库；服务器上单独管理）
+data/allfund/allfund.json
+data/funds/
+
+# 系统文件
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 日志
+*.log
+npm-debug.log*
+
+# 环境变量
+.env
+.env.local
