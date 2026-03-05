@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>缓存基金统计 - 基金费率计算器</title>
+  <title>数据库基金统计 - 基金费率计算器</title>
   <link rel="icon" type="image/png" href="pics/klogo.png">
   <link rel="stylesheet" href="css/style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14,16 +14,16 @@
   <div class="container">
     <header class="page-header">
       <div class="page-header-left">
-        <h1>缓存基金统计</h1>
-        <p class="subtitle">基于本地缓存的全部基金，按跟踪标的、基金公司、业绩基准进行聚合统计</p>
+        <h1>数据库基金统计</h1>
+        <p class="subtitle">基于数据库的全部基金，按跟踪标的、基金公司、业绩基准进行聚合统计</p>
       </div>
       <div class="page-header-right">
-        <a href="cached-funds.html" class="btn btn-secondary" title="返回缓存基金列表">缓存列表</a>
+        <a href="cached-funds.html" class="btn btn-secondary" title="返回数据库基金列表">数据库列表</a>
         <a href="index.html" class="btn btn-secondary" title="返回费率计算器">返回计算器</a>
       </div>
     </header>
 
-    <div id="fund-stats-status" class="cached-funds-status">正在加载缓存基金统计...</div>
+    <div id="fund-stats-status" class="cached-funds-status">正在加载数据库基金统计...</div>
     <div class="cached-funds-progress">
       <div class="cached-funds-progress-bar" id="fund-stats-progress-bar"></div>
     </div>
@@ -41,7 +41,7 @@
             autocomplete="off">
         </div>
       </div>
-      <div class="fund-stats-toggle" role="tablist" aria-label="缓存基金统计维度切换">
+      <div class="fund-stats-toggle" role="tablist" aria-label="数据库基金统计维度切换">
         <button type="button" class="fund-stats-toggle-btn fund-stats-toggle-btn-active" data-key="tracking" data-index="0" role="tab" aria-selected="true">
           按跟踪标的统计
         </button>
