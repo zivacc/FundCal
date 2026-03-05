@@ -603,6 +603,8 @@ function renderChartFundList(funds) {
   const showAllBtn = document.getElementById('chart-fund-list-show-all');
   const hideAllBtn = document.getElementById('chart-fund-list-hide-all');
   if (!listEl) return;
+  // 辅助无障碍：标记列表角色
+  listEl.setAttribute('role', 'list');
   listEl.innerHTML = '';
   if (!funds || funds.length === 0) {
     listEl.innerHTML = '<p class="modal-hint">当前没有可参与图表的基金。</p>';
@@ -657,6 +659,7 @@ function renderChartFundList(funds) {
     const row = document.createElement('div');
     row.className = 'chart-fund-list-item' + (active ? ' chart-fund-list-item-active' : '');
     row.dataset.fundId = id;
+    row.setAttribute('role', 'listitem');
     row.innerHTML = `
       <div class="chart-fund-list-item-left">
         <span class="chart-fund-list-color" style="color:${color};background:${color};"></span>
@@ -664,16 +667,6 @@ function renderChartFundList(funds) {
       </div>
       ${code ? `<span class="chart-fund-list-code">${code}</span>` : ''}
     `;
-    row.addEventListener('click', () => {
-      if (activeChartFundCodes.has(id)) {
-        activeChartFundCodes.delete(id);
-        row.classList.remove('chart-fund-list-item-active');
-      } else {
-        activeChartFundCodes.add(id);
-        row.classList.add('chart-fund-list-item-active');
-      }
-      updateChart();
-    });
     listEl.appendChild(row);
   });
 
@@ -695,6 +688,25 @@ function renderChartFundList(funds) {
     });
     toggleBtn.appendChild(dotsWrap);
   }
+
+  // 使用事件委托处理列表项点击，避免为每项单独绑定监听器
+  if (!listEl.dataset.boundClick) {
+    listEl.addEventListener('click', (e) => {
+      const row = e.target.closest('.chart-fund-list-item');
+      if (!row) return;
+      const id = row.dataset.fundId;
+      if (!id) return;
+      if (activeChartFundCodes.has(id)) {
+        activeChartFundCodes.delete(id);
+        row.classList.remove('chart-fund-list-item-active');
+      } else {
+        activeChartFundCodes.add(id);
+        row.classList.add('chart-fund-list-item-active');
+      }
+      updateChart();
+    });
+    listEl.dataset.boundClick = '1';
+  }
 }
 
 /** 初始化收起/展开按钮 */
@@ -702,10 +714,14 @@ function initChartFundListToggle() {
   const toggleBtn = document.getElementById('chart-fund-list-toggle');
   const aside = document.getElementById('chart-main-right');
   if (!toggleBtn || !aside) return;
+  // 无障碍属性：指示收起/展开状态
+  toggleBtn.setAttribute('aria-controls', 'chart-fund-list');
+  toggleBtn.setAttribute('aria-expanded', aside.classList.contains('collapsed') ? 'false' : 'true');
   toggleBtn.addEventListener('click', () => {
     const collapsed = aside.classList.toggle('collapsed');
     const arrow = toggleBtn.querySelector('.chart-fund-list-toggle-arrow');
     if (arrow) arrow.textContent = collapsed ? '›' : '‹';
+    toggleBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
   });
 }
 
