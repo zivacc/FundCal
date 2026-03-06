@@ -113,6 +113,29 @@ export async function fetchFeederIndexFromAPI() {
 }
 
 /**
+ * 基金统计（跟踪标的 / 基金公司 / 业绩基准）
+ * API: /stats | 静态: data/allfund/fund-stats.json
+ */
+export async function fetchFundStatsFromAPI() {
+  const empty = {
+    total: 0,
+    trackingFundCount: 0,
+    tracking: [],
+    manager: [],
+    benchmark: [],
+  };
+  const data = await tryApiFetch('stats', () => tryStaticFetch('data/allfund/fund-stats.json'));
+  if (!data) return empty;
+  return {
+    total: data.total ?? 0,
+    trackingFundCount: data.trackingFundCount ?? 0,
+    tracking: Array.isArray(data.tracking) ? data.tracking : [],
+    manager: Array.isArray(data.manager) ? data.manager : [],
+    benchmark: Array.isArray(data.benchmark) ? data.benchmark : [],
+  };
+}
+
+/**
  * 全市场基金代码（供随机抽取）
  * API: /all-codes | 静态: 从 allfund.json 提取（无外部源时复用缓存数据）
  */

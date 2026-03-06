@@ -3,26 +3,11 @@
  */
 
 import { escapeHtml, openModal, closeModal } from './utils.js';
-import { getFeeApiBase, fetchFundFeeFromAPI } from './api-adapter.js';
+import { fetchFundStatsFromAPI, fetchFundFeeFromAPI } from './api-adapter.js';
 
 let indexPickerStatsCache = null;
 let indexPickerSelectedIndex = null;
 let indexPickerSelectedCodes = new Set();
-
-async function fetchFundStatsFromAPI() {
-  if (indexPickerStatsCache) return indexPickerStatsCache;
-  try {
-    const base = getFeeApiBase();
-    const url = base.endsWith('/') ? `${base}stats` : `${base}/stats`;
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const data = await res.json();
-    indexPickerStatsCache = data || null;
-    return indexPickerStatsCache;
-  } catch {
-    return null;
-  }
-}
 
 /**
  * 初始化指数选择弹窗
@@ -165,9 +150,18 @@ export function setupIndexPickerModal({ addFundCard }) {
   };
 
   openBtn.addEventListener('click', async () => {
-    const stats = await fetchFundStatsFromAPI();
+    // 统一走 api-adapter 的封装：优先 API，失败回退静态 JSON
+    if (!indexPickerStatsCache) {
+      indexPickerStatsCache = await fetchFundStatsFromAPI();
+    }
+    const stats = indexPickerStatsCache;
     if (!stats || !Array.isArray(stats.tracking) || !stats.tracking.length) {
-      alert('未能加载指数统计数据，请确认本地 API 已启动。');
+      alert([
+        '未能加载指数统计数据。',
+        '',
+        '- 如果是本地开发，请确认后端 API 或静态文件 data/allfund/fund-stats.json 已生成；',
+        '- 如果是 GitHub Pages 访问，当前仓库可能尚未提交该统计数据文件，此功能将暂时不可用。'
+      ].join('\n'));
       return;
     }
     indexPickerSelectedIndex = null;
