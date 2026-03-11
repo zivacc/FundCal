@@ -542,7 +542,14 @@ function restoreState(state) {
   const skipFirst7El = document.getElementById('skip-first-7');
   if (skipFirst7El && state.skipFirst7 != null) skipFirst7El.checked = !!state.skipFirst7;
   const showTooltipEl = document.getElementById('show-tooltip');
-  if (showTooltipEl) showTooltipEl.checked = state.showTooltip !== false;
+  // 恢复状态，若无状态则默认：小屏关闭，大屏开启
+  if (showTooltipEl) {
+    if (state.showTooltip !== undefined) {
+      showTooltipEl.checked = state.showTooltip !== false;
+    } else {
+      showTooltipEl.checked = window.innerWidth >= 900;
+    }
+  }
   const penetrateFeederEl = document.getElementById('penetrate-linked');
   if (penetrateFeederEl && state.penetrateFeeder != null) penetrateFeederEl.checked = !!state.penetrateFeeder;
   const container = document.getElementById('fund-cards');
@@ -714,6 +721,14 @@ function initChartFundListToggle() {
   const toggleBtn = document.getElementById('chart-fund-list-toggle');
   const aside = document.getElementById('chart-main-right');
   if (!toggleBtn || !aside) return;
+
+  // 小屏幕时默认收起
+  if (window.innerWidth < 900) {
+    aside.classList.add('collapsed');
+    const arrow = toggleBtn.querySelector('.chart-fund-list-toggle-arrow');
+    if (arrow) arrow.textContent = '›';
+  }
+
   // 无障碍属性：指示收起/展开状态
   toggleBtn.setAttribute('aria-controls', 'chart-fund-list');
   toggleBtn.setAttribute('aria-expanded', aside.classList.contains('collapsed') ? 'false' : 'true');
@@ -955,7 +970,14 @@ async function updateChart() {
   }
   const displayDays = Math.max(0, displayMax - displayMin + 1);
 
-  const step = displayMax - displayMin <= 365 ? 1 : displayMax - displayMin <= 730 ? 2 : 3;
+  // 优化：动态步长，减少大跨度下的计算与渲染压力
+  let step = 1;
+  if (displayDays > 3650) step = 10;
+  else if (displayDays > 1825) step = 7;
+  else if (displayDays > 1095) step = 5;
+  else if (displayDays > 730) step = 3;
+  else if (displayDays > 365) step = 2;
+  
   lastFundsForCrosshair = funds;
 
   const datasets = funds.map((fund, i) => {
@@ -971,7 +993,11 @@ async function updateChart() {
       tension: 0.1,
       pointRadius: 0,
       pointHoverRadius: 6,
-      pointHitRadius: 20
+      pointHitRadius: 20,
+      // 优化：大数据量时禁用解析，提高性能
+      parsing: displayDays > 1000 ? false : undefined,
+      normalized: true,
+      spanGaps: true
     };
   });
 
@@ -1076,6 +1102,8 @@ async function updateChart() {
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      // 优化：当数据集或点数较多时，禁用动画以提升响应速度
+      animation: (datasets.length > 20 || displayDays > 1000) ? false : { duration: 400 },
       layout: { padding: { left: 0, right: 8, top: 4, bottom: 0 } },
       interaction: { intersect: true, mode: 'nearest' },
       plugins: {
@@ -1819,6 +1847,12 @@ function init() {
   const state = loadState();
   if (state && state.funds && state.funds.length > 0) {
     restoreState(state);
+  } else {
+    // 无缓存状态时，根据屏幕宽度设置默认悬浮窗开关
+    const showTooltipEl = document.getElementById('show-tooltip');
+    if (showTooltipEl) {
+      showTooltipEl.checked = window.innerWidth >= 900;
+    }
   }
 }
 

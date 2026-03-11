@@ -34,7 +34,7 @@ console.log(`API 服务: http://localhost:${API_PORT}/api/fund/:code/fee`);
 console.log('按 Ctrl+C 停止所有服务\n');
 
 const api = run('API', 'node', ['scripts/serve-fund-api.js', String(API_PORT)]);
-const serve = run('静态', 'npx', ['serve', '.', '-p', String(STATIC_PORT), '-s']);
+const serve = run('静态', 'npx', ['serve', '.', '-p', String(STATIC_PORT)]);
 
 process.on('SIGINT', () => {
   api.kill();

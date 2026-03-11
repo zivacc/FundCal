@@ -152,13 +152,18 @@ export async function fetchAllFundCodesFromAPI() {
 
 /**
  * 单只基金费率
- * API: /:code/fee | 静态: 从 allfund.json 中按代码查找
+ * API: /:code/fee | 静态: 优先尝试 data/allfund/funds/:code.json，最后才回退 allfund.json
  */
 export async function fetchFundFeeFromAPI(fundCode) {
   const code = String(fundCode).trim().replace(/\D/g, '');
   if (code.length !== 6) return null;
 
   const data = await tryApiFetch(`${code}/fee`, async () => {
+    // 1. 尝试从分片文件加载 (GitHub Pages 模式下显著减少流量)
+    const shardData = await tryStaticFetch(`data/allfund/funds/${code}.json`);
+    if (shardData) return shardData;
+
+    // 2. 最后才回退到加载整个 allfund.json (向前兼容)
     const all = await loadAllfundStatic();
     if (!all) return null;
     const funds = all.funds || all;

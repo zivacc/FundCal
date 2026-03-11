@@ -26,7 +26,7 @@ function getInitials(text) {
   }
 }
 
-/** 按跟踪标的、基金公司、业绩基准聚合统计 */
+/** 按跟踪标的、基金公司、业绩基准、基金类型聚合统计 */
 function buildStats(allfund) {
   /** @type {{codes:string[],funds:Record<string, any>}} */
   const data = allfund;
@@ -36,6 +36,7 @@ function buildStats(allfund) {
   const trackingMap = new Map();  // label -> {label,count,codes:Set}
   const managerMap = new Map();
   const benchmarkMap = new Map();
+  const fundTypeMap = new Map();
 
   let total = 0;
   let trackingFundCount = 0;
@@ -48,6 +49,7 @@ function buildStats(allfund) {
     const trackingTarget = (f.trackingTarget || '').trim();
     const fundManager = (f.fundManager || '').trim();
     const performanceBenchmark = (f.performanceBenchmark || '').trim();
+    const fundType = (f.fundType || '').trim();
 
     const isNoTracking = !trackingTarget || trackingTarget === '该基金无跟踪标的' || trackingTarget.includes('该基金无跟踪标的');
     if (!isNoTracking) {
@@ -89,6 +91,19 @@ function buildStats(allfund) {
         entry.count += 1;
       }
     }
+
+    if (fundType) {
+      const key = fundType;
+      let entry = fundTypeMap.get(key);
+      if (!entry) {
+        entry = { label: key, count: 0, codes: new Set() };
+        fundTypeMap.set(key, entry);
+      }
+      if (!entry.codes.has(code)) {
+        entry.codes.add(code);
+        entry.count += 1;
+      }
+    }
   }
 
   const toSortedArray = (m) => {
@@ -104,6 +119,7 @@ function buildStats(allfund) {
 
   const manager = toSortedArray(managerMap);
   const benchmark = toSortedArray(benchmarkMap);
+  const fundType = toSortedArray(fundTypeMap);
 
   return {
     total,
@@ -111,6 +127,7 @@ function buildStats(allfund) {
     tracking,
     manager,
     benchmark,
+    fundType,
   };
 }
 

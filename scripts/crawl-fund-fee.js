@@ -448,6 +448,29 @@ async function fetchFundFee(code) {
     buyFee = purchaseBackSegments[0].rate ?? 0;
   }
 
+  // ---------- 4. 对 REITs / 绝对收益等浮动管理费基金做标记 ----------
+  let isFloatingAnnualFee = false;
+  let floatingFeeNote = '';
+
+  const fundTypeStr = (fundType || '').trim();
+  if (/REIT/i.test(fundTypeStr) || /不动产/.test(fundTypeStr) || /绝对收益/.test(fundTypeStr)) {
+    isFloatingAnnualFee = true;
+  }
+
+  // 在原始 HTML 文本中查找典型关键字，以捕捉“附加管理费 / 激励管理费 / 超额收益提成 / 运营服务费”等描述
+  const floatingKeywords = ['附加管理费', '激励管理费', '超额收益', '运营服务费'];
+  const plainText = html.replace(/<[^>]+>/g, ''); // 粗略去掉标签，便于截取中文段落
+  for (const kw of floatingKeywords) {
+    const idx = plainText.indexOf(kw);
+    if (idx !== -1) {
+      isFloatingAnnualFee = true;
+      const start = Math.max(0, idx - 80);
+      const end = Math.min(plainText.length, idx + 260);
+      floatingFeeNote = plainText.slice(start, end).replace(/\s+/g, ' ').trim();
+      break;
+    }
+  }
+
   return {
     code,
     name,
@@ -465,7 +488,9 @@ async function fetchFundFee(code) {
     redeemSegments,
     buyFee,
     sellFeeSegments,
-    annualFee: totalOperationFee
+    annualFee: totalOperationFee,
+    ...(isFloatingAnnualFee ? { isFloatingAnnualFee: true } : {}),
+    ...(floatingFeeNote ? { floatingFeeNote } : {})
   };
 }
 
@@ -496,10 +521,20 @@ async function main() {
     console.log('示例: node scripts/crawl-fund-fee.js 000001 110011');
     process.exit(1);
   }
+  /** @type {{code:string,name:string}[]} */
+  const missingFundType = [];
+
   for (const code of codes) {
     process.stdout.write(`抓取 ${code} ... `);
     const data = await fetchFundFee(code);
     if (data) {
+      // 对于非中港互认基金，校验基金类型是否缺失
+      const isOverseas = /^968\d{3}$/.test(code);
+      const ft = (data.fundType || '').trim();
+      if (!isOverseas && !ft) {
+        missingFundType.push({ code, name: data.name || `基金${code}` });
+      }
+
       saveFund(data);
       const op = data.operationFees || {};
       console.log(`OK  ${data.name} 申购${(data.buyFee*100).toFixed(2)}% 运作${((op.total ?? data.annualFee)*100).toFixed(2)}% 申/${data.tradingStatus?.subscribe || '-'} 赎/${data.tradingStatus?.redeem || '-'}`);
@@ -507,6 +542,18 @@ async function main() {
       console.log('失败');
     }
     await new Promise(r => setTimeout(r, 800));
+  }
+
+  // 爬虫结束后输出基金类型缺失情况（中港互认基金除外）
+  if (missingFundType.length > 0) {
+    console.log('\n========= 基金类型缺失检查（中港互认基金已排除） =========');
+    console.log(`共 ${missingFundType.length} 只基金未能从「基本概况」页解析出基金类型：`);
+    for (const item of missingFundType) {
+      console.log(`- ${item.code} ${item.name}`);
+    }
+    console.log('====================================================\n');
+  } else {
+    console.log('\n基金类型检查：除中港互认基金外，所有已抓取基金均包含 fundType 字段。\n');
   }
 }
 

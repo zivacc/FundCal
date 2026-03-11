@@ -240,6 +240,18 @@ async function main() {
         if (!fs.existsSync(filePath)) continue;
         try {
           const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+          // 规范化基金类型：
+          // - 对于来源页面标记为「中港互认基金」的，统一归类为「中港互认」
+          // - 对于 968 开头的中港互认基金，如缺少类型，也统一标记为「中港互认」
+          if (typeof data.fundType === 'string') {
+            const t = data.fundType.trim();
+            if (t === '中港互认基金') {
+              data.fundType = '中港互认';
+            }
+          }
+          if ((!data.fundType || String(data.fundType).trim() === '') && /^968\d{3}$/.test(code)) {
+            data.fundType = '中港互认';
+          }
           funds[code] = data;
         } catch {
           // 跳过损坏文件

@@ -237,16 +237,6 @@ function getViewItemByLabel(viewKey, label) {
   return v.items.find(item => item.label === label) || null;
 }
 
-let _statsAllfundCache = null;
-async function loadAllfundForStats() {
-  if (_statsAllfundCache) return _statsAllfundCache;
-  try {
-    const res = await fetch('data/allfund/allfund.json');
-    if (res.ok) _statsAllfundCache = await res.json();
-  } catch { /* ignore */ }
-  return _statsAllfundCache;
-}
-
 async function fetchFundDetailByCode(code) {
   if (fundDetailCache[code]) return fundDetailCache[code];
   const base = getFeeApiBaseSafe();
@@ -261,14 +251,19 @@ async function fetchFundDetailByCode(code) {
       }
     } catch { /* 尝试静态回退 */ }
   }
-  const all = await loadAllfundForStats();
-  if (all) {
-    const funds = all.funds || all;
-    if (funds[code]) {
-      fundDetailCache[code] = funds[code];
-      return funds[code];
+  
+  // 优化：静态模式下按需从分片加载，避免读取庞大的 allfund.json
+  try {
+    const res = await fetch(`data/allfund/funds/${code}.json`);
+    if (res.ok) {
+      const data = await res.json();
+      fundDetailCache[code] = data;
+      return data;
     }
+  } catch (err) {
+    console.error(`加载基金 ${code} 详情失败:`, err);
   }
+
   fundDetailCache[code] = null;
   return null;
 }
@@ -357,7 +352,11 @@ function renderFundDetail(viewKey, label, detail) {
     return;
   }
   const count = meta.count || funds.length;
-  const typeLabel = viewKey === 'tracking' ? '跟踪标的' : (viewKey === 'manager' ? '基金公司' : '业绩基准');
+  let typeLabel = '统计维度';
+  if (viewKey === 'tracking') typeLabel = '跟踪标的';
+  else if (viewKey === 'manager') typeLabel = '基金公司';
+  else if (viewKey === 'benchmark') typeLabel = '业绩基准';
+  else if (viewKey === 'fundType') typeLabel = '基金类型';
   const listHtml = funds.map((f, idx) => {
     const order = idx + 1;
     return `
@@ -450,44 +449,43 @@ function bindCardInteractions() {
 
 async function loadStats() {
   try {
-    setStatus('正在读取统计信息...');
-    setProgress(15);
+    setStatus('正在加载统计数据...');
+    setProgress(10);
+    
+    // 1. 加载统计聚合数据 (该文件由 build-fund-stats.js 生成，体积较小)
+    const statsRes = await fetch('data/allfund/fund-stats.json');
+    if (!statsRes.ok) {
+      throw new Error('无法读取 fund-stats.json');
+    }
+    const statsData = await statsRes.json();
+    setProgress(50);
 
-    let data = null;
-    const base = getFeeApiBase();
-    if (base) {
-      try {
-        const url = base.endsWith('/') ? `${base}stats` : `${base}/stats`;
-        const res = await fetch(url);
-        if (res.ok) data = await res.json();
-      } catch { /* API 不可用，尝试静态文件 */ }
-    }
-    if (!data) {
-      try {
-        const res = await fetch('data/allfund/fund-stats.json');
-        if (res.ok) data = await res.json();
-      } catch { /* 静态文件也不可用 */ }
-    }
-    if (!data) {
-      setStatus('读取统计信息失败。请确认 API 服务或静态数据文件可用。', true);
-      setProgress(0);
-      return;
-    }
-    const total = data.total || 0;
-    const trackingFundCount = data.trackingFundCount || 0;
+    // 2. 加载首字母索引 (用于搜索)
+    try {
+      const idxRes = await fetch('data/allfund/search-index.json');
+      if (idxRes.ok) {
+        const idx = await idxRes.json();
+        searchIndexInitialsMap = new Map();
+        idx.forEach(item => {
+          if (item.code) searchIndexInitialsMap.set(String(item.code), (item.initials || '').toLowerCase());
+        });
+      }
+    } catch { /* ignore */ }
+    
+    const { total = 0, trackingFundCount = 0, tracking = [], manager = [], benchmark = [], fundType, fundtype, fundtpye } = statsData;
     renderSummary(total);
     const summaryExtraEl = document.getElementById('fund-stats-summary-extra');
     if (summaryExtraEl && trackingFundCount) {
       summaryExtraEl.textContent = `（其中 ${trackingFundCount} 个指数跟踪型基金）`;
     }
 
-    // 预先构建三个维度的数据视图
+    // 预先构建各维度的数据视图
     statsViews = {
       tracking: {
         key: 'tracking',
         title: '按跟踪标的统计',
         subtitle: '跟踪指数的基金数量占比',
-        items: data.tracking || [],
+        items: tracking,
         total: trackingFundCount || total,
         suffix: '的指数基金',
       },
@@ -495,7 +493,7 @@ async function loadStats() {
         key: 'manager',
         title: '按基金公司统计',
         subtitle: '基金公司旗下基金数量占比',
-        items: data.manager || [],
+        items: manager,
         total,
         suffix: '的基金',
       },
@@ -503,7 +501,15 @@ async function loadStats() {
         key: 'benchmark',
         title: '按业绩基准统计',
         subtitle: '业绩基准对应的基金数量占比',
-        items: data.benchmark || [],
+        items: benchmark,
+        total,
+        suffix: '的基金',
+      },
+      fundType: {
+        key: 'fundType',
+        title: '按基金类型统计',
+        subtitle: '不同基金类型对应的基金数量占比',
+        items: fundType || fundtype || fundtpye || [],
         total,
         suffix: '的基金',
       },
