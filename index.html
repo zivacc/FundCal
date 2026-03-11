@@ -20,7 +20,7 @@
         <p class="subtitle">对比多只基金在不同持有期限下的累计费率，并标注交点</p>
       </div>
       <div class="page-header-right">
-        <a href="cached-funds.html" class="btn btn-secondary" id="open-cached-funds" title="查看所有已缓存基金，并进行搜索和排序">缓存基金列表</a>
+        <a href="cached-funds.html" class="btn btn-secondary" id="open-cached-funds" title="查看所有已缓存基金，并进行搜索和排序">基金列表</a>
         <a href="cached-fund-stats.html" class="btn btn-secondary" id="open-cached-fund-stats" title="查看缓存基金统计">统计</a>
       </div>
     </header>
@@ -53,16 +53,18 @@
         <button type="button" class="btn btn-sm btn-secondary calc-days-quick-btn" id="calc-days-60" title="结束天数设为 60">60</button>
         <button type="button" class="btn btn-sm btn-secondary calc-days-quick-btn" id="calc-days-365" title="结束天数设为 365">365</button>
         <button type="button" class="btn btn-sm btn-secondary calc-days-quick-btn" id="calc-days-max-btn" title="结束天数设为最大（7300）">MAX</button>
-        <div class="calc-discount-wrap" title="按折扣系数调整所有基金买入费率，仅影响计算，不改动输入框数值">
-          <span class="calc-discount-label">买入</span>
-          <select id="buy-fee-discount" class="toggle-select" aria-label="买入费率折扣">
-            <option value="0.1">一折</option>
-            <option value="1">原价</option>
-            <option value="0.01">0.1折</option>
-            <option value="0">免申购</option>
-          </select>
+        <div class="calc-days-actions-right">
+          <div class="calc-discount-wrap" title="按折扣系数调整所有基金买入费率，仅影响计算，不改动输入框数值">
+            <span class="calc-discount-label">买入</span>
+            <select id="buy-fee-discount" class="toggle-select" aria-label="买入费率折扣">
+              <option value="0.1">一折</option>
+              <option value="1">原价</option>
+              <option value="0.01">0.1折</option>
+              <option value="0">免申购</option>
+            </select>
+          </div>
+          <button type="button" class="btn btn-sm btn-secondary" id="clear-calc-days" title="清空显示区间">清除</button>
         </div>
-        <button type="button" class="btn btn-sm btn-secondary" id="clear-calc-days" title="清空显示区间">清除</button>
       </div>
     </div>
 

@@ -12,6 +12,41 @@ let currentSort = { key: 'code', dir: 'asc' };
 /** 保存 allfund.json 中的原始数据，按代码索引，便于弹窗中展示完整字段 */
 const fundDetailMap = {};
 
+/** allfund 原始 store 缓存，避免反复读取大文件 */
+let allfundStoreCache = null;
+let allfundStoreLoading = null;
+
+/**
+ * 确保已加载 allfund.json，并返回按代码索引的原始对象
+ * @returns {Promise<Record<string, any>>}
+ */
+async function ensureAllfundStore() {
+  if (allfundStoreCache) return allfundStoreCache;
+  if (allfundStoreLoading) return allfundStoreLoading;
+  allfundStoreLoading = (async () => {
+    try {
+      const res = await fetch('data/allfund/allfund.json').catch(() => null);
+      if (!res || !res.ok) return {};
+      const data = await res.json();
+      const store = data.funds || data || {};
+      /** @type {Record<string, any>} */
+      const byCode = {};
+      for (const code of Object.keys(store)) {
+        byCode[code] = store[code];
+        fundDetailMap[code] = store[code];
+      }
+      allfundStoreCache = byCode;
+      return byCode;
+    } catch {
+      allfundStoreCache = {};
+      return {};
+    } finally {
+      allfundStoreLoading = null;
+    }
+  })();
+  return allfundStoreLoading;
+}
+
 /** 统一搜索排序规则：与主页面基金卡片添加下拉栏保持一致 */
 function getSearchScoreForRow(row, query) {
   const s = String(query || '').trim().toLowerCase();
@@ -85,7 +120,19 @@ function getSortConfig() {
 function parseSortValue(val) {
   const safe = String(val || 'code-asc');
   const [key, dir] = safe.split('-');
-  const normKey = (key === 'code' || key === 'name' || key === 'buy' || key === 'annual') ? key : 'code';
+  const normKey = (
+    key === 'code' ||
+    key === 'name' ||
+    key === 'buy' ||
+    key === 'annual' ||
+    key === 'fundType' ||
+    key === 'sellFee' ||
+    key === 'trackingTarget' ||
+    key === 'performanceBenchmark' ||
+    key === 'fundManager' ||
+    key === 'tradingStatus' ||
+    key === 'updatedAt'
+  ) ? key : 'code';
   const normDir = dir === 'desc' ? 'desc' : 'asc';
   return { key: normKey, dir: normDir };
 }
@@ -122,6 +169,41 @@ function compareByCurrentSort(a, b, sort) {
   if (key === 'buy') {
     return factor * ((a.buyFee ?? 0) - (b.buyFee ?? 0));
   }
+   if (key === 'fundType') {
+     const av = a.fundType || '';
+     const bv = b.fundType || '';
+     return factor * av.localeCompare(bv, 'zh-CN');
+   }
+   if (key === 'sellFee') {
+     const ra = Array.isArray(a.sellFeeSegments) && a.sellFeeSegments.length ? (a.sellFeeSegments[0].rate ?? 0) : 0;
+     const rb = Array.isArray(b.sellFeeSegments) && b.sellFeeSegments.length ? (b.sellFeeSegments[0].rate ?? 0) : 0;
+     return factor * (ra - rb);
+   }
+   if (key === 'trackingTarget') {
+     const av = (a.trackingTarget || '').trim();
+     const bv = (b.trackingTarget || '').trim();
+     return factor * av.localeCompare(bv, 'zh-CN');
+   }
+   if (key === 'performanceBenchmark') {
+     const av = (a.performanceBenchmark || '').trim();
+     const bv = (b.performanceBenchmark || '').trim();
+     return factor * av.localeCompare(bv, 'zh-CN');
+   }
+   if (key === 'fundManager') {
+     const av = (a.fundManager || '').trim();
+     const bv = (b.fundManager || '').trim();
+     return factor * av.localeCompare(bv, 'zh-CN');
+   }
+   if (key === 'tradingStatus') {
+     const av = formatTradingStatus(a.tradingStatus || {});
+     const bv = formatTradingStatus(b.tradingStatus || {});
+     return factor * av.localeCompare(bv, 'zh-CN');
+   }
+   if (key === 'updatedAt') {
+     const av = a.updatedAt || '';
+     const bv = b.updatedAt || '';
+     return factor * av.localeCompare(bv);
+   }
   return 0;
 }
 
@@ -223,14 +305,8 @@ async function loadCachedFunds() {
     
     if (!indexRes || !indexRes.ok) {
       // 如果 list-index.json 不存在，则回退到原来的 allfund.json (保证向后兼容)
-      const allfundRes = await fetch('data/allfund/allfund.json').catch(() => null);
-      if (!allfundRes || !allfundRes.ok) {
-        setStatus('读取数据文件失败，请检查 data/allfund/ 目录。', true);
-        return;
-      }
-      const data = await allfundRes.json();
-      const store = data.funds || data;
-      const codes = Array.isArray(data.codes) ? data.codes : Object.keys(store);
+      const store = await ensureAllfundStore();
+      const codes = Object.keys(store);
       
       const results = [];
       for (const code of codes) {
@@ -243,14 +319,41 @@ async function loadCachedFunds() {
           annualFee: f.annualFee ?? (f.operationFees?.total ?? 0),
           sellFeeSegments: f.sellFeeSegments ?? f.redeemSegments ?? [],
           fundType: f.fundType || '',
+          trackingTarget: f.trackingTarget || '',
+          performanceBenchmark: f.performanceBenchmark || '',
+          fundManager: f.fundManager || '',
+          tradingStatus: f.tradingStatus || null,
           updatedAt: f.updatedAt || '',
           raw: f
         });
       }
       allFunds = results;
     } else {
-      // 使用分片索引数据
-      allFunds = await indexRes.json();
+      // 使用分片索引数据（轻量），再用 allfund 补全详情字段
+      const list = await indexRes.json();
+      const store = await ensureAllfundStore();
+      allFunds = list.map((row) => {
+        const code = row.code || row.fundCode || '';
+        const origin = code && store[code] ? store[code] : null;
+        if (origin) {
+          fundDetailMap[code] = origin;
+        }
+        return {
+          code,
+          name: row.name || code,
+          buyFee: row.buyFee ?? origin?.buyFee ?? 0,
+          annualFee: row.annualFee ?? origin?.annualFee ?? (origin?.operationFees?.total ?? 0),
+          sellFeeSegments: row.sellFeeSegments ?? origin?.sellFeeSegments ?? origin?.redeemSegments ?? [],
+          fundType: row.fundType || origin?.fundType || '',
+          trackingTarget: row.trackingTarget || origin?.trackingTarget || '',
+          performanceBenchmark: row.performanceBenchmark || origin?.performanceBenchmark || '',
+          fundManager: row.fundManager || origin?.fundManager || '',
+          tradingStatus: row.tradingStatus || origin?.tradingStatus || null,
+          updatedAt: row.updatedAt || origin?.updatedAt || '',
+          initials: row.initials || '',
+          raw: origin || row
+        };
+      });
     }
 
     setProgress(1, 1);
@@ -357,11 +460,19 @@ function setupEvents() {
       th.addEventListener('click', () => {
         const key = th.getAttribute('data-sort-key');
         if (!key) return;
-        /** @type {'code'|'name'|'buy'|'annual'} */
+        /** 将表头 data-sort-key 映射到排序字段 */
+        /** @type {'code'|'name'|'buy'|'annual'|'fundType'|'sellFee'|'trackingTarget'|'performanceBenchmark'|'fundManager'|'tradingStatus'|'updatedAt'} */
         let mappedKey = 'code';
         if (key === 'name') mappedKey = 'name';
         else if (key === 'buyFee') mappedKey = 'buy';
         else if (key === 'annualFee') mappedKey = 'annual';
+        else if (key === 'fundType') mappedKey = 'fundType';
+        else if (key === 'sellFee') mappedKey = 'sellFee';
+        else if (key === 'trackingTarget') mappedKey = 'trackingTarget';
+        else if (key === 'performanceBenchmark') mappedKey = 'performanceBenchmark';
+        else if (key === 'fundManager') mappedKey = 'fundManager';
+        else if (key === 'tradingStatus') mappedKey = 'tradingStatus';
+        else if (key === 'updatedAt') mappedKey = 'updatedAt';
 
         if (currentSort.key === mappedKey) {
           currentSort = {
@@ -369,12 +480,8 @@ function setupEvents() {
             dir: currentSort.dir === 'asc' ? 'desc' : 'asc'
           };
         } else {
-          // 为不同字段设置合理的默认方向：代码/名称默认升序，费用默认降序
-          let defaultDir = 'asc';
-          if (mappedKey === 'buy' || mappedKey === 'annual') {
-            defaultDir = 'desc';
-          }
-          currentSort = { key: mappedKey, dir: /** @type {'asc'|'desc'} */ (defaultDir) };
+          // 默认按字母顺序 / 数值从小到大排序（升序）
+          currentSort = { key: mappedKey, dir: 'asc' };
         }
         applySortToSelect();
         currentPage = 1;
