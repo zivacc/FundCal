@@ -277,14 +277,16 @@ function renderTable() {
     return;
   }
 
-  tbody.innerHTML = pageRows.map(f => `
+  tbody.innerHTML = pageRows.map(f => {
+    const annualText = formatPercent(f.annualFee) + (f.raw && f.raw.isFloatingAnnualFee ? '（浮动）' : '');
+    return `
     <tr>
       <td><button type="button" class="btn btn-sm cached-fund-json-btn" data-code="${escapeHtml(f.code)}">查看</button></td>
       <td>${escapeHtml(f.code)}</td>
       <td>${escapeHtml(f.name)}</td>
       <td>${escapeHtml(f.fundType || '-')}</td>
       <td>${formatPercent(f.buyFee)}</td>
-      <td>${formatPercent(f.annualFee)}</td>
+      <td>${annualText}</td>
       <td>${formatSellFeeSegments(f.sellFeeSegments)}</td>
       <td>${escapeHtml(f.trackingTarget || '-')}</td>
       <td>${escapeHtml(f.performanceBenchmark || '-')}</td>
@@ -292,7 +294,8 @@ function renderTable() {
       <td>${escapeHtml(formatTradingStatus(f.tradingStatus))}</td>
       <td>${escapeHtml(f.updatedAt || '-')}</td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 }
 
 async function loadCachedFunds() {

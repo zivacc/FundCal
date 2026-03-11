@@ -116,6 +116,28 @@ h1 {
   line-height: 1.5;
 }
 
+.page-header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.15rem;
+}
+
+.page-header-link {
+  font-size: 1rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, var(--text-primary) 40%, var(--accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+}
+
+.page-header-link:hover {
+  text-decoration: underline;
+}
+
 .page-header .btn-secondary {
   flex-shrink: 0;
   background: transparent;
@@ -455,6 +477,7 @@ h1 {
 /* ── 缓存基金统计页面 ── */
 .fund-stats-summary {
   margin-bottom: 1.25rem;
+  text-align: center;       /* 让「已缓存基金总数」整体居中 */
 }
 
 .fund-stats-summary-card {

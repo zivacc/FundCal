@@ -82,6 +82,53 @@ function parseTableRows(tableHtml) {
 }
 
 /**
+ * 从搜狐基金费率页抓取运作费用（基金管理费 / 托管费）
+ * 示例页面：
+ *   https://q.fund.sohu.com/c/gt.php?code=180401
+ */
+async function fetchSohuOperationFees(code) {
+  const url = `https://q.fund.sohu.com/c/gt.php?code=${code}`;
+  try {
+    const res = await fetch(url, { headers: { 'User-Agent': UA, 'Referer': 'https://q.fund.sohu.com/' } });
+    if (!res.ok) return null;
+    const html = await res.text();
+
+    const rows = parseTableRows(html);
+    if (!rows.length) return null;
+
+    const extractSectionRate = (sectionKeyword) => {
+      let inSection = false;
+      for (const row of rows) {
+        const joined = row.join('');
+        if (!inSection) {
+          if (joined.includes(sectionKeyword)) {
+            inSection = true;
+          }
+          continue;
+        }
+        const cellWithPercent = row.find(c => /([\d.]+)\s*%/.test(c));
+        if (cellWithPercent) {
+          const m = cellWithPercent.match(/([\d.]+)\s*%/);
+          return m ? parseFloat(m[1]) / 100 : 0;
+        }
+        if (/基金.+费/.test(joined)) break;
+      }
+      return 0;
+    };
+
+    const managementFee = extractSectionRate('基金管理费');
+    const custodyFee = extractSectionRate('基金托管费');
+    const salesServiceFee = 0;
+    if (!managementFee && !custodyFee && !salesServiceFee) return null;
+    const total = managementFee + custodyFee + salesServiceFee;
+    return { managementFee, custodyFee, salesServiceFee, total };
+  } catch (e) {
+    console.error(`[${code}] 搜狐费率页请求失败:`, e.message);
+    return null;
+  }
+}
+
+/**
  * 从「基本概况」页面抓取基础信息：
  * - 跟踪标的
  * - 基金管理人
@@ -199,7 +246,7 @@ async function fetchOverseasFundFee(code) {
   }
   const salesServiceFee = 0;
   const totalOperationFee = managementFee + custodyFee + salesServiceFee;
-  const operationFees = {
+  let operationFees = {
     managementFee,
     custodyFee,
     salesServiceFee,
@@ -338,7 +385,7 @@ async function fetchFundFee(code) {
     if (salesMatch && !/---|\-\-\-/.test(salesMatch[0])) salesServiceFee = parseFloat(salesMatch[1]) / 100;
   }
   const totalOperationFee = managementFee + custodyFee + salesServiceFee;
-  const operationFees = {
+  let operationFees = {
     managementFee,
     custodyFee,
     salesServiceFee,
@@ -471,6 +518,23 @@ async function fetchFundFee(code) {
     }
   }
 
+  // ---------- 5. 如为浮动管理费基金，尝试用搜狐费率源覆盖运作费用 ----------
+  if (isFloatingAnnualFee) {
+    try {
+      const override = await fetchSohuOperationFees(code);
+      if (override && (override.managementFee || override.custodyFee || override.salesServiceFee)) {
+        operationFees = {
+          managementFee: override.managementFee ?? operationFees.managementFee,
+          custodyFee: override.custodyFee ?? operationFees.custodyFee,
+          salesServiceFee: override.salesServiceFee ?? operationFees.salesServiceFee,
+          total: override.total ?? ((override.managementFee || 0) + (override.custodyFee || 0) + (override.salesServiceFee || 0))
+        };
+      }
+    } catch (e) {
+      console.error(`[${code}] 覆盖浮动管理费时调用第三方费率源失败:`, e.message);
+    }
+  }
+
   return {
     code,
     name,
@@ -488,7 +552,7 @@ async function fetchFundFee(code) {
     redeemSegments,
     buyFee,
     sellFeeSegments,
-    annualFee: totalOperationFee,
+    annualFee: operationFees.total ?? totalOperationFee,
     ...(isFloatingAnnualFee ? { isFloatingAnnualFee: true } : {}),
     ...(floatingFeeNote ? { floatingFeeNote } : {})
   };
