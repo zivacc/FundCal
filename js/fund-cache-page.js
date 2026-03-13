@@ -385,11 +385,15 @@ function setupEvents() {
   const jsonCloseBtn = document.getElementById('fund-json-close');
   const jsonCancelBtn = document.getElementById('fund-json-cancel');
   const jsonToTableBtn = document.getElementById('fund-json-to-table');
+  const jsonOpenEmBtn = document.getElementById('fund-json-open-em');
+  const jsonOpenSohuBtn = document.getElementById('fund-json-open-sohu');
 
   /** @type {any|null} */
   let currentFundDetail = null;
   /** @type {'json'|'table'} */
   let currentFundViewMode = 'json';
+  /** @type {string} */
+  let currentFundCode = '';
 
   function openModal(backdrop) {
     if (!backdrop) return;
@@ -550,6 +554,7 @@ function setupEvents() {
       if (!target) return;
       const code = target.getAttribute('data-code') || '';
       if (!code) return;
+      currentFundCode = code;
 
       // 优化：如果内存中没有详情，则按需从分片文件加载
       let detail = fundDetailMap[code] || null;
@@ -674,6 +679,34 @@ function setupEvents() {
         currentFundViewMode = 'json';
       }
     });
+  }
+
+  // 打开外部费率页面（天天基金 / 搜狐）
+  const openExternalRatePage = (type) => {
+    const code = (currentFundCode || '').trim();
+    if (!code) return;
+    let url = '';
+    if (type === 'em') {
+      if (/^968\d{3}$/.test(code)) {
+        // 中港互认 / 海外基金：使用海外基金主页
+        url = `https://overseas.1234567.com.cn/${code}`;
+      } else {
+        // 境内公募：使用 jjfl 费率页
+        url = `https://fundf10.eastmoney.com/jjfl_${code}.html`;
+      }
+    } else if (type === 'sohu') {
+      url = `https://q.fund.sohu.com/${code}/index.shtml?code=${code}`;
+    }
+    if (url) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  if (jsonOpenEmBtn) {
+    jsonOpenEmBtn.addEventListener('click', () => openExternalRatePage('em'));
+  }
+  if (jsonOpenSohuBtn) {
+    jsonOpenSohuBtn.addEventListener('click', () => openExternalRatePage('sohu'));
   }
 }
 

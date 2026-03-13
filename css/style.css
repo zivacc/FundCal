@@ -2224,6 +2224,11 @@ h1 {
   gap: 0.5rem;
 }
 
+/* 仅在 allfund 原始数据弹窗中，将底部按钮居中 */
+.modal-json .modal-footer {
+  justify-content: center;
+}
+
 .modal-intro {
   font-size: 0.85rem;
   color: var(--text-secondary);

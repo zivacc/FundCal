@@ -374,15 +374,57 @@ async function fetchFundFee(code) {
   let managementFee = 0;
   let custodyFee = 0;
   let salesServiceFee = 0;
+  let hasTextualOperationRate = false; // 标记“费率数值一栏包含文字说明”的情形
+
   const opsBlock = html.match(/运作费用[\s\S]*?<table[^>]*>([\s\S]*?)<\/table>/);
   if (opsBlock) {
     const block = opsBlock[1];
+
+    // 先按原有方式用正则提取，保证普通基金行为不变
     const mgmtMatch = block.match(/管理费率[\s\S]*?([\d.]+)%/);
     if (mgmtMatch) managementFee = parseFloat(mgmtMatch[1]) / 100;
     const custMatch = block.match(/托管费率[\s\S]*?([\d.]+)%/);
     if (custMatch) custodyFee = parseFloat(custMatch[1]) / 100;
     const salesMatch = block.match(/销售服务费率[\s\S]*?([\d.]+)%/);
     if (salesMatch && !/---|\-\-\-/.test(salesMatch[0])) salesServiceFee = parseFloat(salesMatch[1]) / 100;
+
+    // 再基于表格逐行检查“费率数值一栏是否含有文字”（例如附加管理费说明等）
+    const opRows = parseTableRows(block);
+    let mgmtHasText = false;
+    let custHasText = false;
+    let salesHasText = false;
+    for (const row of opRows) {
+      const rowText = row.join('');
+      const hasMgmtLabel = /基金管理费率|管理费率/.test(rowText);
+      const hasCustLabel = /基金托管费率|托管费率/.test(rowText);
+      const hasSalesLabel = /销售服务费率|销售服务费/.test(rowText);
+      if (!hasMgmtLabel && !hasCustLabel && !hasSalesLabel) continue;
+
+      // 认为“数值一栏”是行中第一个包含 % 的单元格；若不存在 %，则整行视为文字说明
+      const rateCell = row.find(c => /%/.test(c)) || '';
+      const cleaned = rateCell.replace(/[\d.\s%]/g, '');
+      const hasCJK = /[\u4e00-\u9fa5]/.test(cleaned);
+
+      const isTextual = !rateCell || hasCJK;
+      if (isTextual) {
+        if (hasMgmtLabel) mgmtHasText = true;
+        if (hasCustLabel) custHasText = true;
+        if (hasSalesLabel) salesHasText = true;
+      }
+    }
+
+    if (mgmtHasText) {
+      managementFee = 0;
+      hasTextualOperationRate = true;
+    }
+    if (custHasText) {
+      custodyFee = 0;
+      hasTextualOperationRate = true;
+    }
+    if (salesHasText) {
+      salesServiceFee = 0;
+      hasTextualOperationRate = true;
+    }
   }
   const totalOperationFee = managementFee + custodyFee + salesServiceFee;
   let operationFees = {
@@ -496,7 +538,11 @@ async function fetchFundFee(code) {
   }
 
   // ---------- 4. 对 REITs / 绝对收益等浮动管理费基金做标记 ----------
-  let isFloatingAnnualFee = false;
+  // 规则：
+  // - 若“运作费用”表中费率数值一栏包含文字（hasTextualOperationRate），视为浮动费率基金
+  // - 或 基金类型中含 REIT / 不动产 / 绝对收益 关键字
+  // - 或 费率页正文中出现“附加管理费 / 激励管理费 / 超额收益 / 运营服务费”等描述
+  let isFloatingAnnualFee = hasTextualOperationRate;
   let floatingFeeNote = '';
 
   const fundTypeStr = (fundType || '').trim();
