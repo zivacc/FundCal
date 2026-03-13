@@ -722,13 +722,6 @@ function initChartFundListToggle() {
   const aside = document.getElementById('chart-main-right');
   if (!toggleBtn || !aside) return;
 
-  // 小屏幕时默认收起
-  if (window.innerWidth < 900) {
-    aside.classList.add('collapsed');
-    const arrow = toggleBtn.querySelector('.chart-fund-list-toggle-arrow');
-    if (arrow) arrow.textContent = '›';
-  }
-
   // 无障碍属性：指示收起/展开状态
   toggleBtn.setAttribute('aria-controls', 'chart-fund-list');
   toggleBtn.setAttribute('aria-expanded', aside.classList.contains('collapsed') ? 'false' : 'true');

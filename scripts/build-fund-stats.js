@@ -15,6 +15,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ALLFUND_DIR = path.join(__dirname, '..', 'data', 'allfund');
 const ALLFUND_PATH = path.join(ALLFUND_DIR, 'allfund.json');
 const FUND_STATS_PATH = path.join(ALLFUND_DIR, 'fund-stats.json');
+const FUND_STATS_DETAIL_PATH = path.join(ALLFUND_DIR, 'fund-stats-detail.json');
 
 function getInitials(text) {
   if (!text || typeof text !== 'string') return '';
@@ -131,6 +132,49 @@ function buildStats(allfund) {
   };
 }
 
+/**
+ * 基于聚合结果和 allfund，构建统计维度的基金详情：
+ * {
+ *   tracking: { [label]: [{code,name,trackingTarget,fundManager,performanceBenchmark}] },
+ *   manager:  { ... },
+ *   benchmark:{ ... },
+ *   fundType: { ... }
+ * }
+ */
+function buildStatsDetail(allfund, stats) {
+  const data = allfund;
+  const store = data.funds || {};
+
+  const buildDetailForItems = (items) => {
+    const map = {};
+    (items || []).forEach(item => {
+      const label = item.label;
+      const codes = Array.isArray(item.codes) ? item.codes : [];
+      const list = [];
+      for (const code of codes) {
+        const f = store[code];
+        if (!f) continue;
+        list.push({
+          code,
+          name: f.name || '',
+          trackingTarget: (f.trackingTarget || '').trim(),
+          fundManager: (f.fundManager || '').trim(),
+          performanceBenchmark: (f.performanceBenchmark || '').trim(),
+        });
+      }
+      map[label] = list;
+    });
+    return map;
+  };
+
+  return {
+    tracking: buildDetailForItems(stats.tracking),
+    manager: buildDetailForItems(stats.manager),
+    benchmark: buildDetailForItems(stats.benchmark),
+    fundType: buildDetailForItems(stats.fundType),
+  };
+}
+
 function main() {
   if (!fs.existsSync(ALLFUND_PATH)) {
     console.error(`未找到 allfund 文件：${ALLFUND_PATH}，请先运行 build-allfund.js`);
@@ -146,9 +190,11 @@ function main() {
   }
 
   const stats = buildStats(allfund);
+  const detail = buildStatsDetail(allfund, stats);
   fs.mkdirSync(ALLFUND_DIR, { recursive: true });
   fs.writeFileSync(FUND_STATS_PATH, JSON.stringify(stats), 'utf8');
-  console.log(`已生成 ${FUND_STATS_PATH}，total=${stats.total}，trackingFundCount=${stats.trackingFundCount}。`);
+  fs.writeFileSync(FUND_STATS_DETAIL_PATH, JSON.stringify(detail), 'utf8');
+  console.log(`已生成 ${FUND_STATS_PATH} 和 ${FUND_STATS_DETAIL_PATH}，total=${stats.total}，trackingFundCount=${stats.trackingFundCount}。`);
 }
 
 main();

@@ -1,6 +1,6 @@
 {
   "description": "Feeder (联接) and master (母基金) index. feederByMasterKey: lookup by master name; codeToFeeder: lookup by fund code.",
-  "updatedAt": "2026-03-12T02:20:02.328Z",
+  "updatedAt": "2026-03-13T03:25:29.338Z",
   "feederByMasterKey": {
     "嘉实中证500ETF": {
       "masterCode": "159922",
@@ -7248,7 +7248,7 @@
         "026108"
       ]
     },
-    "广发储能电池EIF": {
+    "广发储能电池ETF": {
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
@@ -32436,7 +32436,7 @@
       ]
     },
     "026265": {
-      "masterKey": "广发储能电池EIF",
+      "masterKey": "广发储能电池ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -32446,7 +32446,7 @@
       ]
     },
     "026266": {
-      "masterKey": "广发储能电池EIF",
+      "masterKey": "广发储能电池ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,

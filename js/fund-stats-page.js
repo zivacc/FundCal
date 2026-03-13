@@ -19,6 +19,68 @@ let currentStatsKey = 'tracking';
 let statsLoadedCounts = {};
 let statsObserver = null;
 let fundDetailCache = {};
+let statsDetail = null;
+
+// 静态模式下的 allfund.json 缓存，供明细回退使用（避免每次点击都重新加载大文件）
+let allfundStoreCache = null;
+let allfundStoreLoading = null;
+
+// 静态模式下的「代码 -> 基金名称」映射，体积较小，优先用于补全名称
+let codeNameMapCache = null;
+let codeNameMapLoading = null;
+
+async function ensureAllfundStore() {
+  if (allfundStoreCache) return allfundStoreCache;
+  if (allfundStoreLoading) return allfundStoreLoading;
+  allfundStoreLoading = (async () => {
+    try {
+      const res = await fetch('data/allfund/allfund.json').catch(() => null);
+      if (!res || !res.ok) return {};
+      const data = await res.json();
+      const store = data.funds || data || {};
+      /** @type {Record<string, any>} */
+      const byCode = {};
+      for (const code of Object.keys(store)) {
+        byCode[code] = store[code];
+      }
+      allfundStoreCache = byCode;
+      return byCode;
+    } catch {
+      allfundStoreCache = {};
+      return {};
+    } finally {
+      allfundStoreLoading = null;
+    }
+  })();
+  return allfundStoreLoading;
+}
+
+async function ensureCodeNameMap() {
+  if (codeNameMapCache) return codeNameMapCache;
+  if (codeNameMapLoading) return codeNameMapLoading;
+  codeNameMapLoading = (async () => {
+    try {
+      const res = await fetch('data/allfund/code-name-map.json').catch(() => null);
+      if (!res || !res.ok) {
+        codeNameMapCache = {};
+        return {};
+      }
+      const data = await res.json();
+      if (!data || typeof data !== 'object') {
+        codeNameMapCache = {};
+        return {};
+      }
+      codeNameMapCache = data;
+      return data;
+    } catch {
+      codeNameMapCache = {};
+      return {};
+    } finally {
+      codeNameMapLoading = null;
+    }
+  })();
+  return codeNameMapLoading;
+}
 
 // 跟踪指数搜索时复用 name 的拼音首字母索引：code -> initials
 let searchIndexInitialsMap = null;
@@ -252,7 +314,7 @@ async function fetchFundDetailByCode(code) {
     } catch { /* 尝试静态回退 */ }
   }
   
-  // 优化：静态模式下按需从分片加载，避免读取庞大的 allfund.json
+  // 优化：静态模式下优先按需从分片加载，避免频繁读取庞大的 allfund.json
   try {
     const res = await fetch(`data/allfund/funds/${code}.json`);
     if (res.ok) {
@@ -264,6 +326,18 @@ async function fetchFundDetailByCode(code) {
     console.error(`加载基金 ${code} 详情失败:`, err);
   }
 
+  // 回退：如分片不存在，则从 allfund.json 中按代码查找一次
+  try {
+    const store = await ensureAllfundStore();
+    const data = store && store[code];
+    if (data) {
+      fundDetailCache[code] = data;
+      return data;
+    }
+  } catch (err) {
+    console.error(`从 allfund.json 回退查找基金 ${code} 失败:`, err);
+  }
+
   fundDetailCache[code] = null;
   return null;
 }
@@ -273,6 +347,44 @@ async function loadFundsForCard(viewKey, label) {
   if (!item || !Array.isArray(item.codes) || !item.codes.length) {
     return { meta: item, funds: [] };
   }
+
+  // 0. 纯静态部署（无 API）且存在预生成的统计详情文件时，优先直接使用静态详情，避免逐只请求
+  const base = getFeeApiBaseSafe();
+  if (!base && statsDetail && statsDetail[viewKey] && statsDetail[viewKey][label]) {
+    const list = statsDetail[viewKey][label] || [];
+    const funds = list.map(data => ({
+      code: data.code,
+      name: data.name || '',
+      trackingTarget: (data.trackingTarget || '').trim(),
+      fundManager: (data.fundManager || '').trim(),
+      performanceBenchmark: (data.performanceBenchmark || '').trim(),
+    }));
+    return { meta: item, funds };
+  }
+
+  // 1. 纯静态部署、无 API 时：优先使用预生成的「代码->名称」映射，避免逐只请求详情
+  if (!base) {
+    try {
+      const codeNameMap = await ensureCodeNameMap();
+      if (codeNameMap && typeof codeNameMap === 'object') {
+        const funds = codes.map(code => {
+          const c = String(code || '').trim();
+          const name = codeNameMap[c] || '';
+          return {
+            code: c,
+            name: name || '',
+            trackingTarget: '',
+            fundManager: '',
+            performanceBenchmark: '',
+          };
+        });
+        return { meta: item, funds };
+      }
+    } catch {
+      // 如果映射加载失败，则继续走后面的逐只加载回退逻辑
+    }
+  }
+
   const codes = item.codes;
   const tasks = codes.map(code => fetchFundDetailByCode(code));
   const results = await Promise.all(tasks);
@@ -458,9 +570,18 @@ async function loadStats() {
       throw new Error('无法读取 fund-stats.json');
     }
     const statsData = await statsRes.json();
+
+    // 2. 尝试加载预生成的统计详情数据（静态部署下用于直接展示基金名称等信息）
+    try {
+      const detailRes = await fetch('data/allfund/fund-stats-detail.json');
+      if (detailRes.ok) {
+        statsDetail = await detailRes.json();
+      }
+    } catch { /* ignore */ }
+
     setProgress(50);
 
-    // 2. 加载首字母索引 (用于搜索)
+    // 3. 加载首字母索引 (用于搜索)
     try {
       const idxRes = await fetch('data/allfund/search-index.json');
       if (idxRes.ok) {

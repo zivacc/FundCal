@@ -563,7 +563,68 @@ function saveFund(data) {
   if (!data || !data.code) return;
   const filePath = path.join(DATA_DIR, `${data.code}.json`);
   fs.mkdirSync(DATA_DIR, { recursive: true });
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
+
+  // 如果已有历史数据，优先保留那些这次爬虫缺失的关键信息，避免“越爬越少”
+  let merged = data;
+  if (fs.existsSync(filePath)) {
+    try {
+      const old = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      merged = { ...old, ...data };
+
+      // 1) 基金名称：新抓到的不是“基金xxxx”这种默认占位时，才覆盖旧值
+      const oldName = (old.name || '').trim();
+      const newName = (data.name || '').trim();
+      const isDefaultNewName = /^基金\d{6}$/.test(newName);
+      if (newName && !isDefaultNewName) {
+        merged.name = newName;
+      } else if (oldName) {
+        merged.name = oldName;
+      }
+
+      // 2) 关键信息字段：本次为空/缺失时，保留旧值，防止被覆盖成空
+      const keyFields = ['trackingTarget', 'fundManager', 'performanceBenchmark', 'fundType'];
+      for (const key of keyFields) {
+        const oldVal = (old[key] || '').trim?.() ?? old[key];
+        const newVal = (data[key] || '').trim?.() ?? data[key];
+        if (!newVal && oldVal) {
+          merged[key] = oldVal;
+        }
+      }
+
+      // 3) 交易状态：按字段粒度合并
+      if (old.tradingStatus || data.tradingStatus) {
+        merged.tradingStatus = {
+          subscribe: data.tradingStatus?.subscribe || old.tradingStatus?.subscribe || '',
+          redeem: data.tradingStatus?.redeem || old.tradingStatus?.redeem || '',
+        };
+      }
+
+      // 4) 运作费用：如果新抓到的 total 为 0，但旧值非 0，则保留旧 total
+      if (old.operationFees || data.operationFees) {
+        const oldOps = old.operationFees || {};
+        const newOps = data.operationFees || {};
+        const mergedOps = {
+          ...oldOps,
+          ...newOps,
+        };
+        const oldTotal = typeof oldOps.total === 'number' ? oldOps.total : 0;
+        const newTotal = typeof newOps.total === 'number' ? newOps.total : 0;
+        if (!newTotal && oldTotal) {
+          mergedOps.total = oldTotal;
+        }
+        merged.operationFees = mergedOps;
+        // annualFee 与运作费用总费率保持同步；如新 annualFee 为 0，则保留旧值
+        const oldAnnual = typeof old.annualFee === 'number' ? old.annualFee : oldTotal;
+        const newAnnual = typeof data.annualFee === 'number' ? data.annualFee : newTotal;
+        merged.annualFee = newAnnual || oldAnnual || mergedOps.total || 0;
+      }
+    } catch {
+      // 如果旧文件解析失败，则退回直接覆盖写入
+      merged = data;
+    }
+  }
+
+  fs.writeFileSync(filePath, JSON.stringify(merged, null, 2), 'utf8');
   const indexPath = path.join(DATA_DIR, 'index.json');
   let index = { description: '本地基金费率缓存索引，由 scripts/crawl-fund-fee.js 更新', codes: [], lastUpdated: {} };
   if (fs.existsSync(indexPath)) {

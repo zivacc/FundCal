@@ -63276,8 +63276,8 @@
   },
   {
     "code": "016115",
-    "name": "华安养老目标2050五年持有混合发起式",
-    "initials": "haylmb2050wncyhhfqs"
+    "name": "基金016115",
+    "initials": "jj016115"
   },
   {
     "code": "016116",
@@ -108740,6 +108740,16 @@
     "initials": "xzzgjqlxxyxhhe"
   },
   {
+    "code": "025785",
+    "name": "中金科创优选混合发起A",
+    "initials": "zjkcyxhhfqa"
+  },
+  {
+    "code": "025786",
+    "name": "中金科创优选混合发起C",
+    "initials": "zjkcyxhhfqc"
+  },
+  {
     "code": "025787",
     "name": "大成港股恒信混合",
     "initials": "dcgghxhh"
@@ -110916,13 +110926,13 @@
   },
   {
     "code": "026265",
-    "name": "广发储能电池EIF联接A",
-    "initials": "gfcndceiflja"
+    "name": "广发储能电池ETF联接A",
+    "initials": "gfcndcetflja"
   },
   {
     "code": "026266",
-    "name": "广发储能电池EIF联接C",
-    "initials": "gfcndceifljc"
+    "name": "广发储能电池ETF联接C",
+    "initials": "gfcndcetfljc"
   },
   {
     "code": "026267",
@@ -111660,6 +111670,16 @@
     "initials": "rbryzxhhc"
   },
   {
+    "code": "026466",
+    "name": "西部利得智享量化选股混合A",
+    "initials": "xbldzxlhxghha"
+  },
+  {
+    "code": "026467",
+    "name": "西部利得智享量化选股混合C",
+    "initials": "xbldzxlhxghhc"
+  },
+  {
     "code": "026468",
     "name": "山证资管数字经济锐选股票发起式A",
     "initials": "szzgszjjrxgpfqsa"
@@ -111960,6 +111980,16 @@
     "initials": "phczjqhhc"
   },
   {
+    "code": "026542",
+    "name": "鑫元中证A500指数A",
+    "initials": "xyzza500zsa"
+  },
+  {
+    "code": "026543",
+    "name": "鑫元中证A500指数C",
+    "initials": "xyzza500zsc"
+  },
+  {
     "code": "026544",
     "name": "平安中证卫星产业指数E",
     "initials": "pazzwxcyzse"
@@ -112098,6 +112128,11 @@
     "code": "026586",
     "name": "东方红货币F",
     "initials": "dfhhbf"
+  },
+  {
+    "code": "026587",
+    "name": "光大保德信安选平衡养老目标三年持有混合",
+    "initials": "gdbdxaxphylmbsncyhh"
   },
   {
     "code": "026588",
@@ -113118,6 +113153,16 @@
     "code": "026887",
     "name": "财通资管消费研选混合发起式C",
     "initials": "ctzgxfyxhhfqsc"
+  },
+  {
+    "code": "026888",
+    "name": "创金合信上证科创板综合指数增强A",
+    "initials": "cjhxszkcbzhzszqa"
+  },
+  {
+    "code": "026889",
+    "name": "创金合信上证科创板综合指数增强C",
+    "initials": "cjhxszkcbzhzszqc"
   },
   {
     "code": "026890",
@@ -114928,6 +114973,11 @@
     "code": "159198",
     "name": "富国中证港股通信息技术综合ETF",
     "initials": "fgzzggtxxjszhetf"
+  },
+  {
+    "code": "159199",
+    "name": "平安国证石油天然气ETF",
+    "initials": "pagzsytrqetf"
   },
   {
     "code": "159200",
