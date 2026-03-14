@@ -24,3 +24,8 @@ npm-debug.log*
 # 环境变量
 .env
 .env.local
+
+# Cloudflare Workers
+dist/
+.wrangler/
+.kv-upload-tmp/

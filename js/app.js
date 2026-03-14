@@ -762,6 +762,106 @@ function getFundDisplayName(fund) {
   return name || '基金';
 }
 
+/** 图表下方纵向表格：按代码缓存的基金详情（与基金列表同源字段），用于补全 fundType、跟踪标的等 */
+let chartFundDetailCache = {};
+/** 上次参与表格渲染的基金列表，供异步拉取详情后重绘使用 */
+let lastRenderedChartFunds = [];
+
+/** 格式化卖出费率分段，与基金列表页一致 */
+function formatSellFeeSegmentsForTable(segs) {
+  if (!Array.isArray(segs) || !segs.length) return '-';
+  const sorted = segs.slice().sort((a, b) => (a.days ?? 0) - (b.days ?? 0));
+  const parts = sorted.map(s => {
+    const label = s.unbounded ? `≥${s.days}天` : `${s.days}天`;
+    const pct = (s.rate != null ? s.rate * 100 : 0).toFixed(2) + '%';
+    return `${label}:${pct}`;
+  });
+  const maxParts = 4;
+  return parts.length > maxParts ? parts.slice(0, maxParts).join('，') + '，…' : parts.join('，');
+}
+
+/** 格式化交易状态，与基金列表页一致 */
+function formatTradingStatusForTable(status) {
+  if (!status || (!status.subscribe && !status.redeem)) return '-';
+  const parts = [];
+  if (status.subscribe) parts.push(`申购：${status.subscribe}`);
+  if (status.redeem) parts.push(`赎回：${status.redeem}`);
+  return parts.join('，');
+}
+
+/**
+ * 渲染图表下方纵向表格：第一行为各基金名称（带颜色），以下每行为一个字段（与基金列表一致）
+ * @param {Array<{_id:string,name:string,code?:string,color:string,buyFee?:number,annualFee?:number,sellFeeSegments?:Array}>} funds 当前显示在图表中的基金
+ */
+function renderChartFundTable(funds) {
+  const section = document.getElementById('chart-fund-table-section');
+  const wrap = document.getElementById('chart-fund-table-wrap');
+  const tbody = document.getElementById('chart-fund-table-tbody');
+  if (!section || !tbody) return;
+
+  lastRenderedChartFunds = funds || [];
+
+  if (!funds || funds.length === 0) {
+    section.setAttribute('aria-hidden', 'true');
+    tbody.innerHTML = '';
+    return;
+  }
+
+  section.setAttribute('aria-hidden', 'false');
+
+  const getDetail = (fund) => {
+    const code = fund && (fund.code || '').trim();
+    return (code && chartFundDetailCache[code]) || null;
+  };
+
+  const rowLabels = ['代码', '名称', '基金类型', '买入费率', '年化费率', '卖出费率分段', '跟踪标的', '业绩基准', '基金公司', '交易状态', '更新时间'];
+  const getCell = (fund, rowKey) => {
+    const d = getDetail(fund);
+    const code = (fund.code || '').trim();
+    const name = (fund.name || '').trim() || '-';
+    switch (rowKey) {
+      case '代码': return code || '-';
+      case '名称': return name;
+      case '基金类型': return (d && (d.fundType || d.fundtype)) || '-';
+      case '买入费率': return fund.buyFee != null ? (fund.buyFee * 100).toFixed(2) + '%' : '-';
+      case '年化费率': return fund.annualFee != null ? (fund.annualFee * 100).toFixed(2) + '%' : '-';
+      case '卖出费率分段': return formatSellFeeSegmentsForTable(fund.sellFeeSegments);
+      case '跟踪标的': return (d && (d.trackingTarget || d.trackingIndex)) || '-';
+      case '业绩基准': return (d && d.performanceBenchmark) || '-';
+      case '基金公司': return (d && d.fundManager) || '-';
+      case '交易状态': return (d && d.tradingStatus) ? formatTradingStatusForTable(d.tradingStatus) : '-';
+      case '更新时间': return (d && d.updatedAt) || '-';
+      default: return '-';
+    }
+  };
+
+  let html = '';
+  const headerCells = funds.map(f => {
+    const name = getFundDisplayName(f);
+    const color = f.color || getColorForIndex(0);
+    return `<th class="chart-fund-table-th-name" scope="col"><span class="chart-fund-table-name-dot" style="background:${color}"></span>${escapeHtml(name)}</th>`;
+  });
+  html += '<tr><th class="chart-fund-table-th-label" scope="row">项目</th>' + headerCells.join('') + '</tr>';
+
+  rowLabels.forEach(label => {
+    const cells = funds.map(f => escapeHtml(getCell(f, label)));
+    html += `<tr><th class="chart-fund-table-th-label" scope="row">${escapeHtml(label)}</th>${cells.map(c => `<td>${c}</td>`).join('')}</tr>`;
+  });
+
+  tbody.innerHTML = html;
+
+  funds.forEach((fund) => {
+    const code = (fund.code || '').trim();
+    if (code.length !== 6) return;
+    if (chartFundDetailCache[code]) return;
+    fetch(`data/allfund/funds/${code}.json`).then(r => r.ok ? r.json() : null).then(data => {
+      if (!data) return;
+      chartFundDetailCache[code] = data;
+      renderChartFundTable(lastRenderedChartFunds);
+    }).catch(() => {});
+  });
+}
+
 /** 联接/母基金索引缓存 */
 let feederIndexCache = null;
 async function ensureFeederIndex() {
@@ -919,10 +1019,12 @@ async function updateChart() {
     const crosshairEl = document.getElementById('chart-crosshair-overlay');
     if (crosshairEl) crosshairEl.classList.remove('visible');
     legendEl.innerHTML = '<p class="none">请添加基金并填写费率</p>';
+    renderChartFundTable([]);
     return;
   }
 
   syncCardColors(funds);
+  renderChartFundTable(funds);
 
   const skipFirst7 = getSkipFirst7();
   const defaultMinDay = skipFirst7 ? 8 : 0;

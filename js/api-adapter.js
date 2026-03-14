@@ -31,6 +31,7 @@ async function loadAllfundStatic() {
  * - 手动覆盖：在 config.js 中设置 window.FUND_FEE_API_BASE
  * - 本地开发：localhost/127.0.0.1 → http://localhost:3457/api/fund
  * - GitHub Pages：→ null（使用纯静态模式）
+ * - Cloudflare Workers：→ /api/fund（同源 Worker 处理）
  * - 自建服务器：→ /api/fund（Nginx 反向代理）
  */
 export function getFeeApiBase() {
@@ -41,6 +42,7 @@ export function getFeeApiBase() {
       return 'http://localhost:3457/api/fund';
     }
     if (h.endsWith('.github.io')) return null;
+    if (h.endsWith('.workers.dev')) return '/api/fund';
     return '/api/fund';
   }
   return 'http://localhost:3457/api/fund';

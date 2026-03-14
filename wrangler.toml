@@ -1,0 +1,11 @@
+name = "fundcal"
+main = "src/worker.js"
+compatibility_date = "2024-12-01"
+
+[assets]
+directory = "./dist"
+
+[[kv_namespaces]]
+binding = "FUND_DATA"
+id = "<创建后填入>"
+preview_id = "<创建后填入>"

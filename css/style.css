@@ -2074,6 +2074,78 @@ h1 {
   margin-bottom: 0;
 }
 
+/* ── 图表下方纵向表格（与基金列表同字段，第一行为基金名称带颜色）── */
+.chart-fund-table-section {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.chart-fund-table-section[aria-hidden="true"] {
+  display: none;
+}
+
+.chart-fund-table-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 0 0 0.75rem 0;
+}
+
+.chart-fund-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-base);
+}
+
+.chart-fund-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.chart-fund-table th,
+.chart-fund-table td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: top;
+}
+
+.chart-fund-table tr:last-child th,
+.chart-fund-table tr:last-child td {
+  border-bottom: none;
+}
+
+.chart-fund-table-th-label {
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-raised);
+  white-space: nowrap;
+  width: 1%;
+  min-width: 6rem;
+}
+
+.chart-fund-table-th-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.chart-fund-table-name-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 0.4rem;
+  vertical-align: 0.15em;
+}
+
+.chart-fund-table td {
+  color: var(--text-primary);
+}
+
 /* 图表下方功能按钮（去除前7天、数据悬浮窗） */
 .chart-options {
   display: flex;
