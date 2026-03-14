@@ -48,10 +48,6 @@ export function getFeeApiBase() {
   return 'http://localhost:3457/api/fund';
 }
 
-export function isApiAvailable() {
-  return getFeeApiBase() !== null;
-}
-
 /* ========== 通用：先试 API，失败回退静态文件 ========== */
 
 async function tryApiFetch(urlPath, fallback) {
@@ -138,21 +134,6 @@ export async function fetchFundStatsFromAPI() {
 }
 
 /**
- * 全市场基金代码（供随机抽取）
- * API: /all-codes | 静态: 从 allfund.json 提取（无外部源时复用缓存数据）
- */
-export async function fetchAllFundCodesFromAPI() {
-  const data = await tryApiFetch('all-codes', async () => {
-    const all = await loadAllfundStatic();
-    if (!all) return null;
-    return { codes: all.codes || Object.keys(all.funds || all) };
-  });
-  if (!data) return [];
-  const codes = data.codes ?? data;
-  return Array.isArray(codes) ? codes.filter(c => String(c).trim().length === 6) : [];
-}
-
-/**
  * 单只基金费率
  * API: /:code/fee | 静态: 优先尝试 data/allfund/funds/:code.json，最后才回退 allfund.json
  */
@@ -208,7 +189,9 @@ export function transformApiDataToFundConfig(apiData) {
     trackingTarget: apiData.trackingTarget ?? apiData.trackingIndex,
     fundManager: apiData.fundManager,
     performanceBenchmark: apiData.performanceBenchmark,
+    fundType: apiData.fundType,
     tradingStatus: apiData.tradingStatus,
+    updatedAt: apiData.updatedAt,
     ...(code && code.length >= 6 ? { code } : {})
   };
 }

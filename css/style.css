@@ -370,6 +370,168 @@ h1 {
   font-size: 0.85rem;
 }
 
+/* ── 筛选模块 ── */
+.cf-filter-bar {
+  margin-bottom: 0.75rem;
+}
+
+.cf-filter-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.3rem 0.7rem;
+  font-family: inherit;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.cf-filter-toggle:hover {
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+.cf-filter-toggle-icon {
+  font-size: 0.65rem;
+  transition: transform 0.2s ease;
+}
+
+.cf-filter-bar.cf-filter-open .cf-filter-toggle-icon {
+  transform: rotate(90deg);
+}
+
+.cf-filter-active-count {
+  font-size: 0.72rem;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.cf-filter-active-count:empty {
+  display: none;
+}
+
+.cf-filter-panel {
+  margin-top: 0.5rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+}
+
+.cf-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.65rem 1.25rem;
+}
+
+.cf-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.cf-filter-label {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.cf-filter-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.cf-filter-options-scroll {
+  max-height: 11rem;
+  overflow-y: auto;
+  padding-right: 0.15rem;
+}
+
+.cf-filter-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.cf-filter-tag:hover {
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+.cf-filter-tag.cf-filter-tag-active {
+  background: var(--accent-subtle);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.cf-filter-range {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.cf-filter-input {
+  width: 5.5rem;
+  padding: 0.28rem 0.45rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+
+.cf-filter-input:focus {
+  outline: none;
+  border-color: var(--border-focus);
+}
+
+.cf-filter-input-wide {
+  width: 100%;
+  max-width: 16rem;
+  font-family: inherit;
+}
+
+.cf-filter-range-sep {
+  color: var(--text-tertiary);
+  font-size: 0.8rem;
+}
+
+.cf-filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.65rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.cf-filter-result-hint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-left: 0.5rem;
+}
+
+@media (max-width: 520px) {
+  .cf-filter-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .cached-funds-status {
   font-size: 0.8rem;
   color: var(--text-muted);
@@ -581,6 +743,12 @@ h1 {
   gap: 0.75rem;
 }
 
+@media (max-width: 520px) {
+  .fund-stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .fund-stats-card {
   position: relative;
   padding: 0.6rem 0.75rem;
@@ -605,7 +773,7 @@ h1 {
   transform: translateY(-2px) scale(1.01);
   box-shadow: var(--shadow-md);
   border-color: var(--border-hover);
-  background: var(--bg-elevated-hover);
+  background: var(--bg-hover);
 }
 
 .fund-stats-card:hover::before {
@@ -813,9 +981,6 @@ h1 {
   padding-right: 0.25rem;
   flex: 1 1 auto;
   min-height: 0;
-}
-
-.fund-stats-detail-list {
   scrollbar-gutter: stable;
   -webkit-overflow-scrolling: touch;
 }
@@ -1031,6 +1196,70 @@ h1 {
     border-radius: 0;
     overflow: hidden;
   }
+}
+
+/* ── 图表下方基金费率详情纵向表格 ── */
+.fund-detail-table-wrap {
+  margin-top: 1.25rem;
+  margin-bottom: 1.75rem;
+  overflow-x: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--bg-elevated);
+}
+
+.fund-detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.fund-detail-table th,
+.fund-detail-table td {
+  padding: 0.45rem 0.7rem;
+  border-bottom: 1px solid var(--border-subtle);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.fund-detail-table tr:last-child th,
+.fund-detail-table tr:last-child td {
+  border-bottom: none;
+}
+
+.fund-detail-table th.fund-detail-row-label {
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--bg-muted);
+  min-width: 7rem;
+  white-space: nowrap;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+
+.fund-detail-table td {
+  color: var(--text-primary);
+  min-width: 7rem;
+}
+
+.fund-detail-table tr:first-child td {
+  font-weight: 600;
+}
+
+.fund-detail-table tr:last-child td {
+  padding-top: 0.35rem;
+  padding-bottom: 0.45rem;
+}
+
+.fund-detail-color-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 0.4rem;
+  vertical-align: middle;
+  box-shadow: 0 0 5px currentColor;
 }
 
 /* ── 基金卡片（单行横向排列，不需滚动时居中，多时可横向滚动）── */
@@ -1337,10 +1566,6 @@ h1 {
   color: var(--text-tertiary);
   font-weight: 500;
   user-select: none;
-}
-
-.skip-first-row {
-  align-items: center;
 }
 
 /* 大号开关按钮：替代复选框，选中时背景高亮 */
@@ -1753,9 +1978,9 @@ h1 {
 }
 
 .chart-fund-list-show-all-active {
-  background: var(--primary);
+  background: var(--accent);
   color: #fff;
-  border-color: var(--primary);
+  border-color: var(--accent);
 }
 
 .chart-fund-list {
@@ -2072,78 +2297,6 @@ h1 {
 
 .crossover-legend .penetration-legend-list {
   margin-bottom: 0;
-}
-
-/* ── 图表下方纵向表格（与基金列表同字段，第一行为基金名称带颜色）── */
-.chart-fund-table-section {
-  margin-top: 1.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border);
-}
-
-.chart-fund-table-section[aria-hidden="true"] {
-  display: none;
-}
-
-.chart-fund-table-title {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-  margin: 0 0 0.75rem 0;
-}
-
-.chart-fund-table-wrap {
-  overflow-x: auto;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--bg-base);
-}
-
-.chart-fund-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.85rem;
-}
-
-.chart-fund-table th,
-.chart-fund-table td {
-  padding: 0.5rem 0.75rem;
-  text-align: left;
-  border-bottom: 1px solid var(--border-subtle);
-  vertical-align: top;
-}
-
-.chart-fund-table tr:last-child th,
-.chart-fund-table tr:last-child td {
-  border-bottom: none;
-}
-
-.chart-fund-table-th-label {
-  font-weight: 600;
-  color: var(--text-secondary);
-  background: var(--bg-raised);
-  white-space: nowrap;
-  width: 1%;
-  min-width: 6rem;
-}
-
-.chart-fund-table-th-name {
-  font-weight: 600;
-  color: var(--text-primary);
-  white-space: nowrap;
-}
-
-.chart-fund-table-name-dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  margin-right: 0.4rem;
-  vertical-align: 0.15em;
-}
-
-.chart-fund-table td {
-  color: var(--text-primary);
 }
 
 /* 图表下方功能按钮（去除前7天、数据悬浮窗） */

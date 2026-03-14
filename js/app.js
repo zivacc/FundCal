@@ -4,7 +4,7 @@
 import { MAX_CALC_DAYS, calcFeeCurve, calcTotalFeeRate, findAllCrossovers, toAnnualizedFeeRate, getSellFeeRate } from './fee-calculator.js';
 import { fetchFundFeeFromAPI, fetchFundCodesFromAPI, fetchSearchIndexFromAPI, fetchFeederIndexFromAPI } from './api-adapter.js';
 import {
-  CHART_COLORS, getColorForIndex, DEMO_FUND_CODES, DEFAULT_SEGMENTS, QUICK_SEGMENT_DAYS,
+  getColorForIndex, DEMO_FUND_CODES, QUICK_SEGMENT_DAYS,
   defaultSegments, parseRate, formatRate, escapeHtml, shuffle, parseDaysInput,
   openModal, closeModal
 } from './utils.js';
@@ -762,106 +762,6 @@ function getFundDisplayName(fund) {
   return name || '基金';
 }
 
-/** 图表下方纵向表格：按代码缓存的基金详情（与基金列表同源字段），用于补全 fundType、跟踪标的等 */
-let chartFundDetailCache = {};
-/** 上次参与表格渲染的基金列表，供异步拉取详情后重绘使用 */
-let lastRenderedChartFunds = [];
-
-/** 格式化卖出费率分段，与基金列表页一致 */
-function formatSellFeeSegmentsForTable(segs) {
-  if (!Array.isArray(segs) || !segs.length) return '-';
-  const sorted = segs.slice().sort((a, b) => (a.days ?? 0) - (b.days ?? 0));
-  const parts = sorted.map(s => {
-    const label = s.unbounded ? `≥${s.days}天` : `${s.days}天`;
-    const pct = (s.rate != null ? s.rate * 100 : 0).toFixed(2) + '%';
-    return `${label}:${pct}`;
-  });
-  const maxParts = 4;
-  return parts.length > maxParts ? parts.slice(0, maxParts).join('，') + '，…' : parts.join('，');
-}
-
-/** 格式化交易状态，与基金列表页一致 */
-function formatTradingStatusForTable(status) {
-  if (!status || (!status.subscribe && !status.redeem)) return '-';
-  const parts = [];
-  if (status.subscribe) parts.push(`申购：${status.subscribe}`);
-  if (status.redeem) parts.push(`赎回：${status.redeem}`);
-  return parts.join('，');
-}
-
-/**
- * 渲染图表下方纵向表格：第一行为各基金名称（带颜色），以下每行为一个字段（与基金列表一致）
- * @param {Array<{_id:string,name:string,code?:string,color:string,buyFee?:number,annualFee?:number,sellFeeSegments?:Array}>} funds 当前显示在图表中的基金
- */
-function renderChartFundTable(funds) {
-  const section = document.getElementById('chart-fund-table-section');
-  const wrap = document.getElementById('chart-fund-table-wrap');
-  const tbody = document.getElementById('chart-fund-table-tbody');
-  if (!section || !tbody) return;
-
-  lastRenderedChartFunds = funds || [];
-
-  if (!funds || funds.length === 0) {
-    section.setAttribute('aria-hidden', 'true');
-    tbody.innerHTML = '';
-    return;
-  }
-
-  section.setAttribute('aria-hidden', 'false');
-
-  const getDetail = (fund) => {
-    const code = fund && (fund.code || '').trim();
-    return (code && chartFundDetailCache[code]) || null;
-  };
-
-  const rowLabels = ['代码', '名称', '基金类型', '买入费率', '年化费率', '卖出费率分段', '跟踪标的', '业绩基准', '基金公司', '交易状态', '更新时间'];
-  const getCell = (fund, rowKey) => {
-    const d = getDetail(fund);
-    const code = (fund.code || '').trim();
-    const name = (fund.name || '').trim() || '-';
-    switch (rowKey) {
-      case '代码': return code || '-';
-      case '名称': return name;
-      case '基金类型': return (d && (d.fundType || d.fundtype)) || '-';
-      case '买入费率': return fund.buyFee != null ? (fund.buyFee * 100).toFixed(2) + '%' : '-';
-      case '年化费率': return fund.annualFee != null ? (fund.annualFee * 100).toFixed(2) + '%' : '-';
-      case '卖出费率分段': return formatSellFeeSegmentsForTable(fund.sellFeeSegments);
-      case '跟踪标的': return (d && (d.trackingTarget || d.trackingIndex)) || '-';
-      case '业绩基准': return (d && d.performanceBenchmark) || '-';
-      case '基金公司': return (d && d.fundManager) || '-';
-      case '交易状态': return (d && d.tradingStatus) ? formatTradingStatusForTable(d.tradingStatus) : '-';
-      case '更新时间': return (d && d.updatedAt) || '-';
-      default: return '-';
-    }
-  };
-
-  let html = '';
-  const headerCells = funds.map(f => {
-    const name = getFundDisplayName(f);
-    const color = f.color || getColorForIndex(0);
-    return `<th class="chart-fund-table-th-name" scope="col"><span class="chart-fund-table-name-dot" style="background:${color}"></span>${escapeHtml(name)}</th>`;
-  });
-  html += '<tr><th class="chart-fund-table-th-label" scope="row">项目</th>' + headerCells.join('') + '</tr>';
-
-  rowLabels.forEach(label => {
-    const cells = funds.map(f => escapeHtml(getCell(f, label)));
-    html += `<tr><th class="chart-fund-table-th-label" scope="row">${escapeHtml(label)}</th>${cells.map(c => `<td>${c}</td>`).join('')}</tr>`;
-  });
-
-  tbody.innerHTML = html;
-
-  funds.forEach((fund) => {
-    const code = (fund.code || '').trim();
-    if (code.length !== 6) return;
-    if (chartFundDetailCache[code]) return;
-    fetch(`data/allfund/funds/${code}.json`).then(r => r.ok ? r.json() : null).then(data => {
-      if (!data) return;
-      chartFundDetailCache[code] = data;
-      renderChartFundTable(lastRenderedChartFunds);
-    }).catch(() => {});
-  });
-}
-
 /** 联接/母基金索引缓存 */
 let feederIndexCache = null;
 async function ensureFeederIndex() {
@@ -1019,12 +919,10 @@ async function updateChart() {
     const crosshairEl = document.getElementById('chart-crosshair-overlay');
     if (crosshairEl) crosshairEl.classList.remove('visible');
     legendEl.innerHTML = '<p class="none">请添加基金并填写费率</p>';
-    renderChartFundTable([]);
     return;
   }
 
   syncCardColors(funds);
-  renderChartFundTable(funds);
 
   const skipFirst7 = getSkipFirst7();
   const defaultMinDay = skipFirst7 ? 8 : 0;
@@ -1412,14 +1310,94 @@ async function updateChart() {
     }
     legendEl.innerHTML = html;
   }
+
+  renderFundDetailTable(funds);
 }
 
-/** 基金卡片区域：保留横向拖动条，但滚轮恢复为默认竖向滚动行为 */
-function setupFundCardsWheelScroll() {
-  // 旧逻辑会在悬停基金卡片区域时，拦截滚轮事件并改为横向滚动。
-  // 按当前需求，去除该行为，仅依赖浏览器默认滚动和横向滚动条拖动。
-  const el = document.getElementById('fund-cards');
-  if (!el) return;
+
+
+function formatSegmentsForDetailTable(segs) {
+  if (!Array.isArray(segs) || !segs.length) return '-';
+  const sorted = segs.slice().sort((a, b) => (a.days ?? 0) - (b.days ?? 0));
+  return sorted.map(s => {
+    const label = s.unbounded ? `≥${s.days}天` : `${s.days}天`;
+    const pct = s.rate != null ? (s.rate * 100).toFixed(2) + '%' : '-';
+    return `<div>${escapeHtml(label)}: ${pct}</div>`;
+  }).join('');
+}
+
+function formatTradingStatusForDetail(status) {
+  if (!status || (!status.subscribe && !status.redeem)) return '-';
+  const parts = [];
+  if (status.subscribe) parts.push(`申购：${status.subscribe}`);
+  if (status.redeem) parts.push(`赎回：${status.redeem}`);
+  return parts.join('，');
+}
+
+const _fundMetaCache = {};
+
+async function renderFundDetailTable(funds) {
+  const wrap = document.getElementById('fund-detail-table-wrap');
+  const tbody = document.getElementById('fund-detail-tbody');
+  if (!wrap || !tbody) return;
+
+  if (!funds || !funds.length) {
+    wrap.style.display = 'none';
+    return;
+  }
+  wrap.style.display = '';
+
+  const metas = await Promise.all(funds.map(async f => {
+    const code = (f.code || '').trim();
+    if (!code) return {};
+    if (_fundMetaCache[code]) return _fundMetaCache[code];
+    try {
+      const data = await fetchFundFeeFromAPI(code);
+      if (data) {
+        _fundMetaCache[code] = data;
+        return data;
+      }
+    } catch { /* ignore */ }
+    return {};
+  }));
+
+  const rows = [
+    {
+      label: '基金名称',
+      render: (f, _m) => `<span class="fund-detail-color-dot" style="background:${f.color}"></span>${escapeHtml(f.name || '未命名基金')}`
+    },
+    { label: '基金代码', render: (f, _m) => escapeHtml(f.code || '-') },
+    { label: '基金类型', render: (_f, m) => escapeHtml(m.fundType || '-') },
+    { label: '买入费率', render: (f, _m) => f._rawBuyFee != null ? (f._rawBuyFee * 100).toFixed(2) + '%' : '-' },
+    { label: '买入费率（折后）', render: (f, _m) => f.buyFee != null ? (f.buyFee * 100).toFixed(2) + '%' : '-' },
+    { label: '年化费率', render: (f, _m) => f.annualFee != null ? (f.annualFee * 100).toFixed(2) + '%' : '-' },
+    { label: '卖出费率分段', render: (f, _m) => formatSegmentsForDetailTable(f.sellFeeSegments), nowrap: false },
+    { label: '跟踪标的', render: (_f, m) => escapeHtml(m.trackingTarget || '-') },
+    { label: '业绩基准', render: (_f, m) => escapeHtml(m.performanceBenchmark || '-'), nowrap: false },
+    { label: '基金公司', render: (_f, m) => escapeHtml(m.fundManager || '-') },
+    { label: '交易状态', render: (_f, m) => escapeHtml(formatTradingStatusForDetail(m.tradingStatus)) },
+    { label: '更新时间', render: (_f, m) => escapeHtml(m.updatedAt || '-') },
+    {
+      label: '原始数据',
+      render: (f, _m) => {
+        const code = (f.code || '').trim();
+        if (!code) return '-';
+        const isOverseas = /^968\d{3}$/.test(code);
+        const emUrl = isOverseas
+          ? `https://overseas.1234567.com.cn/${code}`
+          : `https://fundf10.eastmoney.com/jjfl_${code}.html`;
+        const sohuUrl = `https://q.fund.sohu.com/${code}/index.shtml?code=${code}`;
+        return `<a href="${emUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-secondary">天天基金</a> <a href="${sohuUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-secondary">搜狐</a>`;
+      }
+    },
+  ];
+
+  tbody.innerHTML = rows.map(row => {
+    const th = `<th class="fund-detail-row-label">${row.label}</th>`;
+    const style = row.nowrap === false ? ' style="white-space:normal"' : '';
+    const tds = funds.map((f, i) => `<td${style}>${row.render(f, metas[i])}</td>`).join('');
+    return `<tr>${th}${tds}</tr>`;
+  }).join('');
 }
 
 function renderImportResultsList(container, items) {
@@ -1684,7 +1662,7 @@ function init() {
       }
     });
   }
-  setupFundCardsWheelScroll();
+
   const clearBtn = document.getElementById('clear-storage');
   if (clearBtn) clearBtn.addEventListener('click', clearStoredState);
   const clearCalcDaysBtn = document.getElementById('clear-calc-days');
@@ -1809,19 +1787,6 @@ function init() {
     const target = String(code || '').trim();
     if (!target) return false;
     return Array.from(cards).some(c => (c.dataset.fundCode || '').trim() === target);
-  }
-
-  function markSearchItemAddedByCode(code) {
-    if (!searchDropdown) return;
-    const target = String(code || '').trim();
-    if (!target) return;
-    searchDropdown.querySelectorAll('.fund-search-add-btn').forEach(btn => {
-      if (btn.dataset.code === target) {
-        btn.classList.add('added');
-        btn.textContent = '✓';
-        btn.title = '已添加';
-      }
-    });
   }
 
   let lastSearchItems = [];

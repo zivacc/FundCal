@@ -402,10 +402,9 @@ async function fetchFundFee(code) {
 
       // 认为“数值一栏”是行中第一个包含 % 的单元格；若不存在 %，则整行视为文字说明
       const rateCell = row.find(c => /%/.test(c)) || '';
-      const cleaned = rateCell.replace(/[\d.\s%]/g, '');
-      const hasCJK = /[\u4e00-\u9fa5]/.test(cleaned);
-
-      const isTextual = !rateCell || hasCJK;
+      const stripped = rateCell.replace(/[\d.\s%（）()，,\-\u2014—]/g, '');
+      const cjkCount = (stripped.match(/[\u4e00-\u9fa5]/g) || []).length;
+      const isTextual = !rateCell || cjkCount > 5;
       if (isTextual) {
         if (hasMgmtLabel) mgmtHasText = true;
         if (hasCustLabel) custHasText = true;
@@ -692,39 +691,70 @@ async function main() {
     console.log('示例: node scripts/crawl-fund-fee.js 000001 110011');
     process.exit(1);
   }
+  const total = codes.length;
+  let okCount = 0;
+  let failCount = 0;
   /** @type {{code:string,name:string}[]} */
   const missingFundType = [];
+  /** @type {string[]} */
+  const failedCodes = [];
+  /** @type {{code:string,name:string}[]} */
+  const floatingList = [];
+  const startTime = Date.now();
 
-  for (const code of codes) {
-    process.stdout.write(`抓取 ${code} ... `);
+  console.log(`\n共 ${total} 只基金待抓取\n${'─'.repeat(60)}`);
+
+  for (let i = 0; i < codes.length; i++) {
+    const code = codes[i];
+    const prefix = `[${i + 1}/${total}] ${code}`;
+    process.stdout.write(`${prefix}  `);
     const data = await fetchFundFee(code);
     if (data) {
-      // 对于非中港互认基金，校验基金类型是否缺失
-      const isOverseas = /^968\d{3}$/.test(code);
+      okCount++;
+      saveFund(data);
+
+      const op = data.operationFees || {};
+      const buyPct = (data.buyFee * 100).toFixed(2);
+      const annualPct = ((op.total ?? data.annualFee) * 100).toFixed(2);
+      const floatTag = data.isFloatingAnnualFee ? ' [浮动]' : '';
+      const sub = data.tradingStatus?.subscribe || '-';
+      const red = data.tradingStatus?.redeem || '-';
       const ft = (data.fundType || '').trim();
+      const typeTag = ft ? ` (${ft})` : '';
+
+      console.log(`✓ ${data.name}${typeTag}  买${buyPct}%  运作${annualPct}%${floatTag}  申购:${sub}  赎回:${red}`);
+
+      const isOverseas = /^968\d{3}$/.test(code);
       if (!isOverseas && !ft) {
         missingFundType.push({ code, name: data.name || `基金${code}` });
       }
-
-      saveFund(data);
-      const op = data.operationFees || {};
-      console.log(`OK  ${data.name} 申购${(data.buyFee*100).toFixed(2)}% 运作${((op.total ?? data.annualFee)*100).toFixed(2)}% 申/${data.tradingStatus?.subscribe || '-'} 赎/${data.tradingStatus?.redeem || '-'}`);
+      if (data.isFloatingAnnualFee) {
+        floatingList.push({ code, name: data.name || `基金${code}` });
+      }
     } else {
-      console.log('失败');
+      failCount++;
+      failedCodes.push(code);
+      console.log('✗ 抓取失败');
     }
     await new Promise(r => setTimeout(r, 800));
   }
 
-  // 爬虫结束后输出基金类型缺失情况（中港互认基金除外）
-  if (missingFundType.length > 0) {
-    console.log('\n========= 基金类型缺失检查（中港互认基金已排除） =========');
-    console.log(`共 ${missingFundType.length} 只基金未能从「基本概况」页解析出基金类型：`);
-    for (const item of missingFundType) {
-      console.log(`- ${item.code} ${item.name}`);
-    }
-    console.log('====================================================\n');
-  } else {
-    console.log('\n基金类型检查：除中港互认基金外，所有已抓取基金均包含 fundType 字段。\n');
+  const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+  console.log(`${'─'.repeat(60)}`);
+  console.log(`完成：成功 ${okCount}，失败 ${failCount}，耗时 ${elapsed}s\n`);
+
+  if (failedCodes.length) {
+    console.log(`⚠ 失败代码（${failedCodes.length} 只）：${failedCodes.join('  ')}\n`);
+  }
+  if (floatingList.length) {
+    console.log(`ℹ 浮动费率基金（${floatingList.length} 只）：`);
+    for (const item of floatingList) console.log(`  ${item.code} ${item.name}`);
+    console.log('');
+  }
+  if (missingFundType.length) {
+    console.log(`⚠ 缺失基金类型（${missingFundType.length} 只，中港互认已排除）：`);
+    for (const item of missingFundType) console.log(`  ${item.code} ${item.name}`);
+    console.log('');
   }
 }
 

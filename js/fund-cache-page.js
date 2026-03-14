@@ -9,6 +9,20 @@ let totalPages = 1;
 /** 当前排序配置：key 对应下拉框里的 code/name/buy/annual，dir 为 asc/desc */
 let currentSort = { key: 'code', dir: 'asc' };
 
+/** 当前筛选条件 */
+let activeFilters = {
+  fundType: new Set(),
+  fundManager: new Set(),
+  subscribe: new Set(),
+  redeem: new Set(),
+  floatingFee: '',      // '' | 'yes' | 'no'
+  buyFeeMin: null,
+  buyFeeMax: null,
+  annualFeeMin: null,
+  annualFeeMax: null,
+  trackingTarget: '',
+};
+
 /** 保存 allfund.json 中的原始数据，按代码索引，便于弹窗中展示完整字段 */
 const fundDetailMap = {};
 
@@ -73,14 +87,6 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-function formatTradingStatus(status) {
-  if (!status || ( !status.subscribe && !status.redeem)) return '-';
-  const parts = [];
-  if (status.subscribe) parts.push(`申购：${status.subscribe}`);
-  if (status.redeem) parts.push(`赎回：${status.redeem}`);
-  return parts.join('，');
-}
-
 function formatSellFeeSegments(segs) {
   if (!Array.isArray(segs) || !segs.length) return '-';
   const sorted = segs.slice().sort((a, b) => (a.days ?? 0) - (b.days ?? 0));
@@ -113,10 +119,6 @@ function setProgress(done, total) {
   bar.style.width = `${pct.toFixed(1)}%`;
 }
 
-function getSortConfig() {
-  return currentSort;
-}
-
 function parseSortValue(val) {
   const safe = String(val || 'code-asc');
   const [key, dir] = safe.split('-');
@@ -130,7 +132,8 @@ function parseSortValue(val) {
     key === 'trackingTarget' ||
     key === 'performanceBenchmark' ||
     key === 'fundManager' ||
-    key === 'tradingStatus' ||
+    key === 'subscribe' ||
+    key === 'redeem' ||
     key === 'updatedAt'
   ) ? key : 'code';
   const normDir = dir === 'desc' ? 'desc' : 'asc';
@@ -194,9 +197,14 @@ function compareByCurrentSort(a, b, sort) {
      const bv = (b.fundManager || '').trim();
      return factor * av.localeCompare(bv, 'zh-CN');
    }
-   if (key === 'tradingStatus') {
-     const av = formatTradingStatus(a.tradingStatus || {});
-     const bv = formatTradingStatus(b.tradingStatus || {});
+   if (key === 'subscribe') {
+     const av = (a.tradingStatus?.subscribe || '').trim();
+     const bv = (b.tradingStatus?.subscribe || '').trim();
+     return factor * av.localeCompare(bv, 'zh-CN');
+   }
+   if (key === 'redeem') {
+     const av = (a.tradingStatus?.redeem || '').trim();
+     const bv = (b.tradingStatus?.redeem || '').trim();
      return factor * av.localeCompare(bv, 'zh-CN');
    }
    if (key === 'updatedAt') {
@@ -221,7 +229,12 @@ function renderTable() {
       f.name.toLowerCase().includes(query) ||
       (f.initials && f.initials.toLowerCase().includes(query))
     );
-    // 有搜索关键字时：先按匹配度排序，再按照当前排序配置细化顺序
+  }
+
+  // 应用筛选条件（作用于搜索结果之上）
+  rows = applyFilters(rows);
+
+  if (query) {
     rows.sort((a, b) => {
       const sa = getSearchScoreForRow(a, query);
       const sb = getSearchScoreForRow(b, query);
@@ -229,7 +242,6 @@ function renderTable() {
       return compareByCurrentSort(a, b, currentSort);
     });
   } else {
-    // 无搜索关键字时，仅按当前排序配置排序
     rows.sort((a, b) => compareByCurrentSort(a, b, currentSort));
   }
 
@@ -271,7 +283,7 @@ function renderTable() {
   if (!pageRows.length) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="12" class="cached-funds-empty">没有匹配的基金</td>
+        <td colspan="13" class="cached-funds-empty">没有匹配的基金</td>
       </tr>
     `;
     return;
@@ -291,7 +303,8 @@ function renderTable() {
       <td>${escapeHtml(f.trackingTarget || '-')}</td>
       <td>${escapeHtml(f.performanceBenchmark || '-')}</td>
       <td>${escapeHtml(f.fundManager || '-')}</td>
-      <td>${escapeHtml(formatTradingStatus(f.tradingStatus))}</td>
+      <td>${escapeHtml(f.tradingStatus?.subscribe || '-')}</td>
+      <td>${escapeHtml(f.tradingStatus?.redeem || '-')}</td>
       <td>${escapeHtml(f.updatedAt || '-')}</td>
     </tr>
   `;
@@ -362,9 +375,213 @@ async function loadCachedFunds() {
     setProgress(1, 1);
     allFunds.sort((a, b) => a.code.localeCompare(b.code));
     setStatus(`已加载 ${allFunds.length} 只基金。`);
+    populateFilterOptions();
     renderTable();
   } catch (e) {
     setStatus('从本地汇总文件加载缓存基金失败。', true);
+  }
+}
+
+/** 应用筛选条件 */
+function applyFilters(rows) {
+  const f = activeFilters;
+  return rows.filter(r => {
+    if (f.fundType.size && !f.fundType.has(r.fundType || '')) return false;
+    if (f.fundManager.size && !f.fundManager.has(r.fundManager || '')) return false;
+    if (f.subscribe.size) {
+      const sv = (r.tradingStatus?.subscribe || '').trim() || '-';
+      if (!f.subscribe.has(sv)) return false;
+    }
+    if (f.redeem.size) {
+      const rv = (r.tradingStatus?.redeem || '').trim() || '-';
+      if (!f.redeem.has(rv)) return false;
+    }
+    if (f.floatingFee === 'yes' && !(r.raw && r.raw.isFloatingAnnualFee)) return false;
+    if (f.floatingFee === 'no' && (r.raw && r.raw.isFloatingAnnualFee)) return false;
+    if (f.buyFeeMin != null && (r.buyFee ?? 0) < f.buyFeeMin) return false;
+    if (f.buyFeeMax != null && (r.buyFee ?? 0) > f.buyFeeMax) return false;
+    if (f.annualFeeMin != null && (r.annualFee ?? 0) < f.annualFeeMin) return false;
+    if (f.annualFeeMax != null && (r.annualFee ?? 0) > f.annualFeeMax) return false;
+    if (f.trackingTarget) {
+      const kw = f.trackingTarget.toLowerCase();
+      if (!(r.trackingTarget || '').toLowerCase().includes(kw)) return false;
+    }
+    return true;
+  });
+}
+
+function countActiveFilters() {
+  const f = activeFilters;
+  let n = 0;
+  if (f.fundType.size) n++;
+  if (f.fundManager.size) n++;
+  if (f.subscribe.size) n++;
+  if (f.redeem.size) n++;
+  if (f.floatingFee) n++;
+  if (f.buyFeeMin != null || f.buyFeeMax != null) n++;
+  if (f.annualFeeMin != null || f.annualFeeMax != null) n++;
+  if (f.trackingTarget) n++;
+  return n;
+}
+
+function updateFilterBadge() {
+  const el = document.getElementById('cf-filter-active-count');
+  if (!el) return;
+  const n = countActiveFilters();
+  el.textContent = n > 0 ? `(${n})` : '';
+}
+
+function updateFilterResultHint() {
+  const el = document.getElementById('cf-filter-result-hint');
+  if (!el) return;
+  const n = countActiveFilters();
+  if (n === 0) { el.textContent = ''; return; }
+  const total = allFunds.length;
+  const filtered = applyFilters(allFunds).length;
+  el.textContent = `${filtered} / ${total} 只基金符合条件`;
+}
+
+/** 从已加载数据中提取筛选选项并渲染标签按钮 */
+function populateFilterOptions() {
+  const fundTypes = new Map();
+  const managers = new Map();
+  const subscribes = new Map();
+  const redeems = new Map();
+
+  for (const f of allFunds) {
+    const ft = f.fundType || '';
+    if (ft) fundTypes.set(ft, (fundTypes.get(ft) || 0) + 1);
+    const fm = f.fundManager || '';
+    if (fm) managers.set(fm, (managers.get(fm) || 0) + 1);
+    const sv = (f.tradingStatus?.subscribe || '').trim();
+    if (sv) subscribes.set(sv, (subscribes.get(sv) || 0) + 1);
+    const rv = (f.tradingStatus?.redeem || '').trim();
+    if (rv) redeems.set(rv, (redeems.get(rv) || 0) + 1);
+  }
+
+  const renderTags = (containerEl, map, filterSet) => {
+    if (!containerEl) return;
+    const sorted = [...map.entries()].sort((a, b) => b[1] - a[1]);
+    containerEl.innerHTML = sorted.map(([label, count]) => {
+      const active = filterSet.has(label) ? ' cf-filter-tag-active' : '';
+      return `<button type="button" class="cf-filter-tag${active}" data-value="${escapeHtml(label)}">${escapeHtml(label)} <small>(${count})</small></button>`;
+    }).join('');
+  };
+
+  renderTags(document.getElementById('cf-filter-fundType'), fundTypes, activeFilters.fundType);
+  renderTags(document.getElementById('cf-filter-fundManager'), managers, activeFilters.fundManager);
+  renderTags(document.getElementById('cf-filter-subscribe'), subscribes, activeFilters.subscribe);
+  renderTags(document.getElementById('cf-filter-redeem'), redeems, activeFilters.redeem);
+
+  const floatingEl = document.getElementById('cf-filter-floatingFee');
+  if (floatingEl) {
+    floatingEl.innerHTML = ['yes', 'no'].map(v => {
+      const label = v === 'yes' ? '仅浮动费率' : '排除浮动费率';
+      const active = activeFilters.floatingFee === v ? ' cf-filter-tag-active' : '';
+      return `<button type="button" class="cf-filter-tag${active}" data-value="${v}">${label}</button>`;
+    }).join('');
+  }
+}
+
+function resetFilters() {
+  activeFilters = {
+    fundType: new Set(),
+    fundManager: new Set(),
+    subscribe: new Set(),
+    redeem: new Set(),
+    floatingFee: '',
+    buyFeeMin: null,
+    buyFeeMax: null,
+    annualFeeMin: null,
+    annualFeeMax: null,
+    trackingTarget: '',
+  };
+  const ids = ['cf-filter-buyFee-min', 'cf-filter-buyFee-max', 'cf-filter-annualFee-min', 'cf-filter-annualFee-max', 'cf-filter-trackingTarget'];
+  ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  populateFilterOptions();
+  updateFilterBadge();
+}
+
+function readFiltersFromUI() {
+  const pv = (id) => { const v = parseFloat(document.getElementById(id)?.value); return isNaN(v) ? null : v / 100; };
+  activeFilters.buyFeeMin = pv('cf-filter-buyFee-min');
+  activeFilters.buyFeeMax = pv('cf-filter-buyFee-max');
+  activeFilters.annualFeeMin = pv('cf-filter-annualFee-min');
+  activeFilters.annualFeeMax = pv('cf-filter-annualFee-max');
+  activeFilters.trackingTarget = (document.getElementById('cf-filter-trackingTarget')?.value || '').trim();
+}
+
+function setupFilterEvents() {
+  const bar = document.querySelector('.cf-filter-bar');
+  const toggleBtn = document.getElementById('cf-filter-toggle');
+  const panel = document.getElementById('cf-filter-panel');
+  const applyBtn = document.getElementById('cf-filter-apply');
+  const resetBtn = document.getElementById('cf-filter-reset');
+
+  if (toggleBtn && panel && bar) {
+    toggleBtn.addEventListener('click', () => {
+      const open = panel.hidden;
+      panel.hidden = !open;
+      bar.classList.toggle('cf-filter-open', open);
+    });
+  }
+
+  const bindTagToggle = (containerId, filterSet) => {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    el.addEventListener('click', (e) => {
+      const tag = e.target.closest('.cf-filter-tag');
+      if (!tag) return;
+      const val = tag.dataset.value;
+      if (filterSet.has(val)) {
+        filterSet.delete(val);
+        tag.classList.remove('cf-filter-tag-active');
+      } else {
+        filterSet.add(val);
+        tag.classList.add('cf-filter-tag-active');
+      }
+    });
+  };
+
+  bindTagToggle('cf-filter-fundType', activeFilters.fundType);
+  bindTagToggle('cf-filter-fundManager', activeFilters.fundManager);
+  bindTagToggle('cf-filter-subscribe', activeFilters.subscribe);
+  bindTagToggle('cf-filter-redeem', activeFilters.redeem);
+
+  const floatingEl = document.getElementById('cf-filter-floatingFee');
+  if (floatingEl) {
+    floatingEl.addEventListener('click', (e) => {
+      const tag = e.target.closest('.cf-filter-tag');
+      if (!tag) return;
+      const val = tag.dataset.value;
+      if (activeFilters.floatingFee === val) {
+        activeFilters.floatingFee = '';
+        tag.classList.remove('cf-filter-tag-active');
+      } else {
+        activeFilters.floatingFee = val;
+        floatingEl.querySelectorAll('.cf-filter-tag').forEach(t => t.classList.remove('cf-filter-tag-active'));
+        tag.classList.add('cf-filter-tag-active');
+      }
+    });
+  }
+
+  if (applyBtn) {
+    applyBtn.addEventListener('click', () => {
+      readFiltersFromUI();
+      currentPage = 1;
+      renderTable();
+      updateFilterBadge();
+      updateFilterResultHint();
+    });
+  }
+
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      resetFilters();
+      currentPage = 1;
+      renderTable();
+      updateFilterResultHint();
+    });
   }
 }
 
@@ -478,7 +695,8 @@ function setupEvents() {
         else if (key === 'trackingTarget') mappedKey = 'trackingTarget';
         else if (key === 'performanceBenchmark') mappedKey = 'performanceBenchmark';
         else if (key === 'fundManager') mappedKey = 'fundManager';
-        else if (key === 'tradingStatus') mappedKey = 'tradingStatus';
+        else if (key === 'subscribe') mappedKey = 'subscribe';
+        else if (key === 'redeem') mappedKey = 'redeem';
         else if (key === 'updatedAt') mappedKey = 'updatedAt';
 
         if (currentSort.key === mappedKey) {
@@ -712,6 +930,7 @@ function setupEvents() {
 
 document.addEventListener('DOMContentLoaded', () => {
   setupEvents();
+  setupFilterEvents();
   loadCachedFunds();
 });
 

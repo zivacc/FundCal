@@ -198,8 +198,24 @@ async function main() {
   let ok = 0;
   let fail = 0;
   let done = 0;
+  /** @type {string[]} */
+  const failedCodes = [];
   const start = Date.now();
-  const logInterval = total > 100 ? 500 : 50;
+  const logInterval = total > 500 ? 500 : total > 100 ? 100 : 20;
+  let lastLogTime = start;
+
+  function progressBar() {
+    const pct = total > 0 ? (done / total * 100) : 0;
+    const barLen = 30;
+    const filled = Math.round(barLen * done / total);
+    const bar = '█'.repeat(filled) + '░'.repeat(barLen - filled);
+    const elapsedSec = ((Date.now() - start) / 1000).toFixed(0);
+    const speed = done > 0 ? (done / ((Date.now() - start) / 1000)).toFixed(1) : '0';
+    const eta = done > 0 ? Math.round((total - done) / (done / ((Date.now() - start) / 1000))) : '?';
+    return `${bar} ${pct.toFixed(1)}%  ${done}/${total}  ✓${ok} ✗${fail}  ${speed}/s  ETA ${eta}s  [${elapsedSec}s]`;
+  }
+
+  console.log(`\n${'─'.repeat(60)}`);
 
   async function runWorker() {
     while (true) {
@@ -213,18 +229,28 @@ async function main() {
         ok++;
       } else {
         fail++;
+        failedCodes.push(code);
       }
       done++;
-      if (done % logInterval === 0 || done === total) {
-        console.log(`进度 ${done}/${total}  成功 ${ok}  失败 ${fail}`);
+      const now = Date.now();
+      if (done % logInterval === 0 || done === total || now - lastLogTime > 5000) {
+        process.stdout.write(`\r${progressBar()}`);
+        lastLogTime = now;
       }
     }
   }
 
   await Promise.all(Array.from({ length: workers }, () => runWorker()));
 
+  process.stdout.write(`\r${progressBar()}\n`);
+
   const elapsed = ((Date.now() - start) / 1000).toFixed(1);
-  console.log(`\n完成: 成功 ${ok}，失败 ${fail}，耗时 ${elapsed}s`);
+  console.log(`${'─'.repeat(60)}`);
+  console.log(`完成：成功 ${ok}，失败 ${fail}，耗时 ${elapsed}s`);
+  if (failedCodes.length) {
+    const show = failedCodes.length > 20 ? failedCodes.slice(0, 20).join('  ') + `  …共${failedCodes.length}只` : failedCodes.join('  ');
+    console.log(`⚠ 失败代码：${show}`);
+  }
 
   // 抓取完成后，基于 data/funds 下的单只文件聚合生成 data/allfund/allfund.json
   try {

@@ -55,6 +55,74 @@
       </select>
     </div>
 
+    <!-- 筛选模块（可折叠） -->
+    <div class="cf-filter-bar">
+      <button type="button" class="cf-filter-toggle" id="cf-filter-toggle">
+        <span class="cf-filter-toggle-icon">▶</span>
+        <span>筛选</span>
+        <span class="cf-filter-active-count" id="cf-filter-active-count"></span>
+      </button>
+      <div class="cf-filter-panel" id="cf-filter-panel" hidden>
+        <div class="cf-filter-grid">
+          <!-- 基金类型 -->
+          <div class="cf-filter-group">
+            <div class="cf-filter-label">基金类型</div>
+            <div class="cf-filter-options cf-filter-options-scroll" id="cf-filter-fundType"></div>
+          </div>
+          <!-- 基金公司 -->
+          <div class="cf-filter-group">
+            <div class="cf-filter-label">基金公司</div>
+            <div class="cf-filter-options cf-filter-options-scroll" id="cf-filter-fundManager"></div>
+          </div>
+          <!-- 申购状态 -->
+          <div class="cf-filter-group">
+            <div class="cf-filter-label">申购状态</div>
+            <div class="cf-filter-options cf-filter-options-scroll" id="cf-filter-subscribe"></div>
+          </div>
+          <!-- 赎回状态 -->
+          <div class="cf-filter-group">
+            <div class="cf-filter-label">赎回状态</div>
+            <div class="cf-filter-options cf-filter-options-scroll" id="cf-filter-redeem"></div>
+          </div>
+          <!-- 买入费率 -->
+          <div class="cf-filter-group">
+            <div class="cf-filter-label">买入费率</div>
+            <div class="cf-filter-range">
+              <input type="number" step="0.01" min="0" id="cf-filter-buyFee-min" class="cf-filter-input" placeholder="最低 %">
+              <span class="cf-filter-range-sep">—</span>
+              <input type="number" step="0.01" min="0" id="cf-filter-buyFee-max" class="cf-filter-input" placeholder="最高 %">
+            </div>
+          </div>
+          <!-- 年化费率 -->
+          <div class="cf-filter-group">
+            <div class="cf-filter-label">年化费率</div>
+            <div class="cf-filter-range">
+              <input type="number" step="0.01" min="0" id="cf-filter-annualFee-min" class="cf-filter-input" placeholder="最低 %">
+              <span class="cf-filter-range-sep">—</span>
+              <input type="number" step="0.01" min="0" id="cf-filter-annualFee-max" class="cf-filter-input" placeholder="最高 %">
+            </div>
+          </div>
+          <!-- 跟踪标的 -->
+          <div class="cf-filter-group">
+            <div class="cf-filter-label">跟踪标的</div>
+            <div class="cf-filter-range">
+              <input type="text" id="cf-filter-trackingTarget" class="cf-filter-input cf-filter-input-wide" placeholder="关键字（如：沪深300）">
+            </div>
+          </div>
+          <!-- 浮动费率 -->
+          <div class="cf-filter-group">
+            <div class="cf-filter-label">浮动费率</div>
+            <div class="cf-filter-options" id="cf-filter-floatingFee"></div>
+          </div>
+        </div>
+        <div class="cf-filter-actions">
+          <button type="button" class="btn btn-sm" id="cf-filter-apply">应用筛选</button>
+          <button type="button" class="btn btn-sm btn-secondary" id="cf-filter-reset">重置</button>
+          <span class="cf-filter-result-hint" id="cf-filter-result-hint"></span>
+        </div>
+      </div>
+    </div>
+
     <div id="cached-funds-status" class="cached-funds-status">正在加载数据库基金列表...（数据托管在github，需要一点时间）</div>
     <div class="cached-funds-progress">
       <div class="cached-funds-progress-bar" id="cached-funds-progress-bar"></div>
@@ -74,7 +142,8 @@
             <th data-sort-key="trackingTarget">跟踪标的</th>
             <th data-sort-key="performanceBenchmark">业绩基准</th>
             <th data-sort-key="fundManager">基金公司</th>
-            <th data-sort-key="tradingStatus">交易状态</th>
+            <th data-sort-key="subscribe">申购状态</th>
+            <th data-sort-key="redeem">赎回状态</th>
             <th data-sort-key="updatedAt">更新时间</th>
           </tr>
         </thead>

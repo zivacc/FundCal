@@ -362,6 +362,8 @@ async function loadFundsForCard(viewKey, label) {
     return { meta: item, funds };
   }
 
+  const codes = item.codes;
+
   // 1. 纯静态部署、无 API 时：优先使用预生成的「代码->名称」映射，避免逐只请求详情
   if (!base) {
     try {
@@ -384,8 +386,6 @@ async function loadFundsForCard(viewKey, label) {
       // 如果映射加载失败，则继续走后面的逐只加载回退逻辑
     }
   }
-
-  const codes = item.codes;
   const tasks = codes.map(code => fetchFundDetailByCode(code));
   const results = await Promise.all(tasks);
   const funds = [];
@@ -434,6 +434,7 @@ function renderFundDetailLoading(label) {
           <div class="fund-stats-detail-title" title="${label}">${label}</div>
           <div class="fund-stats-detail-meta">正在加载基金明细...</div>
         </div>
+        <button type="button" class="fund-stats-detail-close-btn" aria-label="关闭基金列表">✕</button>
       </div>
       <div class="fund-stats-detail-list fund-stats-detail-list-skeleton">
         <div class="fund-stats-detail-row-skeleton"></div>
