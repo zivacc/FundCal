@@ -82,6 +82,70 @@ function parseTableRows(tableHtml) {
 }
 
 /**
+ * 从 jbgk 表格「净资产规模」单元格解析结构化数据
+ * 例：29.37亿元（截止至：2025年12月31日）
+ */
+function parseNetAssetScale(raw) {
+  if (!raw || typeof raw !== 'string') return null;
+  const text = raw.replace(/\s+/g, ' ').trim();
+  if (!text) return null;
+  let amountText;
+  const amt = text.match(/([\d.]+)\s*亿\s*元/);
+  if (amt) amountText = `${amt[1]}亿元`;
+  let asOfDate;
+  const d = text.match(/截止至[：:]\s*(\d{4})[年/.-](\d{1,2})[月/.-](\d{1,2})\s*日?/);
+  if (d) {
+    asOfDate = `${d[1]}-${String(d[2]).padStart(2, '0')}-${String(d[3]).padStart(2, '0')}`;
+  }
+  return {
+    text,
+    ...(amountText ? { amountText } : {}),
+    ...(asOfDate ? { asOfDate } : {}),
+  };
+}
+
+/** 从 FundArchivesDatas.aspx 返回的脚本中提取 content HTML 字符串 */
+function extractApidataContent(jsText) {
+  const key = 'content:"';
+  const i = (jsText || '').indexOf(key);
+  if (i === -1) return null;
+  const start = i + key.length;
+  let end = start;
+  while (end < jsText.length) {
+    if (jsText[end] === '"' && jsText[end - 1] !== '\\') break;
+    end++;
+  }
+  return jsText.slice(start, end);
+}
+
+/**
+ * 解析阶段涨幅明细 HTML（与页面 Ajax 返回的 apidata.content 一致）
+ * 取「涨幅」列（本基金），即每个 <ul> 中第二个 <li>。
+ */
+function parseJdzfStageReturnsHtml(fragment) {
+  if (!fragment || typeof fragment !== 'string') return [];
+  const rows = [];
+  const uls = fragment.match(/<ul[^>]*>[\s\S]*?<\/ul>/gi) || [];
+  for (const ul of uls) {
+    if (/class=['"]fcol['"]/.test(ul)) continue;
+    const titleMatch = ul.match(/<li[^>]*class=['"]title['"][^>]*>([\s\S]*?)<\/li>/i);
+    if (!titleMatch) continue;
+    const period = titleMatch[1].replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim();
+    if (!period) continue;
+    const lis = ul.match(/<li[^>]*>[\s\S]*?<\/li>/gi) || [];
+    if (lis.length < 2) continue;
+    const returnText = lis[1].replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim();
+    let returnPct = null;
+    if (returnText && returnText !== '---') {
+      const m = returnText.match(/(-?[\d.]+)\s*%/);
+      returnPct = m ? parseFloat(m[1]) : null;
+    }
+    rows.push({ period, returnPct, returnText });
+  }
+  return rows;
+}
+
+/**
  * 从搜狐基金费率页抓取运作费用（基金管理费 / 托管费）
  * 示例页面：
  *   https://q.fund.sohu.com/c/gt.php?code=180401
@@ -140,7 +204,15 @@ async function fetchFundBasicInfo(code) {
   const url = `https://fundf10.eastmoney.com/jbgk_${code}.html`;
   try {
     const res = await fetch(url, { headers: { 'User-Agent': UA } });
-    if (!res.ok) return { trackingTarget: '', fundManager: '', performanceBenchmark: '', fundType: '' };
+    if (!res.ok) {
+      return {
+        trackingTarget: '',
+        fundManager: '',
+        performanceBenchmark: '',
+        fundType: '',
+        netAssetScale: null
+      };
+    }
     const html = await res.text();
     // 直接解析页面中的所有表格行，查找目标字段所在的单元格
     const rows = parseTableRows(html);
@@ -148,6 +220,7 @@ async function fetchFundBasicInfo(code) {
     let fundManager = '';
     let performanceBenchmark = '';
     let fundType = '';
+    let netAssetScale = null;
     for (const row of rows) {
       for (let i = 0; i < row.length; i++) {
         const label = row[i];
@@ -165,11 +238,57 @@ async function fetchFundBasicInfo(code) {
         if (!fundType && /基金类型/.test(label) && i + 1 < row.length) {
           fundType = row[i + 1].trim();
         }
+        // 净资产规模：含规模与截止日期，如「21.22亿元（截止至：2025年12月31日）」
+        // 部分页面同一单元格后紧跟「份额规模」文案，需截断
+        if (!netAssetScale && /净资产规模/.test(label) && i + 1 < row.length) {
+          let raw = row[i + 1].replace(/<[^>]+>/g, '').trim();
+          const idxShare = raw.indexOf('份额规模');
+          if (idxShare !== -1) raw = raw.slice(0, idxShare).trim();
+          netAssetScale = parseNetAssetScale(raw);
+        }
       }
     }
-    return { trackingTarget, fundManager, performanceBenchmark, fundType };
+    return { trackingTarget, fundManager, performanceBenchmark, fundType, netAssetScale };
   } catch {
-    return { trackingTarget: '', fundManager: '', performanceBenchmark: '', fundType: '' };
+    return {
+      trackingTarget: '',
+      fundManager: '',
+      performanceBenchmark: '',
+      fundType: '',
+      netAssetScale: null
+    };
+  }
+}
+
+/**
+ * 阶段涨幅明细（本基金「涨幅」列）+ jdzf 页脚「数据截止至」日期。
+ * 与页面内 LoadJdzf 同源：GET FundArchivesDatas.aspx?type=jdzf（返回 var apidata={ content:"..." };）
+ */
+async function fetchFundStageReturnsInfo(code) {
+  const empty = { stageReturns: null, stageReturnsAsOf: '' };
+  if (/^968\d{3}$/.test(code)) return empty;
+  const apiUrl = `https://fundf10.eastmoney.com/FundArchivesDatas.aspx?type=jdzf&code=${encodeURIComponent(code)}&rt=${Math.random()}`;
+  const pageUrl = `https://fundf10.eastmoney.com/jdzf_${encodeURIComponent(code)}.html`;
+  try {
+    const [apiRes, pageRes] = await Promise.all([
+      fetch(apiUrl, { headers: { 'User-Agent': UA, Referer: pageUrl } }),
+      fetch(pageUrl, { headers: { 'User-Agent': UA } })
+    ]);
+    let stageReturnsAsOf = '';
+    if (pageRes.ok) {
+      const pageHtml = await pageRes.text();
+      const dateM = pageHtml.match(/数据截止至[：:]\s*(\d{4}-\d{2}-\d{2})/);
+      if (dateM) stageReturnsAsOf = dateM[1];
+    }
+    if (!apiRes.ok) return { ...empty, stageReturnsAsOf };
+    const jsText = await apiRes.text();
+    const content = extractApidataContent(jsText);
+    if (!content) return { ...empty, stageReturnsAsOf };
+    const list = parseJdzfStageReturnsHtml(content);
+    const stageReturns = list.length ? list : null;
+    return { stageReturns, stageReturnsAsOf };
+  } catch {
+    return empty;
   }
 }
 
@@ -323,7 +442,8 @@ async function fetchOverseasFundFee(code) {
     redeemSegments,
     buyFee,
     sellFeeSegments,
-    annualFee: totalOperationFee
+    annualFee: totalOperationFee,
+    isFloatingAnnualFee: false
   };
 }
 
@@ -351,8 +471,13 @@ async function fetchFundFee(code) {
   const nameMatch = html.match(/<title>([^<(]+)(?:\([\d]+\))?[^<]*<\/title>/);
   const name = nameMatch ? nameMatch[1].trim() : `基金${code}`;
 
-  // ---------- 0. 基本信息补充：跟踪标的、基金管理人、业绩比较基准、基金类型（来自 jbgk 页面） ----------
-  const { trackingTarget, fundManager, performanceBenchmark, fundType } = await fetchFundBasicInfo(code);
+  // ---------- 0. 基本信息（jbgk）+ 阶段涨幅明细（FundArchivesDatas type=jdzf + jdzf 页截止日期） ----------
+  const [basicInfo, stageInfo] = await Promise.all([
+    fetchFundBasicInfo(code),
+    fetchFundStageReturnsInfo(code)
+  ]);
+  const { trackingTarget, fundManager, performanceBenchmark, fundType, netAssetScale } = basicInfo;
+  const { stageReturns, stageReturnsAsOf } = stageInfo;
 
   // ---------- 1. 交易状态：申购状态、赎回状态 ----------
   let subscribeStatus = '';
@@ -589,6 +714,9 @@ async function fetchFundFee(code) {
     fundManager,
     performanceBenchmark,
     fundType,
+    ...(netAssetScale ? { netAssetScale } : {}),
+    ...(stageReturns?.length ? { stageReturns } : {}),
+    ...(stageReturnsAsOf ? { stageReturnsAsOf } : {}),
     tradingStatus,
     operationFees,
     subscribeFrontSegments,
@@ -598,7 +726,8 @@ async function fetchFundFee(code) {
     buyFee,
     sellFeeSegments,
     annualFee: operationFees.total ?? totalOperationFee,
-    ...(isFloatingAnnualFee ? { isFloatingAnnualFee: true } : {}),
+    // 必须每次写入布尔值，否则 saveFund 合并旧 JSON 时会一直保留曾经的 true
+    isFloatingAnnualFee: !!isFloatingAnnualFee,
     ...(floatingFeeNote ? { floatingFeeNote } : {})
   };
 }
@@ -615,6 +744,15 @@ function saveFund(data) {
     try {
       const old = JSON.parse(fs.readFileSync(filePath, 'utf8'));
       merged = { ...old, ...data };
+
+      // 浮动费率：新结果已带 isFloatingAnnualFee 时，同步清理过期的 floatingFeeNote
+      if (Object.prototype.hasOwnProperty.call(data, 'isFloatingAnnualFee')) {
+        if (!data.isFloatingAnnualFee) {
+          delete merged.floatingFeeNote;
+        } else if (!data.floatingFeeNote) {
+          delete merged.floatingFeeNote;
+        }
+      }
 
       // 1) 基金名称：新抓到的不是“基金xxxx”这种默认占位时，才覆盖旧值
       const oldName = (old.name || '').trim();
@@ -634,6 +772,26 @@ function saveFund(data) {
         if (!newVal && oldVal) {
           merged[key] = oldVal;
         }
+      }
+      const hasNetAsset = (v) => {
+        if (v == null) return false;
+        if (typeof v === 'string') return v.trim().length > 0;
+        if (typeof v === 'object' && v.text != null) return String(v.text).trim().length > 0;
+        return false;
+      };
+      if (!hasNetAsset(data.netAssetScale) && hasNetAsset(old.netAssetScale)) {
+        merged.netAssetScale = old.netAssetScale;
+      }
+      // 阶段涨幅：本次无数据时保留旧数据；截止日期同理
+      const newSr = data.stageReturns;
+      const oldSr = old.stageReturns;
+      if ((!newSr || !newSr.length) && Array.isArray(oldSr) && oldSr.length > 0) {
+        merged.stageReturns = oldSr;
+      }
+      const newAsOf = (data.stageReturnsAsOf || '').trim();
+      const oldAsOf = (old.stageReturnsAsOf || '').trim();
+      if (!newAsOf && oldAsOf) {
+        merged.stageReturnsAsOf = oldAsOf;
       }
 
       // 3) 交易状态：按字段粒度合并
@@ -758,7 +916,7 @@ async function main() {
   }
 }
 
-export { fetchFundFee, saveFund, DATA_DIR };
+export { fetchFundFee, saveFund, DATA_DIR, fetchFundBasicInfo, fetchFundStageReturnsInfo };
 
 // 仅在被直接运行（带基金代码参数）时执行，被 import 时不执行
 if (process.argv[2] && /^\d{6}$/.test(String(process.argv[2]))) {

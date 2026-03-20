@@ -1,7 +1,7 @@
 /**
  * 批量拉取全部基金费率与基础信息：
  * 先从天天基金 fundcode_search.js 获取基金代码列表，再并发抓取并写入 data/funds/
- * 单只数据结构与 crawl-fund-fee.js 保持一致（含跟踪标的 / 基金管理人 / 业绩比较基准等扩展字段）。
+ * 单只数据结构与 crawl-fund-fee.js 保持一致（含跟踪标的、基金管理人、业绩比较基准、净资产规模、阶段涨幅明细等扩展字段）。
  * 使用：node scripts/crawl-all-fund-fee.js [--force] [--concurrency=N] [--delay=N] [--retry=N] [--limit=N]
  *   --force         不跳过已缓存的基金，全部重新抓取
  *   --concurrency=N 并发数，默认 10（建议 5–20，过大可能被限流）

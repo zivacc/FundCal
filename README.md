@@ -206,7 +206,7 @@ git add -A && git commit -m "更新基金数据" && git push
 
 ## 联接基金穿透
 
-系统自动识别名称中含"联接"的基金，构建联接基金 ↔ 母基金的关联索引。
+系统自动识别**名称或基金类型（fundType）**中含「联接」的基金（如「指数型-ETF联接」），构建联接基金 ↔ 母基金的关联索引；母基金 key 仍由名称中「联接」前半段解析，名称中无「联接」时不会入联接分组（避免误匹配）。
 
 - **索引文件**：`data/allfund/feeder-index.json`
 - **覆盖配置**：`data/allfund/feeder-master-overrides.json`（联接名与场内名不一致时使用）

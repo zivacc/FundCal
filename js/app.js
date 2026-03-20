@@ -893,8 +893,92 @@ function setupCrosshair(canvas) {
       }
       overlay.classList.add('visible');
     });
-    canvas.addEventListener('mouseleave', () => overlay.classList.remove('visible'));
+    canvas.addEventListener('mouseleave', () => {
+      overlay.classList.remove('visible');
+      hideChartHoverTooltip();
+    });
   }
+}
+
+/** 确保图表曲线悬停框（HTML）存在于 chart wrapper 中 */
+function ensureChartHoverTooltip(wrapper) {
+  if (!wrapper) return null;
+  let el = wrapper.querySelector('#chart-hover-tooltip');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'chart-hover-tooltip';
+    el.className = 'chart-hover-tooltip';
+    el.setAttribute('aria-hidden', 'true');
+    wrapper.appendChild(el);
+  }
+  return el;
+}
+
+/** 隐藏曲线悬停框 */
+function hideChartHoverTooltip() {
+  const el = document.getElementById('chart-hover-tooltip');
+  if (!el) return;
+  el.classList.remove('visible');
+  el.innerHTML = '';
+}
+
+/** 渲染 Chart.js 曲线悬停框（HTML，层级高于十字线信息窗） */
+function renderChartHoverTooltip(context) {
+  const { chart, tooltip } = context || {};
+  if (!chart || !tooltip) return;
+  const wrapper = chart.canvas?.parentElement;
+  const el = ensureChartHoverTooltip(wrapper);
+  if (!el) return;
+
+  if (tooltip.opacity === 0 || !tooltip.dataPoints || tooltip.dataPoints.length === 0) {
+    el.classList.remove('visible');
+    return;
+  }
+
+  const title = (() => {
+    const ctx = tooltip.dataPoints[0];
+    if (!ctx) return '';
+    const c = ctx.dataset && ctx.dataset.crossover;
+    if (c) return `${Math.round(c.days)}天`;
+    return `持有 ${ctx.parsed.x} 天`;
+  })();
+
+  const lines = tooltip.dataPoints.map((ctx) => {
+    const c = ctx.dataset && ctx.dataset.crossover;
+    if (c) {
+      return `${escapeHtml(c.beforeCross)}&lt;${escapeHtml(c.afterCross)}`;
+    }
+    const days = ctx.parsed.x;
+    const feePct = ctx.parsed.y;
+    const annualized = days > 0 ? (feePct / 100) * (365 / days) * 100 : 0;
+    return `${escapeHtml(ctx.dataset.label || '基金')}: 累计 ${feePct.toFixed(2)}%，年化约 ${annualized.toFixed(2)}%`;
+  });
+
+  el.innerHTML = `
+    <div class="chart-hover-tooltip-title">${title}</div>
+    <div class="chart-hover-tooltip-body">${lines.map(line => `<div>${line}</div>`).join('')}</div>
+  `;
+
+  // 相对 chart wrapper 定位
+  const x = tooltip.caretX;
+  const y = tooltip.caretY;
+  const wrapperWidth = wrapper.clientWidth || 0;
+  const wrapperHeight = wrapper.clientHeight || 0;
+  // 先粗略放置，再根据自身尺寸微调，尽量不越界
+  let left = x + 12;
+  let top = y - 12;
+  el.style.left = `${left}px`;
+  el.style.top = `${top}px`;
+  el.classList.add('visible');
+
+  const rect = el.getBoundingClientRect();
+  const w = rect.width || 0;
+  const h = rect.height || 0;
+  if (left + w > wrapperWidth - 8) left = Math.max(8, x - w - 12);
+  if (top + h > wrapperHeight - 8) top = Math.max(8, wrapperHeight - h - 8);
+  if (top < 8) top = 8;
+  el.style.left = `${left}px`;
+  el.style.top = `${top}px`;
 }
 
 /** 更新图表（开启联接穿透时为异步：会拉取母基金费率） */
@@ -918,6 +1002,7 @@ async function updateChart() {
     }
     const crosshairEl = document.getElementById('chart-crosshair-overlay');
     if (crosshairEl) crosshairEl.classList.remove('visible');
+    hideChartHoverTooltip();
     legendEl.innerHTML = '<p class="none">请添加基金并填写费率</p>';
     return;
   }
@@ -1114,52 +1199,9 @@ async function updateChart() {
           }
         },
         tooltip: {
-          // 恢复 Chart.js 自带的曲线悬浮窗
-          enabled: true,
-          backgroundColor: '#1c2636',
-          borderColor: '#3a4d6a',
-          borderWidth: 1,
-          titleColor: '#e8edf4',
-          bodyColor: '#94a3b8',
-          titleFont: { ...chartFont, weight: '600' },
-          bodyFont: { ...chartFont, size: 12 },
-          padding: 10,
-          cornerRadius: 8,
-          displayColors: true,
-          usePointStyle: true,
-          boxPadding: 4,
-          callbacks: {
-            title: (items) => {
-              if (!items.length) return '';
-              const ctx = items[0];
-              const c = ctx.dataset.crossover;
-              if (c) return `${Math.round(c.days)}天`;
-              return `持有 ${ctx.parsed.x} 天`;
-            },
-            label: (ctx) => {
-              const c = ctx.dataset.crossover;
-              if (c) {
-                return `${c.beforeCross}<${c.afterCross}`;
-              }
-              const days = ctx.parsed.x;
-              const feePct = ctx.parsed.y;
-              const annualized = days > 0 ? (feePct / 100) * (365 / days) * 100 : 0;
-              return `${ctx.dataset.label}: 累计 ${feePct.toFixed(2)}%，年化约 ${annualized.toFixed(2)}%`;
-            },
-            labelPointStyle: (ctx) => {
-              if (ctx.dataset.crossover) {
-                return { pointStyle: 'crossRot', rotation: 0 };
-              }
-              return { pointStyle: 'circle', rotation: 0 };
-            },
-            labelColor: (ctx) => {
-              const ds = ctx.dataset;
-              if (ds.crossover) {
-                return { borderColor: ds.borderColor, backgroundColor: '#1c2636', borderWidth: 2 };
-              }
-              return { borderColor: ds.borderColor, backgroundColor: '#1c2636', borderWidth: 2 };
-            }
-          }
+          // 改为 HTML 外置悬浮窗，保证层级高于十字线信息窗与坐标刻度窗
+          enabled: false,
+          external: renderChartHoverTooltip
         }
       },
       scales: {

@@ -134,7 +134,8 @@ export function setupIndexPickerModal({ addFundCard }) {
             const nameEl = row.querySelector('.index-picker-fund-name');
             if (nameEl) nameEl.textContent = data.name;
             const nameStr = String(data.name);
-            const isLinked = nameStr.includes('联接');
+            const typeStr = String(data.fundType || '');
+            const isLinked = nameStr.includes('联接') || typeStr.includes('联接');
             const isEnhanced = nameStr.includes('增强');
             const linkTagEl = row.querySelector('.index-picker-fund-tag-link');
             if (linkTagEl) linkTagEl.hidden = !isLinked;

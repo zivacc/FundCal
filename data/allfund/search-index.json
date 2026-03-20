@@ -31891,8 +31891,8 @@
   },
   {
     "code": "008806",
-    "name": "鑫元锦利一年定开债",
-    "initials": "xyjlyndkz"
+    "name": "鑫元锦利定期开放",
+    "initials": "xyjldqkf"
   },
   {
     "code": "008807",
@@ -53776,13 +53776,13 @@
   },
   {
     "code": "013888",
-    "name": "天弘新华沪港深新兴消费品牌指数A",
-    "initials": "thxhhgsxxxfppzsa"
+    "name": "天弘沪港深新消费品牌指数A",
+    "initials": "thhgsxxfppzsa"
   },
   {
     "code": "013889",
-    "name": "天弘新华沪港深新兴消费品牌指数C",
-    "initials": "thxhhgsxxxfppzsc"
+    "name": "天弘沪港深新消费品牌指数C",
+    "initials": "thhgsxxfppzsc"
   },
   {
     "code": "013890",
@@ -56676,13 +56676,13 @@
   },
   {
     "code": "014564",
-    "name": "天弘沪深港创新药50ETF联接A",
-    "initials": "thhsgcxy50etflja"
+    "name": "天弘创新药精选50ETF联接A",
+    "initials": "thcxyjx50etflja"
   },
   {
     "code": "014565",
-    "name": "天弘沪深港创新药50ETF联接C",
-    "initials": "thhsgcxy50etfljc"
+    "name": "天弘创新药精选50ETF联接C",
+    "initials": "thcxyjx50etfljc"
   },
   {
     "code": "014566",
@@ -88466,13 +88466,13 @@
   },
   {
     "code": "021532",
-    "name": "天弘半导体材料设备指数A",
-    "initials": "thbdtclsbzsa"
+    "name": "天弘半导体设备指数A",
+    "initials": "thbdtsbzsa"
   },
   {
     "code": "021533",
-    "name": "天弘半导体材料设备指数C",
-    "initials": "thbdtclsbzsc"
+    "name": "天弘半导体设备指数C",
+    "initials": "thbdtsbzsc"
   },
   {
     "code": "021534",
@@ -90076,13 +90076,13 @@
   },
   {
     "code": "021873",
-    "name": "中欧中证沪深港黄金产业股票指数发起A",
-    "initials": "zozzhsghjcygpzsfqa"
+    "name": "中欧黄金股指数A",
+    "initials": "zohjgzsa"
   },
   {
     "code": "021874",
-    "name": "中欧中证沪深港黄金产业股票指数发起C",
-    "initials": "zozzhsghjcygpzsfqc"
+    "name": "中欧黄金股指数C",
+    "initials": "zohjgzsc"
   },
   {
     "code": "021875",
@@ -91041,13 +91041,13 @@
   },
   {
     "code": "022072",
-    "name": "天弘中证港股通高股息投资指数发起A",
-    "initials": "thzzggtggxtzzsfqa"
+    "name": "天弘港股红利高股息指数A",
+    "initials": "thgghlggxzsa"
   },
   {
     "code": "022073",
-    "name": "天弘中证港股通高股息投资指数发起C",
-    "initials": "thzzggtggxtzzsfqc"
+    "name": "天弘港股红利高股息指数C",
+    "initials": "thgghlggxzsc"
   },
   {
     "code": "022074",
@@ -91096,13 +91096,13 @@
   },
   {
     "code": "022083",
-    "name": "华安中证有色金属矿业主题指数发起式A",
-    "initials": "hazzysjskyztzsfqsa"
+    "name": "华安中证有色金属矿业主题ETF发起式联接A",
+    "initials": "hazzysjskyztetffqslja"
   },
   {
     "code": "022084",
-    "name": "华安中证有色金属矿业主题指数发起式C",
-    "initials": "hazzysjskyztzsfqsc"
+    "name": "华安中证有色金属矿业主题ETF发起式联接C",
+    "initials": "hazzysjskyztetffqsljc"
   },
   {
     "code": "022085",
@@ -92521,8 +92521,8 @@
   },
   {
     "code": "022376",
-    "name": "光大保德信安选平衡养老目标三年持有混合",
-    "initials": "gdbdxaxphylmbsncyhh"
+    "name": "光大保德信安选平衡养老目标三年持有混合发起式",
+    "initials": "gdbdxaxphylmbsncyhhfqs"
   },
   {
     "code": "022378",
@@ -97371,13 +97371,13 @@
   },
   {
     "code": "023410",
-    "name": "天弘恒生港股通高股息低波动指数A",
-    "initials": "thhsggtggxdbdzsa"
+    "name": "天弘恒生红利低波指数A",
+    "initials": "thhshldbzsa"
   },
   {
     "code": "023411",
-    "name": "天弘恒生港股通高股息低波动指数C",
-    "initials": "thhsggtggxdbdzsc"
+    "name": "天弘恒生红利低波指数C",
+    "initials": "thhshldbzsc"
   },
   {
     "code": "023414",
@@ -100626,13 +100626,13 @@
   },
   {
     "code": "024078",
-    "name": "长城国证自由现金流指数A",
-    "initials": "ccgzzyxjlzsa"
+    "name": "长城国证自由现金流ETF联接A",
+    "initials": "ccgzzyxjletflja"
   },
   {
     "code": "024079",
-    "name": "长城国证自由现金流指数C",
-    "initials": "ccgzzyxjlzsc"
+    "name": "长城国证自由现金流ETF联接C",
+    "initials": "ccgzzyxjletfljc"
   },
   {
     "code": "024080",
@@ -103891,8 +103891,8 @@
   },
   {
     "code": "024754",
-    "name": "天弘中证港股通高股息投资指数发起E",
-    "initials": "thzzggtggxtzzsfqe"
+    "name": "天弘港股红利高股息指数E",
+    "initials": "thgghlggxzse"
   },
   {
     "code": "024755",
@@ -104536,13 +104536,13 @@
   },
   {
     "code": "024885",
-    "name": "天弘国证港股通科技ETF联接A",
-    "initials": "thgzggtkjetflja"
+    "name": "天弘港股科技ETF联接A",
+    "initials": "thggkjetflja"
   },
   {
     "code": "024886",
-    "name": "天弘国证港股通科技ETF联接C",
-    "initials": "thgzggtkjetfljc"
+    "name": "天弘港股科技ETF联接C",
+    "initials": "thggkjetfljc"
   },
   {
     "code": "024887",
@@ -108665,6 +108665,16 @@
     "initials": "yygzggthlwzsc"
   },
   {
+    "code": "025767",
+    "name": "尚正臻瑞3个月持有债券A",
+    "initials": "szzr3gycyzqa"
+  },
+  {
+    "code": "025768",
+    "name": "尚正臻瑞3个月持有债券C",
+    "initials": "szzr3gycyzqc"
+  },
+  {
     "code": "025769",
     "name": "中金进取回报混合A",
     "initials": "zjjqhbhha"
@@ -108928,6 +108938,16 @@
     "code": "025825",
     "name": "易方达产业优选混合C",
     "initials": "yfdcyyxhhc"
+  },
+  {
+    "code": "025826",
+    "name": "兴全盈禧多元配置三个月持有混合",
+    "initials": "xqyxdypzsgycyhh"
+  },
+  {
+    "code": "025827",
+    "name": "兴全盈禧多元配置三个月持有混合",
+    "initials": "xqyxdypzsgycyhh"
   },
   {
     "code": "025828",
@@ -110485,6 +110505,16 @@
     "initials": "xyxxytjqpz3gycyqhhfqs"
   },
   {
+    "code": "026158",
+    "name": "鹏华上证科创板200指数增强A",
+    "initials": "phszkcb200zszqa"
+  },
+  {
+    "code": "026159",
+    "name": "鹏华上证科创板200指数增强C",
+    "initials": "phszkcb200zszqc"
+  },
+  {
     "code": "026161",
     "name": "招商安琪债券A",
     "initials": "zsaqzqa"
@@ -111120,6 +111150,16 @@
     "initials": "zxjtsy3gycyqzqc"
   },
   {
+    "code": "026312",
+    "name": "惠升和利安丰60天持有债券A",
+    "initials": "hshlaf60tcyzqa"
+  },
+  {
+    "code": "026313",
+    "name": "惠升和利安丰60天持有债券C",
+    "initials": "hshlaf60tcyzqc"
+  },
+  {
     "code": "026314",
     "name": "广发多添利六个月持有债券A",
     "initials": "gfdtllgycyzqa"
@@ -111395,6 +111435,16 @@
     "initials": "zhzxlhhhfqc"
   },
   {
+    "code": "026386",
+    "name": "中欧价值锐选混合A",
+    "initials": "zojzrxhha"
+  },
+  {
+    "code": "026387",
+    "name": "中欧价值锐选混合C",
+    "initials": "zojzrxhhc"
+  },
+  {
     "code": "026388",
     "name": "招商资管上证科创板人工智能指数发起A",
     "initials": "zszgszkcbrgznzsfqa"
@@ -111480,6 +111530,11 @@
     "initials": "gfqhsyzqd"
   },
   {
+    "code": "026415",
+    "name": "汇百川CFETS0-5年期气候变化高等级债券综合指数",
+    "initials": "hbccfets0-5nqqhbhgdjzqzhzs"
+  },
+  {
     "code": "026416",
     "name": "中欧盈享稳健6个月持有混合",
     "initials": "zoyxwj6gycyhh"
@@ -111498,6 +111553,11 @@
     "code": "026421",
     "name": "大摩ESG量化混合C",
     "initials": "dmesglhhhc"
+  },
+  {
+    "code": "026422",
+    "name": "永赢现金惠货币",
+    "initials": "yyxjhhb"
   },
   {
     "code": "026423",
@@ -111743,6 +111803,11 @@
     "code": "026482",
     "name": "农银瑞恒债券C",
     "initials": "nyrhzqc"
+  },
+  {
+    "code": "026483",
+    "name": "华泰柏瑞启臻混合",
+    "initials": "htbrqzhh"
   },
   {
     "code": "026484",
@@ -112131,8 +112196,8 @@
   },
   {
     "code": "026587",
-    "name": "光大保德信安选平衡养老目标三年持有混合",
-    "initials": "gdbdxaxphylmbsncyhh"
+    "name": "光大保德信安选平衡养老目标三年持有混合发起式",
+    "initials": "gdbdxaxphylmbsncyhhfqs"
   },
   {
     "code": "026588",
@@ -112480,6 +112545,16 @@
     "initials": "dbhs300zszqc"
   },
   {
+    "code": "026676",
+    "name": "创金合信弘达债券A",
+    "initials": "cjhxhdzqa"
+  },
+  {
+    "code": "026677",
+    "name": "创金合信弘达债券C",
+    "initials": "cjhxhdzqc"
+  },
+  {
     "code": "026678",
     "name": "恒越嘉润量化选股混合A",
     "initials": "hyjrlhxghha"
@@ -112575,6 +112650,16 @@
     "initials": "xhdpczlhxghhfqc"
   },
   {
+    "code": "026701",
+    "name": "泰康中证全指电力公用事业指数A",
+    "initials": "tkzzqzdlgysyzsa"
+  },
+  {
+    "code": "026702",
+    "name": "泰康中证全指电力公用事业指数C",
+    "initials": "tkzzqzdlgysyzsc"
+  },
+  {
     "code": "026703",
     "name": "长城港股价值优选股票",
     "initials": "ccggjzyxgp"
@@ -112583,6 +112668,16 @@
     "code": "026704",
     "name": "长城港股价值优选股票",
     "initials": "ccggjzyxgp"
+  },
+  {
+    "code": "026705",
+    "name": "方正富邦恒信双利债券A",
+    "initials": "fzfbhxslzqa"
+  },
+  {
+    "code": "026706",
+    "name": "方正富邦恒信双利债券C",
+    "initials": "fzfbhxslzqc"
   },
   {
     "code": "026707",
@@ -112700,6 +112795,16 @@
     "initials": "rbcybzhzszqc"
   },
   {
+    "code": "026742",
+    "name": "中欧中证A500指数量化增强A",
+    "initials": "zozza500zslhzqa"
+  },
+  {
+    "code": "026743",
+    "name": "中欧中证A500指数量化增强C",
+    "initials": "zozza500zslhzqc"
+  },
+  {
     "code": "026746",
     "name": "上银医药精选股票发起式A",
     "initials": "syyyjxgpfqsa"
@@ -112798,6 +112903,16 @@
     "code": "026773",
     "name": "中银证券创业板ETF联接C",
     "initials": "zyzqcybetfljc"
+  },
+  {
+    "code": "026776",
+    "name": "百嘉百泽60天持有纯债债券A",
+    "initials": "bjbz60tcyczzqa"
+  },
+  {
+    "code": "026777",
+    "name": "百嘉百泽60天持有纯债债券C",
+    "initials": "bjbz60tcyczzqc"
   },
   {
     "code": "026778",
@@ -112918,6 +113033,16 @@
     "code": "026808",
     "name": "易方达研究智选股票C",
     "initials": "yfdyjzxgpc"
+  },
+  {
+    "code": "026809",
+    "name": "易方达如意安瑞3个月持有混合",
+    "initials": "yfdryar3gycyhh"
+  },
+  {
+    "code": "026810",
+    "name": "易方达如意安瑞3个月持有混合",
+    "initials": "yfdryar3gycyhh"
   },
   {
     "code": "026814",
@@ -113070,6 +113195,16 @@
     "initials": "jyyjjxhhc"
   },
   {
+    "code": "026854",
+    "name": "平安匠心品质混合A",
+    "initials": "pajxpzhha"
+  },
+  {
+    "code": "026855",
+    "name": "平安匠心品质混合C",
+    "initials": "pajxpzhhc"
+  },
+  {
     "code": "026856",
     "name": "富安达策略精选混合C",
     "initials": "fadcljxhhc"
@@ -113175,6 +113310,26 @@
     "initials": "xhcyyxhhfqsc"
   },
   {
+    "code": "026901",
+    "name": "华安沣泽6个月持有混合A",
+    "initials": "hafz6gycyhha"
+  },
+  {
+    "code": "026902",
+    "name": "华安沣泽6个月持有混合C",
+    "initials": "hafz6gycyhhc"
+  },
+  {
+    "code": "026903",
+    "name": "融通消费臻选混合发起式A",
+    "initials": "rtxfzxhhfqsa"
+  },
+  {
+    "code": "026904",
+    "name": "融通消费臻选混合发起式C",
+    "initials": "rtxfzxhhfqsc"
+  },
+  {
     "code": "026910",
     "name": "富国智享稳健120天持有期混合",
     "initials": "fgzxwj120tcyqhh"
@@ -113183,6 +113338,11 @@
     "code": "026911",
     "name": "富国智享稳健120天持有期混合",
     "initials": "fgzxwj120tcyqhh"
+  },
+  {
+    "code": "026922",
+    "name": "华宝中证港股通医疗主题ETF发起式联接",
+    "initials": "hbzzggtylztetffqslj"
   },
   {
     "code": "026929",
@@ -113195,6 +113355,16 @@
     "initials": "mywjpzsgycyqhh"
   },
   {
+    "code": "026933",
+    "name": "鑫元周期睿选混合发起式A",
+    "initials": "xyzqrxhhfqsa"
+  },
+  {
+    "code": "026934",
+    "name": "鑫元周期睿选混合发起式C",
+    "initials": "xyzqrxhhfqsc"
+  },
+  {
     "code": "026947",
     "name": "东方红周期研选混合发起A",
     "initials": "dfhzqyxhhfqa"
@@ -113205,6 +113375,11 @@
     "initials": "dfhzqyxhhfqc"
   },
   {
+    "code": "026949",
+    "name": "华宝中证全指电力公用事业ETF发起式联接",
+    "initials": "hbzzqzdlgysyetffqslj"
+  },
+  {
     "code": "026960",
     "name": "惠升添益混合A",
     "initials": "hstyhha"
@@ -113213,6 +113388,36 @@
     "code": "026961",
     "name": "惠升添益混合C",
     "initials": "hstyhhc"
+  },
+  {
+    "code": "026970",
+    "name": "泓德裕康债券D",
+    "initials": "hdykzqd"
+  },
+  {
+    "code": "026971",
+    "name": "民生加银现金宝货币E",
+    "initials": "msjyxjbhbe"
+  },
+  {
+    "code": "026986",
+    "name": "汇泉科创创业量化选股混合A",
+    "initials": "hqkccylhxghha"
+  },
+  {
+    "code": "026987",
+    "name": "汇泉科创创业量化选股混合C",
+    "initials": "hqkccylhxghhc"
+  },
+  {
+    "code": "026990",
+    "name": "国泰产业智选混合发起A",
+    "initials": "gtcyzxhhfqa"
+  },
+  {
+    "code": "026991",
+    "name": "国泰产业智选混合发起C",
+    "initials": "gtcyzxhhfqc"
   },
   {
     "code": "040001",
@@ -114560,9 +114765,19 @@
     "initials": "htbrzzxmyzcyetf"
   },
   {
+    "code": "159008",
+    "name": "景顺长城中证全指证券公司ETF",
+    "initials": "jscczzqzzqgsetf"
+  },
+  {
     "code": "159009",
     "name": "易方达创业板新能源ETF",
     "initials": "yfdcybxnyetf"
+  },
+  {
+    "code": "159019",
+    "name": "华宝国证石油天然气ETF",
+    "initials": "hbgzsytrqetf"
   },
   {
     "code": "159100",
@@ -114928,6 +115143,16 @@
     "code": "159183",
     "name": "招商中证新能源汽车ETF",
     "initials": "zszzxnyqcetf"
+  },
+  {
+    "code": "159185",
+    "name": "鹏华中证港股通信息技术综合ETF",
+    "initials": "phzzggtxxjszhetf"
+  },
+  {
+    "code": "159186",
+    "name": "鹏华恒生港股通汽车主题ETF",
+    "initials": "phhsggtqcztetf"
   },
   {
     "code": "159187",
@@ -124296,8 +124521,8 @@
   },
   {
     "code": "512520",
-    "name": "华泰MSCI中国A股国际通ETF",
-    "initials": "htmscizgaggjtetf"
+    "name": "华泰柏瑞MSCI中国A股国际通ETF",
+    "initials": "htbrmscizgaggjtetf"
   },
   {
     "code": "512530",
@@ -124431,8 +124656,8 @@
   },
   {
     "code": "512890",
-    "name": "华泰柏瑞中证红利低波ETF",
-    "initials": "htbrzzhldbetf"
+    "name": "华泰柏瑞中证红利低波动ETF",
+    "initials": "htbrzzhldbdetf"
   },
   {
     "code": "512900",
@@ -124546,8 +124771,8 @@
   },
   {
     "code": "513130",
-    "name": "华泰柏瑞南方东英恒生科技",
-    "initials": "htbrnfdyhskj"
+    "name": "华泰柏瑞南方东英恒生科技指数ETF",
+    "initials": "htbrnfdyhskjzsetf"
   },
   {
     "code": "513140",
@@ -124556,8 +124781,8 @@
   },
   {
     "code": "513150",
-    "name": "华泰柏瑞港股通科技ETF",
-    "initials": "htbrggtkjetf"
+    "name": "华泰柏瑞中证港股通科技ETF",
+    "initials": "htbrzzggtkjetf"
   },
   {
     "code": "513160",
@@ -124621,8 +124846,8 @@
   },
   {
     "code": "513310",
-    "name": "华泰柏瑞中韩半导体ETF",
-    "initials": "htbrzhbdtetf"
+    "name": "华泰柏瑞中证韩交所中韩半导体ETF",
+    "initials": "htbrzzhjszhbdtetf"
   },
   {
     "code": "513320",
@@ -125060,6 +125285,11 @@
     "initials": "phzz800zbetf"
   },
   {
+    "code": "515640",
+    "name": "华夏中证全指家用电器ETF",
+    "initials": "hxzzqzjydqetf"
+  },
+  {
     "code": "515650",
     "name": "富国中证消费50ETF",
     "initials": "fgzzxf50etf"
@@ -125486,8 +125716,8 @@
   },
   {
     "code": "516790",
-    "name": "华泰柏瑞中证医疗保健ETF",
-    "initials": "htbrzzylbjetf"
+    "name": "华泰柏瑞中证全指医疗保健设备与服务ETF",
+    "initials": "htbrzzqzylbjsbyfwetf"
   },
   {
     "code": "516800",
@@ -125611,8 +125841,8 @@
   },
   {
     "code": "517120",
-    "name": "华泰柏瑞中证创新药产业ETF",
-    "initials": "htbrzzcxycyetf"
+    "name": "华泰柏瑞中证沪港深创新药产业ETF",
+    "initials": "htbrzzhgscxycyetf"
   },
   {
     "code": "517160",
@@ -125691,8 +125921,8 @@
   },
   {
     "code": "517800",
-    "name": "方正富邦沪港深人工智能50ETF",
-    "initials": "fzfbhgsrgzn50etf"
+    "name": "方正富邦中证沪港深人工智能50ETF",
+    "initials": "fzfbzzhgsrgzn50etf"
   },
   {
     "code": "517850",
@@ -125701,8 +125931,8 @@
   },
   {
     "code": "517880",
-    "name": "华泰柏瑞中证品牌消费50ETF",
-    "initials": "htbrzzppxf50etf"
+    "name": "华泰柏瑞中证沪港深品牌消费50ETF",
+    "initials": "htbrzzhgsppxf50etf"
   },
   {
     "code": "517900",
@@ -127496,8 +127726,8 @@
   },
   {
     "code": "520830",
-    "name": "华泰柏瑞南方东英沙特ETF",
-    "initials": "htbrnfdystetf"
+    "name": "华泰柏瑞南方东英沙特阿拉伯ETF",
+    "initials": "htbrnfdystalbetf"
   },
   {
     "code": "520840",
@@ -127578,6 +127808,11 @@
     "code": "520990",
     "name": "景顺长城中证国新港股通央企红利ETF",
     "initials": "jscczzgxggtyqhletf"
+  },
+  {
+    "code": "526000",
+    "name": "华夏中证港股通信息技术综合ETF",
+    "initials": "hxzzggtxxjszhetf"
   },
   {
     "code": "530000",
@@ -127996,8 +128231,8 @@
   },
   {
     "code": "551510",
-    "name": "科创债ETF华泰柏瑞",
-    "initials": "kczetfhtbr"
+    "name": "华泰柏瑞中证AAA科技创新公司债ETF",
+    "initials": "htbrzzaaakjcxgszetf"
   },
   {
     "code": "551520",
@@ -128961,8 +129196,8 @@
   },
   {
     "code": "563380",
-    "name": "华泰柏瑞航空航天ETF",
-    "initials": "htbrhkhtetf"
+    "name": "华泰柏瑞中证全指航空航天ETF",
+    "initials": "htbrzzqzhkhtetf"
   },
   {
     "code": "563390",
@@ -129506,8 +129741,8 @@
   },
   {
     "code": "588710",
-    "name": "科半导体",
-    "initials": "kbdt"
+    "name": "华泰柏瑞上证科创板半导体材料设备主题ETF",
+    "initials": "htbrszkcbbdtclsbztetf"
   },
   {
     "code": "588720",
@@ -129758,6 +129993,11 @@
     "code": "589260",
     "name": "国泰上证科创板芯片设计主题ETF",
     "initials": "gtszkcbxpsjztetf"
+  },
+  {
+    "code": "589270",
+    "name": "前海开源上证科创板100ETF",
+    "initials": "qhkyszkcb100etf"
   },
   {
     "code": "589300",

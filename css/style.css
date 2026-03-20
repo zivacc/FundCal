@@ -2051,7 +2051,7 @@ h1 {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  z-index: 1;
+  z-index: 10;
 }
 
 .chart-crosshair-overlay .chart-crosshair-v,
@@ -2078,6 +2078,7 @@ h1 {
   width: 1px;
   background: rgba(255, 255, 255, 0.35);
   transform: translateX(-50%);
+  z-index: 1;
 }
 
 .chart-crosshair-h {
@@ -2087,6 +2088,7 @@ h1 {
   height: 1px;
   background: rgba(255, 255, 255, 0.35);
   transform: translateY(-50%);
+  z-index: 1;
 }
 
 .chart-crosshair-label-x {
@@ -2101,6 +2103,7 @@ h1 {
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-hover);
   box-shadow: var(--shadow-sm);
+  z-index: 10;
 }
 
 .chart-crosshair-label-y {
@@ -2115,6 +2118,7 @@ h1 {
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-hover);
   box-shadow: var(--shadow-sm);
+  z-index: 10;
 }
 
 .chart-crosshair-info {
@@ -2130,6 +2134,43 @@ h1 {
   line-height: 1.6;
   box-shadow: var(--shadow-md);
   backdrop-filter: blur(8px);
+  z-index: 20;
+}
+
+/* 图表曲线悬停框（优先级最高） */
+.chart-hover-tooltip {
+  position: absolute;
+  max-width: min(360px, calc(100% - 16px));
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+  background: var(--bg-raised);
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-hover);
+  box-shadow: var(--shadow-md);
+  line-height: 1.55;
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(2px);
+  transition: opacity 0.08s ease-out, transform 0.08s ease-out;
+  z-index: 30;
+}
+
+.chart-hover-tooltip.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.chart-hover-tooltip-title {
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.chart-hover-tooltip-body {
+  color: var(--text-secondary);
 }
 
 /* ── 底部色带 ── */

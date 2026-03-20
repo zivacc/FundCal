@@ -5,8 +5,8 @@
  * 命名：联接基金 = feeder fund，对应母基金 = master fund
  *
  * 规则：
- * - 名称中包含「联接」的视为联接基金 (feeder)
- * - 联接名称形如「XXX联接A/C/美元」等，取「联接」前的部分为 masterKey（如「华夏沪深300ETF」）
+ * - 视为联接基金 (feeder)：基金名称含「联接」，或 crawled 的 fundType 中含「联接」（如「指数型-ETF联接」）；另：类型含「联接」且名称以 A/B/C/D 份额结尾（如「沪深300ETFA」）也视为联接份额；须能解析出 masterKey 才入组
+ * - masterKey：名称中含「联接」时，取「联接」前的部分（如「华夏沪深300ETF」）；若名称不含「联接」但 fundType 含「联接」且名称以 A/B/C/D（可选「类」「份额」）结尾，则去掉该份额后缀作为 key（如「沪深300ETFA」→「沪深300ETF」）；无法解析则跳过
  * - 同一 masterKey 下的所有联接代码归为一组；若全市场中存在名称等于 masterKey 的基金，视为母基金 (master)
  * - 若存在 data/allfund/feeder-master-overrides.json，则按其中 masterKey -> 母基金代码 覆盖（用于场内名与联接名不一致的情况，如中银上海金ETF联接 -> 518660 工银瑞信黄金ETF）
  *
@@ -24,12 +24,37 @@ const ALLFUND_PATH = path.join(ALLFUND_DIR, 'allfund.json');
 const FEEDER_INDEX_PATH = path.join(ALLFUND_DIR, 'feeder-index.json');
 const FEEDER_MASTER_OVERRIDES_PATH = path.join(ALLFUND_DIR, 'feeder-master-overrides.json');
 
-/** 从基金名称提取母基金 key（「联接」前的部分） */
-function getMasterKey(name) {
+/** 名称是否以 A/B/C/D 基金份额结尾（含可选「类」「份额」） */
+function hasAbcdShareSuffix(name) {
+  const n = (name || '').trim();
+  if (!n) return false;
+  return /[ABCD](?:类|份额)?$/i.test(n);
+}
+
+/**
+ * 从基金名称 + 类型提取母基金 key
+ * - 默认：「联接」之前的部分
+ * - 补充：类型含「联接」但简称未写「联接」、仅以 A/B/C/D 结尾时，去掉份额后缀
+ */
+function getMasterKey(name, fundType = '') {
   if (!name || typeof name !== 'string') return '';
-  const idx = name.indexOf('联接');
-  if (idx === -1) return '';
-  return name.slice(0, idx).trim();
+  const n = name.trim();
+  const t = (fundType || '').trim();
+  const idx = n.indexOf('联接');
+  if (idx !== -1) return n.slice(0, idx).trim();
+  if (t.includes('联接') && hasAbcdShareSuffix(n)) {
+    return n.replace(/[ABCD](?:类|份额)?$/i, '').trim();
+  }
+  return '';
+}
+
+/** 是否联接基金：名称或基金类型含「联接」（类型含「联接」时，即使简称仅以 A/B/C/D 结尾、未写「联接」二字，亦为 true；母基金 key 见 getMasterKey） */
+function isFeederFund(name, fundType) {
+  const n = (name || '').trim();
+  const t = (fundType || '').trim();
+  if (n.includes('联接')) return true;
+  if (t.includes('联接')) return true;
+  return false;
 }
 
 function main() {
@@ -59,8 +84,9 @@ function main() {
     const f = funds[code];
     if (!f) continue;
     const name = (f.name || '').trim() || '';
-    if (!name.includes('联接')) continue;
-    const masterKey = getMasterKey(name);
+    const fundType = (f.fundType || '').trim();
+    if (!isFeederFund(name, fundType)) continue;
+    const masterKey = getMasterKey(name, fundType);
     if (!masterKey) continue;
     if (!feederByMasterKey[masterKey]) {
       feederByMasterKey[masterKey] = { masterCode: null, masterName: null, feederCodes: [] };
@@ -73,7 +99,8 @@ function main() {
     const f = funds[code];
     if (!f) continue;
     const name = (f.name || '').trim() || '';
-    if (name.includes('联接')) continue;
+    const fundType = (f.fundType || '').trim();
+    if (isFeederFund(name, fundType)) continue;
     if (!feederByMasterKey[name]) continue;
     const entry = feederByMasterKey[name];
     if (entry.masterCode == null) {
