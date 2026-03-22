@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>指数选基 - 基金费率计算器</title>
+  <link rel="icon" type="image/png" href="pics/klogo.png">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="container index-page">
+    <header class="page-header">
+      <div class="page-header-left">
+        <h1>指数选基</h1>
+        <p class="subtitle">输入想买的指数，自动找出所有对应基金并排序比较</p>
+      </div>
+      <div class="page-header-right">
+        <a href="index.html" class="page-header-link" title="返回费率计算器">计算器-&gt;</a>
+        <a href="cached-fund-stats.html" class="page-header-link" title="查看统计页">统计-&gt;</a>
+      </div>
+    </header>
+
+    <section class="index-page-search-hero">
+      <label for="index-page-search-input" class="index-page-search-label">想买什么指数？</label>
+      <div class="index-page-search-row">
+        <div class="fund-search-wrap index-page-search-wrap">
+          <input
+            id="index-page-search-input"
+            class="fund-search-input index-page-search-input"
+            type="text"
+            placeholder="输入指数名称 / 拼音首字母，如：沪深300 / hs300 / 黄金9999"
+            autocomplete="off"
+            aria-autocomplete="list"
+            aria-controls="index-page-search-dropdown">
+          <ul id="index-page-search-dropdown" class="fund-search-dropdown" role="listbox" aria-hidden="true"></ul>
+        </div>
+      </div>
+      <div class="index-page-search-meta">
+        <span id="index-page-search-hint" class="cached-funds-status">正在加载指数数据...</span>
+      </div>
+      <div class="index-page-suggestions" id="index-page-suggestions"></div>
+      <div class="index-page-selected-chips" id="index-page-selected-chips"></div>
+    </section>
+
+    <section class="index-page-main index-page-main-hidden" id="index-page-main">
+      <div class="index-page-toolbar">
+        <div class="index-page-toolbar-left">
+          <label class="index-page-toolbar-label" for="index-page-sort-select">排序规则</label>
+          <select id="index-page-sort-select" class="cached-funds-sort-select">
+            <option value="annualFee_asc" selected>年化费率低优先</option>
+            <option value="buyFee_asc">申购费率低优先</option>
+            <option value="scale_desc">规模大优先</option>
+            <option value="return_desc">收益高优先</option>
+          </select>
+          <div class="index-page-period-wrap" id="index-page-period-wrap" aria-label="收益周期切换">
+            <button type="button" class="btn btn-sm btn-secondary index-page-period-btn" data-period="近6月">近6月</button>
+            <button type="button" class="btn btn-sm btn-secondary index-page-period-btn index-page-period-btn-active" data-period="近1年">近1年</button>
+            <button type="button" class="btn btn-sm btn-secondary index-page-period-btn" data-period="近3年">近3年</button>
+          </div>
+        </div>
+        <div class="index-page-toolbar-right">
+          <span id="index-page-loading-status" class="cached-funds-status"></span>
+        </div>
+      </div>
+
+      <div class="index-page-summary" id="index-page-summary"></div>
+
+      <div class="index-page-content">
+        <div class="index-page-left">
+          <section class="index-page-panel">
+            <h2 class="index-page-panel-title">基金比较</h2>
+            <div class="cached-funds-table-wrap index-page-table-wrap">
+              <table class="cached-funds-table index-page-table">
+                <thead>
+                  <tr>
+                    <th>基金</th>
+                    <th>代码</th>
+                    <th id="index-page-col-scale">规模</th>
+                    <th id="index-page-col-annual">年化费率</th>
+                    <th id="index-page-col-buy">申购费率</th>
+                    <th id="index-page-col-return">收益</th>
+                    <th>跟踪指数</th>
+                  </tr>
+                </thead>
+                <tbody id="index-page-table-body">
+                  <tr><td class="cached-funds-empty" colspan="7">从上方搜索并选择指数开始。</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+        <div class="index-page-right">
+          <section class="index-page-panel">
+            <h2 class="index-page-panel-title">Top10 排序图</h2>
+            <div class="index-page-chart-wrap">
+              <canvas id="index-page-bar-chart"></canvas>
+            </div>
+          </section>
+          <section class="index-page-panel">
+            <h2 class="index-page-panel-title">费率 vs 收益</h2>
+            <div class="index-page-chart-wrap">
+              <canvas id="index-page-scatter-chart"></canvas>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <div class="fund-detail-table-wrap" id="index-page-detail-table-wrap" style="display:none">
+        <table class="fund-detail-table" id="index-page-detail-table">
+          <tbody id="index-page-detail-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script type="module" src="js/index-picker-page.js"></script>
+</body>
+</html>

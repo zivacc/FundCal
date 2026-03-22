@@ -190,6 +190,9 @@ export function transformApiDataToFundConfig(apiData) {
     fundManager: apiData.fundManager,
     performanceBenchmark: apiData.performanceBenchmark,
     fundType: apiData.fundType,
+    netAssetScale: apiData.netAssetScale || null,
+    stageReturns: Array.isArray(apiData.stageReturns) ? apiData.stageReturns : [],
+    stageReturnsAsOf: apiData.stageReturnsAsOf || null,
     tradingStatus: apiData.tradingStatus,
     updatedAt: apiData.updatedAt,
     ...(code && code.length >= 6 ? { code } : {})

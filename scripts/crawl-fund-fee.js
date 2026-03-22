@@ -122,6 +122,14 @@ function extractApidataContent(jsText) {
  * 解析阶段涨幅明细 HTML（与页面 Ajax 返回的 apidata.content 一致）
  * 取「涨幅」列（本基金），即每个 <ul> 中第二个 <li>。
  */
+function normalizeStageReturnPeriod(rawPeriod) {
+  const text = String(rawPeriod || '').replace(/\s+/g, ' ').trim();
+  if (!text) return '';
+  const known = text.match(/(今年来|近1周|近1月|近3月|近6月|近1年|近2年|近3年|近5年|成立来)/);
+  if (known) return known[1];
+  return text;
+}
+
 function parseJdzfStageReturnsHtml(fragment) {
   if (!fragment || typeof fragment !== 'string') return [];
   const rows = [];
@@ -130,7 +138,8 @@ function parseJdzfStageReturnsHtml(fragment) {
     if (/class=['"]fcol['"]/.test(ul)) continue;
     const titleMatch = ul.match(/<li[^>]*class=['"]title['"][^>]*>([\s\S]*?)<\/li>/i);
     if (!titleMatch) continue;
-    const period = titleMatch[1].replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim();
+    const periodRaw = titleMatch[1].replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim();
+    const period = normalizeStageReturnPeriod(periodRaw);
     if (!period) continue;
     const lis = ul.match(/<li[^>]*>[\s\S]*?<\/li>/gi) || [];
     if (lis.length < 2) continue;

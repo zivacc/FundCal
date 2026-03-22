@@ -28,6 +28,26 @@ let hideAllSnapshot = null;
 let lastFundsForCrosshair = [];
 let buyFeeDiscountFactor = 1;
 
+/** 排排网比较：选中基金代码集合 + 映射表缓存 */
+const smppSelectedCodes = new Set();
+let _smppMappingCache = null;
+let _smppMappingLoading = null;
+
+async function loadSmppMapping() {
+  if (_smppMappingCache) return _smppMappingCache;
+  if (_smppMappingLoading) return _smppMappingLoading;
+  _smppMappingLoading = (async () => {
+    try {
+      const res = await fetch('data/smpp/simuwang-code-mapping-2026-03-22.json');
+      if (res.ok) { _smppMappingCache = await res.json(); return _smppMappingCache; }
+    } catch { /* ignore */ }
+    return {};
+  })();
+  const result = await _smppMappingLoading;
+  _smppMappingLoading = null;
+  return result;
+}
+
 const STORAGE_KEY = 'fundCalState';
 
 /** 全局搜索索引缓存，供顶部搜索、卡片名称联想、批量导入共用 */
@@ -1376,6 +1396,104 @@ function formatTradingStatusForDetail(status) {
   return parts.join('，');
 }
 
+function formatNetAssetScaleForDetail(netAssetScale) {
+  const formatTwoLine = (fullText) => {
+    const t = String(fullText || '').trim();
+    if (!t) return '-';
+    const m = t.match(/^(.*?)(（\s*截止至[：:].*）)$/);
+    if (m) {
+      return `<div>${escapeHtml(m[1].trim())}</div><div style="opacity:.75">${escapeHtml(m[2].trim())}</div>`;
+    }
+    return escapeHtml(t);
+  };
+  if (!netAssetScale) return '-';
+  if (typeof netAssetScale === 'string') return formatTwoLine(netAssetScale);
+  if (typeof netAssetScale === 'object') {
+    const text = String(netAssetScale.text || '').trim();
+    if (text) return formatTwoLine(text);
+    const amountText = String(netAssetScale.amountText || '').trim();
+    const asOfDate = String(netAssetScale.asOfDate || '').trim();
+    if (amountText && asOfDate) {
+      return `<div>${escapeHtml(amountText)}</div><div style="opacity:.75">${escapeHtml(`（截止至：${asOfDate}）`)}</div>`;
+    }
+    return amountText ? escapeHtml(amountText) : '-';
+  }
+  return '-';
+}
+
+function getStageReturnNumber(item) {
+  if (!item) return null;
+  if (typeof item.returnPct === 'number' && Number.isFinite(item.returnPct)) return item.returnPct;
+  const txt = String(item.returnText || '').trim();
+  const m = txt.match(/(-?[\d.]+)\s*%/);
+  if (!m) return null;
+  const n = parseFloat(m[1]);
+  return Number.isFinite(n) ? n : null;
+}
+
+function normalizeStageReturnPeriod(rawPeriod) {
+  const text = String(rawPeriod || '').replace(/\s+/g, ' ').trim();
+  if (!text) return '';
+  const known = text.match(/(今年来|近1周|近1月|近3月|近6月|近1年|近2年|近3年|近5年|成立来)/);
+  if (known) return known[1];
+  return text;
+}
+
+function buildStageReturnCompareMeta(metas) {
+  const preferredOrder = ['今年来', '近1周', '近1月', '近3月', '近6月', '近1年', '近2年', '近3年', '近5年', '成立来'];
+  const periodSet = new Set();
+  const maxByPeriod = {};
+
+  for (const m of metas || []) {
+    const arr = Array.isArray(m?.stageReturns) ? m.stageReturns : [];
+    for (const item of arr) {
+      const p = normalizeStageReturnPeriod(item?.period);
+      if (!p) continue;
+      periodSet.add(p);
+      const n = getStageReturnNumber(item);
+      if (n == null) continue;
+      if (maxByPeriod[p] == null || n > maxByPeriod[p]) {
+        maxByPeriod[p] = n;
+      }
+    }
+  }
+
+  const periods = [];
+  preferredOrder.forEach(p => { if (periodSet.has(p)) periods.push(p); });
+  Array.from(periodSet).forEach(p => { if (!periods.includes(p)) periods.push(p); });
+  return { periods, maxByPeriod };
+}
+
+function formatStageReturnsForDetail(stageReturns, asOfDate, periods, maxByPeriod) {
+  const byPeriod = new Map();
+  if (Array.isArray(stageReturns)) {
+    stageReturns.forEach(item => {
+      const p = normalizeStageReturnPeriod(item?.period);
+      if (p) byPeriod.set(p, item);
+    });
+  }
+  const periodList = Array.isArray(periods) && periods.length
+    ? periods
+    : (Array.isArray(stageReturns) ? stageReturns.map(i => normalizeStageReturnPeriod(i?.period)).filter(Boolean) : []);
+  if (!periodList.length) return '-';
+
+  const lines = periodList.map(period => {
+    const item = byPeriod.get(period);
+    const val = item ? String(item.returnText || '').trim() : '';
+    const num = getStageReturnNumber(item);
+    const display = val || (num != null ? `${num.toFixed(2)}%` : '-');
+    const maxVal = maxByPeriod && Object.prototype.hasOwnProperty.call(maxByPeriod, period) ? maxByPeriod[period] : null;
+    const isBest = num != null && maxVal != null && Math.abs(num - maxVal) < 1e-9;
+    return `
+      <div class="fund-detail-return-line${isBest ? ' fund-detail-return-best' : ''}">
+        <span class="fund-detail-return-period">${escapeHtml(period)}</span>
+        <span class="fund-detail-return-value">${escapeHtml(display)}</span>
+      </div>
+    `;
+  });
+  return lines.join('');
+}
+
 const _fundMetaCache = {};
 
 async function renderFundDetailTable(funds) {
@@ -1402,6 +1520,7 @@ async function renderFundDetailTable(funds) {
     } catch { /* ignore */ }
     return {};
   }));
+  const stageCompareMeta = buildStageReturnCompareMeta(metas);
 
   const rows = [
     {
@@ -1410,12 +1529,23 @@ async function renderFundDetailTable(funds) {
     },
     { label: '基金代码', render: (f, _m) => escapeHtml(f.code || '-') },
     { label: '基金类型', render: (_f, m) => escapeHtml(m.fundType || '-') },
+    { label: '规模数据', render: (_f, m) => formatNetAssetScaleForDetail(m.netAssetScale), nowrap: false },
     { label: '买入费率', render: (f, _m) => f._rawBuyFee != null ? (f._rawBuyFee * 100).toFixed(2) + '%' : '-' },
     { label: '买入费率（折后）', render: (f, _m) => f.buyFee != null ? (f.buyFee * 100).toFixed(2) + '%' : '-' },
     { label: '年化费率', render: (f, _m) => f.annualFee != null ? (f.annualFee * 100).toFixed(2) + '%' : '-' },
     { label: '卖出费率分段', render: (f, _m) => formatSegmentsForDetailTable(f.sellFeeSegments), nowrap: false },
     { label: '跟踪标的', render: (_f, m) => escapeHtml(m.trackingTarget || '-') },
     { label: '业绩基准', render: (_f, m) => escapeHtml(m.performanceBenchmark || '-'), nowrap: false },
+    {
+      label: '收益数据（全部）',
+      render: (_f, m) => formatStageReturnsForDetail(
+        m.stageReturns,
+        m.stageReturnsAsOf,
+        stageCompareMeta.periods,
+        stageCompareMeta.maxByPeriod
+      ),
+      nowrap: false
+    },
     { label: '基金公司', render: (_f, m) => escapeHtml(m.fundManager || '-') },
     { label: '交易状态', render: (_f, m) => escapeHtml(formatTradingStatusForDetail(m.tradingStatus)) },
     { label: '更新时间', render: (_f, m) => escapeHtml(m.updatedAt || '-') },
@@ -1440,6 +1570,100 @@ async function renderFundDetailTable(funds) {
     const tds = funds.map((f, i) => `<td${style}>${row.render(f, metas[i])}</td>`).join('');
     return `<tr>${th}${tds}</tr>`;
   }).join('');
+
+  renderSmppActionRow(tbody, funds);
+}
+
+function renderSmppActionRow(tbody, funds) {
+  const MAX_COMPARE = 10;
+  const actionRow = document.createElement('tr');
+  actionRow.className = 'fund-detail-action-row';
+
+  const th = document.createElement('th');
+  th.className = 'fund-detail-row-label';
+  const compareBtn = document.createElement('button');
+  compareBtn.type = 'button';
+  compareBtn.className = 'btn btn-sm btn-primary fund-detail-compare-btn';
+  compareBtn.title = '在排排网对比选中的基金（最多10只）';
+  th.appendChild(compareBtn);
+  actionRow.appendChild(th);
+
+  // 清理已不存在的基金代码
+  const currentCodes = new Set(funds.map(f => (f.code || '').trim()).filter(Boolean));
+  smppSelectedCodes.forEach(c => { if (!currentCodes.has(c)) smppSelectedCodes.delete(c); });
+
+  function updateCompareBtn() {
+    const n = smppSelectedCodes.size;
+    compareBtn.textContent = n > 0 ? `排排网比较 (${Math.min(n, MAX_COMPARE)})` : '排排网比较';
+    compareBtn.disabled = n === 0;
+  }
+
+  funds.forEach(f => {
+    const td = document.createElement('td');
+    td.className = 'fund-detail-action-cell';
+    const code = (f.code || '').trim();
+
+    if (code) {
+      const selectBtn = document.createElement('button');
+      selectBtn.type = 'button';
+      const isSelected = smppSelectedCodes.has(code);
+      selectBtn.className = 'btn btn-sm fund-detail-select-btn' + (isSelected ? ' active' : '');
+      selectBtn.textContent = isSelected ? '已选' : '选中';
+      selectBtn.addEventListener('click', () => {
+        if (smppSelectedCodes.has(code)) {
+          smppSelectedCodes.delete(code);
+          selectBtn.classList.remove('active');
+          selectBtn.textContent = '选中';
+        } else {
+          smppSelectedCodes.add(code);
+          selectBtn.classList.add('active');
+          selectBtn.textContent = '已选';
+        }
+        updateCompareBtn();
+      });
+      td.appendChild(selectBtn);
+    }
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.type = 'button';
+    deleteBtn.className = 'btn btn-sm btn-secondary fund-detail-delete-btn';
+    deleteBtn.textContent = '删除';
+    deleteBtn.title = '移除该基金卡片';
+    deleteBtn.addEventListener('click', () => {
+      if (code) {
+        smppSelectedCodes.delete(code);
+        removeCardByFundCode(code);
+      } else {
+        const cards = document.querySelectorAll('.fund-card');
+        const idx = funds.indexOf(f);
+        if (idx >= 0 && cards[idx]) {
+          cards[idx].remove();
+          updateChart();
+          saveState();
+        }
+      }
+    });
+    td.appendChild(deleteBtn);
+    actionRow.appendChild(td);
+  });
+
+  compareBtn.addEventListener('click', async () => {
+    const mapping = await loadSmppMapping();
+    const selected = Array.from(smppSelectedCodes).slice(0, MAX_COMPARE);
+    const internalCodes = selected.map(c => mapping[c]).filter(Boolean);
+    if (internalCodes.length === 0) {
+      const hasMapping = selected.some(c => mapping[c]);
+      alert(selected.length === 0
+        ? '请先选中至少一只基金'
+        : '选中的基金在排排网映射表中未找到对应代码');
+      return;
+    }
+    const url = 'https://dc.simuwang.com/comparison/index.html?id=' + internalCodes.join('%7C');
+    window.open(url, '_blank');
+  });
+
+  updateCompareBtn();
+  tbody.appendChild(actionRow);
 }
 
 function renderImportResultsList(container, items) {

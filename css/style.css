@@ -1218,8 +1218,14 @@ h1 {
 .fund-detail-table td {
   padding: 0.45rem 0.7rem;
   border-bottom: 1px solid var(--border-subtle);
+  border-right: 1px solid var(--border-subtle);
   text-align: left;
   white-space: nowrap;
+}
+
+.fund-detail-table th:last-child,
+.fund-detail-table td:last-child {
+  border-right: none;
 }
 
 .fund-detail-table tr:last-child th,
@@ -1260,6 +1266,99 @@ h1 {
   margin-right: 0.4rem;
   vertical-align: middle;
   box-shadow: 0 0 5px currentColor;
+}
+
+.fund-detail-return-line {
+  display: grid;
+  grid-template-columns: 4.6em minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: 0.45rem;
+  padding: 0.08rem 0.28rem;
+  border-radius: var(--radius-sm);
+}
+
+.fund-detail-return-best {
+  background: var(--accent-subtle);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.fund-detail-return-period {
+  color: var(--text-secondary);
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.fund-detail-return-value {
+  color: var(--text-primary);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.fund-detail-return-asof {
+  margin-top: 0.18rem;
+  opacity: 0.75;
+}
+
+/* ── 基金详情表操作行（排排网比较 / 选中 / 删除） ── */
+.fund-detail-action-row th,
+.fund-detail-action-row td {
+  padding-top: 0.55rem;
+  padding-bottom: 0.55rem;
+  border-bottom: none;
+}
+
+.fund-detail-action-cell {
+  white-space: nowrap;
+}
+
+.fund-detail-action-cell .btn + .btn {
+  margin-left: 0.4rem;
+}
+
+.fund-detail-select-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  min-width: 3.6em;
+  transition: all 0.15s ease;
+}
+
+.fund-detail-select-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(78, 140, 230, 0.08);
+}
+
+.fund-detail-select-btn.active {
+  border-color: var(--accent);
+  color: #fff;
+  background: var(--accent);
+}
+
+.fund-detail-select-btn.active:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.fund-detail-delete-btn {
+  opacity: 0.6;
+  transition: opacity 0.15s ease;
+}
+
+.fund-detail-delete-btn:hover {
+  opacity: 1;
+}
+
+.fund-detail-compare-btn {
+  white-space: nowrap;
+}
+
+.fund-detail-compare-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 /* ── 基金卡片（单行横向排列，不需滚动时居中，多时可横向滚动）── */
@@ -2797,6 +2896,262 @@ h1 {
   background: var(--accent-subtle);
   color: var(--accent);
   border-color: var(--accent);
+}
+
+/* ── 指数独立页面 ── */
+.index-page {
+  min-height: 100vh;
+}
+
+.index-page-search-hero {
+  margin-top: 1rem;
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.2), transparent 45%), var(--bg-surface);
+}
+
+.index-page-search-label {
+  display: block;
+  margin-bottom: 0.45rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.index-page-search-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.index-page-search-wrap {
+  max-width: none;
+}
+
+.index-page-search-input {
+  font-size: 0.95rem;
+  padding: 0.62rem 0.85rem;
+}
+
+.index-page-search-meta {
+  margin-top: 0.5rem;
+}
+
+.index-page-selected-chips {
+  margin-top: 0.65rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.index-page-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border: 1px solid var(--border-hover);
+  border-radius: 999px;
+  padding: 0.18rem 0.25rem 0.18rem 0.55rem;
+  font-size: 0.76rem;
+  color: var(--text-primary);
+  background: var(--bg-input);
+  transition: border-color var(--transition-fast);
+}
+
+.index-page-chip:hover {
+  border-color: var(--accent);
+}
+
+.index-page-chip em {
+  font-style: normal;
+  color: var(--accent);
+}
+
+.index-page-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-tertiary);
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.index-page-chip-remove:hover {
+  background: var(--red-subtle);
+  color: var(--red);
+}
+
+.index-page-suggestions {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.index-page-suggestions:empty {
+  display: none;
+}
+
+.index-page-suggest-label {
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.index-page-suggest-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border: 1px dashed var(--border);
+  border-radius: 999px;
+  padding: 0.12rem 0.5rem;
+  font-size: 0.72rem;
+  font-family: inherit;
+  color: var(--text-secondary);
+  background: transparent;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
+}
+
+.index-page-suggest-chip:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-subtle);
+}
+
+.index-page-suggest-chip em {
+  font-style: normal;
+  font-size: 0.68rem;
+  color: var(--text-tertiary);
+}
+
+.index-page-main {
+  margin-top: 1rem;
+}
+
+.index-page-main-hidden {
+  display: none;
+}
+
+.index-page-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.8rem;
+}
+
+.index-page-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.index-page-toolbar-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.index-page-period-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: 0.25rem;
+}
+
+.index-page-period-wrap-hidden {
+  visibility: hidden;
+}
+
+.index-page-period-btn-active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-subtle);
+}
+
+.index-page-summary {
+  margin-bottom: 0.9rem;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.index-page-summary-card {
+  width: 100%;
+}
+
+.index-page-content {
+  display: grid;
+  grid-template-columns: minmax(0, 58%) minmax(0, 42%);
+  gap: 0.75rem;
+}
+
+.index-page-left,
+.index-page-right {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.index-page-panel {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-sm);
+  padding: 0.75rem;
+}
+
+.index-page-panel-title {
+  font-size: 0.88rem;
+  margin-bottom: 0.5rem;
+  color: var(--text-secondary);
+}
+
+.index-page-table-wrap {
+  max-height: 520px;
+}
+
+.index-page-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg-muted);
+}
+
+.index-page-sort-col-active {
+  color: var(--accent) !important;
+}
+
+.index-page-chart-wrap {
+  height: 300px;
+  position: relative;
+}
+
+@media (max-width: 980px) {
+  .index-page-content {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .index-page-search-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .index-page-summary {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 640px) {
