@@ -601,6 +601,52 @@ h1 {
   background: var(--bg-hover);
 }
 
+.cached-funds-table tbody tr.cached-fund-row {
+  cursor: pointer;
+}
+
+.cached-funds-table tbody tr.cached-fund-row-selected {
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg-subtle)) !important;
+  box-shadow: inset 3px 0 0 0 var(--accent);
+}
+
+.cached-funds-table tbody tr.cached-fund-row-selected:hover {
+  background: color-mix(in srgb, var(--accent) 24%, var(--bg-hover)) !important;
+}
+
+.cached-funds-compare-fab {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 50;
+}
+
+.cached-funds-compare-fab[hidden] {
+  display: none !important;
+}
+
+.cached-funds-compare-btn {
+  padding: 12px 20px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong, #4f46e5));
+  border: none;
+  border-radius: 999px;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 45%, transparent);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.cached-funds-compare-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.cached-funds-compare-btn:active {
+  transform: translateY(0);
+}
+
 .cached-funds-empty {
   text-align: center;
   color: var(--text-muted);
@@ -1359,6 +1405,19 @@ h1 {
   opacity: 0.4;
   cursor: not-allowed;
   box-shadow: none;
+}
+
+.fund-detail-no-mapping {
+  display: inline-block;
+  margin-left: 0.3rem;
+  font-size: 0.68rem;
+  color: var(--text-tertiary);
+  opacity: 0.7;
+}
+
+.fund-detail-select-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 /* ── 基金卡片（单行横向排列，不需滚动时居中，多时可横向滚动）── */

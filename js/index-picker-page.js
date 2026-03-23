@@ -1,5 +1,6 @@
 import { fetchFundStatsFromAPI, fetchFundFeeFromAPI } from './api-adapter.js';
 import { escapeHtml, getColorForIndex } from './utils.js';
+import { renderFundDetailTable } from './fund-detail-table.js';
 
 const MAX_DROPDOWN_ITEMS = 30;
 const MAX_FUNDS_LOAD = 220;
@@ -396,57 +397,21 @@ function renderTable() {
   }).join('');
 }
 
-/* ── detail table (Top N, vertical layout like main page) ── */
+/* ── detail table (Top N, vertical layout - shared module) ── */
 
-function formatSellSegments(segs) {
-  if (!Array.isArray(segs) || !segs.length) return '-';
-  return segs
-    .slice().sort((a, b) => (a.days ?? 0) - (b.days ?? 0))
-    .map(s => {
-      const label = s.unbounded ? `≥${s.days}天` : `${s.days}天`;
-      const pct = s.rate != null ? (s.rate * 100).toFixed(2) + '%' : '-';
-      return `<div>${escapeHtml(label)}: ${pct}</div>`;
-    }).join('');
-}
-
-function renderDetailTable() {
+async function renderDetailTable() {
   if (!els.detailWrap || !els.detailTbody) return;
   const topFunds = state.sortedRows.slice(0, DETAIL_TOP_N);
   if (!topFunds.length) {
     els.detailWrap.style.display = 'none';
     return;
   }
-  els.detailWrap.style.display = '';
 
-  const rows = [
-    { label: '基金名称', render: r => escapeHtml(r.name || '-') },
-    { label: '基金代码', render: r => escapeHtml(r.code || '-') },
-    { label: '规模', render: r => escapeHtml(r.scaleText || '-'), nowrap: false },
-    { label: '年化费率', render: r => formatPct(r.annualFee) },
-    { label: '申购费率', render: r => formatPct(r.buyFee) },
-    { label: '卖出费率分段', render: r => formatSellSegments(r.sellFeeSegments), nowrap: false },
-    { label: '跟踪标的', render: r => escapeHtml(r.trackingTarget || (r.trackingIndexes || []).join(' / ') || '-'), nowrap: false },
-    { label: `${state.returnPeriod}收益`, render: r => formatPct(getReturnValue(r, state.returnPeriod)) },
-    { label: '基金公司', render: r => escapeHtml(r.fundManager || '-') },
-    {
-      label: '外链',
-      render: r => {
-        if (!r.code) return '-';
-        const isOverseas = /^968\d{3}$/.test(r.code);
-        const emUrl = isOverseas
-          ? `https://overseas.1234567.com.cn/${r.code}`
-          : `https://fundf10.eastmoney.com/jjfl_${r.code}.html`;
-        return `<a href="${emUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-secondary">天天基金</a>`;
-      }
-    }
-  ];
-
-  els.detailTbody.innerHTML = rows.map(row => {
-    const th = `<th class="fund-detail-row-label">${row.label}</th>`;
-    const style = row.nowrap === false ? ' style="white-space:normal"' : '';
-    const tds = topFunds.map(f => `<td${style}>${row.render(f)}</td>`).join('');
-    return `<tr>${th}${tds}</tr>`;
-  }).join('');
+  const metas = topFunds.map(r => state.fundDataCache[r.code] || {});
+  await renderFundDetailTable(els.detailTbody, topFunds, {
+    wrapEl: els.detailWrap,
+    metas,
+  });
 }
 
 /* ── charts ── */

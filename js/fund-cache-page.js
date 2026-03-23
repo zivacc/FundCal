@@ -2,6 +2,10 @@
 
 /** @type {CachedFundRow[]} */
 let allFunds = [];
+/** 与主页 js/app.js 中 SESSION_COMPARE_FROM_CACHE_KEY 一致 */
+const COMPARE_SESSION_KEY = 'fundCalCompareFromCache';
+/** 去比较多选（迭代顺序 = 选中顺序） */
+const selectedCompareCodes = new Set();
 let currentPage = 1;
 let pageSize = 100;
 let totalPages = 1;
@@ -106,6 +110,12 @@ function setStatus(msg, isError = false) {
   if (!el) return;
   el.textContent = msg;
   el.classList.toggle('error', !!isError);
+}
+
+function updateCompareFab() {
+  const fab = document.getElementById('cached-funds-compare-fab');
+  if (!fab) return;
+  fab.hidden = selectedCompareCodes.size === 0;
 }
 
 function setProgress(done, total) {
@@ -291,8 +301,10 @@ function renderTable() {
 
   tbody.innerHTML = pageRows.map(f => {
     const annualText = formatPercent(f.annualFee) + (f.raw && f.raw.isFloatingAnnualFee ? '（浮动）' : '');
+    const isSel = selectedCompareCodes.has(f.code);
+    const selClass = isSel ? ' cached-fund-row-selected' : '';
     return `
-    <tr>
+    <tr class="cached-fund-row${selClass}" data-code="${escapeHtml(f.code)}" tabindex="0" aria-selected="${isSel ? 'true' : 'false'}">
       <td><button type="button" class="btn btn-sm cached-fund-json-btn" data-code="${escapeHtml(f.code)}">查看</button></td>
       <td>${escapeHtml(f.code)}</td>
       <td>${escapeHtml(f.name)}</td>
@@ -377,6 +389,7 @@ async function loadCachedFunds() {
     setStatus(`已加载 ${allFunds.length} 只基金。`);
     populateFilterOptions();
     renderTable();
+    updateCompareFab();
   } catch (e) {
     setStatus('从本地汇总文件加载缓存基金失败。', true);
   }
@@ -764,8 +777,53 @@ function setupEvents() {
     });
   }
 
-  // 表格中点击「查看」按钮，展示对应基金的完整原始数据
+  // 表格行：单击切换「去比较」选中（不占用「查看」按钮）
   const tbody = document.getElementById('cached-funds-tbody');
+  if (tbody) {
+    const toggleRowSelect = (tr) => {
+      if (!tr || !tr.classList.contains('cached-fund-row')) return;
+      const code = (tr.dataset.code || '').trim();
+      if (!code) return;
+      if (selectedCompareCodes.has(code)) selectedCompareCodes.delete(code);
+      else selectedCompareCodes.add(code);
+      tr.classList.toggle('cached-fund-row-selected', selectedCompareCodes.has(code));
+      tr.setAttribute('aria-selected', selectedCompareCodes.has(code) ? 'true' : 'false');
+      updateCompareFab();
+    };
+    tbody.addEventListener('click', (e) => {
+      if (e.target instanceof HTMLElement && e.target.closest('.cached-fund-json-btn')) return;
+      const tr = e.target instanceof HTMLElement ? e.target.closest('tr.cached-fund-row') : null;
+      if (tr) toggleRowSelect(tr);
+    });
+    tbody.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const t = e.target;
+      if (!(t instanceof HTMLElement)) return;
+      const tr = t.closest('tr.cached-fund-row');
+      if (!tr) return;
+      e.preventDefault();
+      toggleRowSelect(tr);
+    });
+  }
+
+  const compareBtn = document.getElementById('cached-funds-compare-btn');
+  if (compareBtn) {
+    compareBtn.addEventListener('click', () => {
+      if (selectedCompareCodes.size === 0) return;
+      const items = Array.from(selectedCompareCodes).map(code => {
+        const row = allFunds.find(f => f.code === code);
+        return { code, name: row?.name || code };
+      });
+      try {
+        sessionStorage.setItem(COMPARE_SESSION_KEY, JSON.stringify({ funds: items }));
+      } catch {
+        return;
+      }
+      window.location.href = 'index.html';
+    });
+  }
+
+  // 表格中点击「查看」按钮，展示对应基金的完整原始数据
   if (tbody && jsonModal && jsonContent && jsonTable) {
     tbody.addEventListener('click', async (e) => {
       const target = /** @type {HTMLElement|null} */ (e.target instanceof HTMLElement ? e.target.closest('.cached-fund-json-btn') : null);

@@ -14,6 +14,7 @@ import {
   readFileAsText, readExcelFirstColumn
 } from './import-utils.js';
 import { setupIndexPickerModal } from './index-picker.js';
+import { renderFundDetailTable } from './fund-detail-table.js';
 
 // 注册 Chart.js 标注插件（由 script 标签加载，全局名 chartjs-plugin-annotation）
 if (typeof window !== 'undefined' && window.Chart && window['chartjs-plugin-annotation']) {
@@ -28,27 +29,9 @@ let hideAllSnapshot = null;
 let lastFundsForCrosshair = [];
 let buyFeeDiscountFactor = 1;
 
-/** 排排网比较：选中基金代码集合 + 映射表缓存 */
-const smppSelectedCodes = new Set();
-let _smppMappingCache = null;
-let _smppMappingLoading = null;
-
-async function loadSmppMapping() {
-  if (_smppMappingCache) return _smppMappingCache;
-  if (_smppMappingLoading) return _smppMappingLoading;
-  _smppMappingLoading = (async () => {
-    try {
-      const res = await fetch('data/smpp/simuwang-code-mapping-2026-03-22.json');
-      if (res.ok) { _smppMappingCache = await res.json(); return _smppMappingCache; }
-    } catch { /* ignore */ }
-    return {};
-  })();
-  const result = await _smppMappingLoading;
-  _smppMappingLoading = null;
-  return result;
-}
-
 const STORAGE_KEY = 'fundCalState';
+/** 数据库列表页「去比较」写入，主页启动时消费后清除 */
+const SESSION_COMPARE_FROM_CACHE_KEY = 'fundCalCompareFromCache';
 
 /** 全局搜索索引缓存，供顶部搜索、卡片名称联想、批量导入共用 */
 let searchIndexCache = null;
@@ -278,6 +261,39 @@ function loadState() {
     if (!raw) return null;
     return JSON.parse(raw);
   } catch (e) { return null; }
+}
+
+/**
+ * 若存在数据库列表页传来的选中基金，则清空当前页与本地暂存并加载这些基金（与搜索添加一致走 API）
+ * @returns {Promise<boolean>} 是否已应用并应跳过 restoreState
+ */
+async function applyCompareFromCacheSession() {
+  try {
+    const raw = sessionStorage.getItem(SESSION_COMPARE_FROM_CACHE_KEY);
+    if (!raw) return false;
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return false;
+    }
+    const list = parsed && (parsed.funds || parsed);
+    if (!Array.isArray(list) || list.length === 0) return false;
+    clearStoredState();
+    for (const item of list) {
+      const code = String(item?.code ?? '').trim();
+      if (!code) continue;
+      const data = await fetchFundFeeFromAPI(code);
+      const payload = data || { name: item.name || `基金${code}`, code };
+      addFundCard(payload);
+    }
+    try {
+      sessionStorage.removeItem(SESSION_COMPARE_FROM_CACHE_KEY);
+    } catch { /* ignore */ }
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /** 清除所有卡片并清除本地暂存 */
@@ -1373,297 +1389,42 @@ async function updateChart() {
     legendEl.innerHTML = html;
   }
 
-  renderFundDetailTable(funds);
+  renderFundDetailTableForMainPage(funds);
 }
 
 
-
-function formatSegmentsForDetailTable(segs) {
-  if (!Array.isArray(segs) || !segs.length) return '-';
-  const sorted = segs.slice().sort((a, b) => (a.days ?? 0) - (b.days ?? 0));
-  return sorted.map(s => {
-    const label = s.unbounded ? `≥${s.days}天` : `${s.days}天`;
-    const pct = s.rate != null ? (s.rate * 100).toFixed(2) + '%' : '-';
-    return `<div>${escapeHtml(label)}: ${pct}</div>`;
-  }).join('');
-}
-
-function formatTradingStatusForDetail(status) {
-  if (!status || (!status.subscribe && !status.redeem)) return '-';
-  const parts = [];
-  if (status.subscribe) parts.push(`申购：${status.subscribe}`);
-  if (status.redeem) parts.push(`赎回：${status.redeem}`);
-  return parts.join('，');
-}
-
-function formatNetAssetScaleForDetail(netAssetScale) {
-  const formatTwoLine = (fullText) => {
-    const t = String(fullText || '').trim();
-    if (!t) return '-';
-    const m = t.match(/^(.*?)(（\s*截止至[：:].*）)$/);
-    if (m) {
-      return `<div>${escapeHtml(m[1].trim())}</div><div style="opacity:.75">${escapeHtml(m[2].trim())}</div>`;
-    }
-    return escapeHtml(t);
-  };
-  if (!netAssetScale) return '-';
-  if (typeof netAssetScale === 'string') return formatTwoLine(netAssetScale);
-  if (typeof netAssetScale === 'object') {
-    const text = String(netAssetScale.text || '').trim();
-    if (text) return formatTwoLine(text);
-    const amountText = String(netAssetScale.amountText || '').trim();
-    const asOfDate = String(netAssetScale.asOfDate || '').trim();
-    if (amountText && asOfDate) {
-      return `<div>${escapeHtml(amountText)}</div><div style="opacity:.75">${escapeHtml(`（截止至：${asOfDate}）`)}</div>`;
-    }
-    return amountText ? escapeHtml(amountText) : '-';
-  }
-  return '-';
-}
-
-function getStageReturnNumber(item) {
-  if (!item) return null;
-  if (typeof item.returnPct === 'number' && Number.isFinite(item.returnPct)) return item.returnPct;
-  const txt = String(item.returnText || '').trim();
-  const m = txt.match(/(-?[\d.]+)\s*%/);
-  if (!m) return null;
-  const n = parseFloat(m[1]);
-  return Number.isFinite(n) ? n : null;
-}
-
-function normalizeStageReturnPeriod(rawPeriod) {
-  const text = String(rawPeriod || '').replace(/\s+/g, ' ').trim();
-  if (!text) return '';
-  const known = text.match(/(今年来|近1周|近1月|近3月|近6月|近1年|近2年|近3年|近5年|成立来)/);
-  if (known) return known[1];
-  return text;
-}
-
-function buildStageReturnCompareMeta(metas) {
-  const preferredOrder = ['今年来', '近1周', '近1月', '近3月', '近6月', '近1年', '近2年', '近3年', '近5年', '成立来'];
-  const periodSet = new Set();
-  const maxByPeriod = {};
-
-  for (const m of metas || []) {
-    const arr = Array.isArray(m?.stageReturns) ? m.stageReturns : [];
-    for (const item of arr) {
-      const p = normalizeStageReturnPeriod(item?.period);
-      if (!p) continue;
-      periodSet.add(p);
-      const n = getStageReturnNumber(item);
-      if (n == null) continue;
-      if (maxByPeriod[p] == null || n > maxByPeriod[p]) {
-        maxByPeriod[p] = n;
-      }
-    }
-  }
-
-  const periods = [];
-  preferredOrder.forEach(p => { if (periodSet.has(p)) periods.push(p); });
-  Array.from(periodSet).forEach(p => { if (!periods.includes(p)) periods.push(p); });
-  return { periods, maxByPeriod };
-}
-
-function formatStageReturnsForDetail(stageReturns, asOfDate, periods, maxByPeriod) {
-  const byPeriod = new Map();
-  if (Array.isArray(stageReturns)) {
-    stageReturns.forEach(item => {
-      const p = normalizeStageReturnPeriod(item?.period);
-      if (p) byPeriod.set(p, item);
-    });
-  }
-  const periodList = Array.isArray(periods) && periods.length
-    ? periods
-    : (Array.isArray(stageReturns) ? stageReturns.map(i => normalizeStageReturnPeriod(i?.period)).filter(Boolean) : []);
-  if (!periodList.length) return '-';
-
-  const lines = periodList.map(period => {
-    const item = byPeriod.get(period);
-    const val = item ? String(item.returnText || '').trim() : '';
-    const num = getStageReturnNumber(item);
-    const display = val || (num != null ? `${num.toFixed(2)}%` : '-');
-    const maxVal = maxByPeriod && Object.prototype.hasOwnProperty.call(maxByPeriod, period) ? maxByPeriod[period] : null;
-    const isBest = num != null && maxVal != null && Math.abs(num - maxVal) < 1e-9;
-    return `
-      <div class="fund-detail-return-line${isBest ? ' fund-detail-return-best' : ''}">
-        <span class="fund-detail-return-period">${escapeHtml(period)}</span>
-        <span class="fund-detail-return-value">${escapeHtml(display)}</span>
-      </div>
-    `;
-  });
-  return lines.join('');
-}
 
 const _fundMetaCache = {};
 
-async function renderFundDetailTable(funds) {
+async function renderFundDetailTableForMainPage(funds) {
   const wrap = document.getElementById('fund-detail-table-wrap');
   const tbody = document.getElementById('fund-detail-tbody');
   if (!wrap || !tbody) return;
 
-  if (!funds || !funds.length) {
-    wrap.style.display = 'none';
-    return;
-  }
-  wrap.style.display = '';
-
-  const metas = await Promise.all(funds.map(async f => {
-    const code = (f.code || '').trim();
-    if (!code) return {};
-    if (_fundMetaCache[code]) return _fundMetaCache[code];
-    try {
+  await renderFundDetailTable(tbody, funds, {
+    wrapEl: wrap,
+    showDiscountedBuyFee: true,
+    fetchMeta: async (code) => {
+      if (_fundMetaCache[code]) return _fundMetaCache[code];
       const data = await fetchFundFeeFromAPI(code);
-      if (data) {
-        _fundMetaCache[code] = data;
-        return data;
-      }
-    } catch { /* ignore */ }
-    return {};
-  }));
-  const stageCompareMeta = buildStageReturnCompareMeta(metas);
-
-  const rows = [
-    {
-      label: '基金名称',
-      render: (f, _m) => `<span class="fund-detail-color-dot" style="background:${f.color}"></span>${escapeHtml(f.name || '未命名基金')}`
+      if (data) { _fundMetaCache[code] = data; return data; }
+      return {};
     },
-    { label: '基金代码', render: (f, _m) => escapeHtml(f.code || '-') },
-    { label: '基金类型', render: (_f, m) => escapeHtml(m.fundType || '-') },
-    { label: '规模数据', render: (_f, m) => formatNetAssetScaleForDetail(m.netAssetScale), nowrap: false },
-    { label: '买入费率', render: (f, _m) => f._rawBuyFee != null ? (f._rawBuyFee * 100).toFixed(2) + '%' : '-' },
-    { label: '买入费率（折后）', render: (f, _m) => f.buyFee != null ? (f.buyFee * 100).toFixed(2) + '%' : '-' },
-    { label: '年化费率', render: (f, _m) => f.annualFee != null ? (f.annualFee * 100).toFixed(2) + '%' : '-' },
-    { label: '卖出费率分段', render: (f, _m) => formatSegmentsForDetailTable(f.sellFeeSegments), nowrap: false },
-    { label: '跟踪标的', render: (_f, m) => escapeHtml(m.trackingTarget || '-') },
-    { label: '业绩基准', render: (_f, m) => escapeHtml(m.performanceBenchmark || '-'), nowrap: false },
-    {
-      label: '收益数据（全部）',
-      render: (_f, m) => formatStageReturnsForDetail(
-        m.stageReturns,
-        m.stageReturnsAsOf,
-        stageCompareMeta.periods,
-        stageCompareMeta.maxByPeriod
-      ),
-      nowrap: false
-    },
-    { label: '基金公司', render: (_f, m) => escapeHtml(m.fundManager || '-') },
-    { label: '交易状态', render: (_f, m) => escapeHtml(formatTradingStatusForDetail(m.tradingStatus)) },
-    { label: '更新时间', render: (_f, m) => escapeHtml(m.updatedAt || '-') },
-    {
-      label: '原始数据',
-      render: (f, _m) => {
-        const code = (f.code || '').trim();
-        if (!code) return '-';
-        const isOverseas = /^968\d{3}$/.test(code);
-        const emUrl = isOverseas
-          ? `https://overseas.1234567.com.cn/${code}`
-          : `https://fundf10.eastmoney.com/jjfl_${code}.html`;
-        const sohuUrl = `https://q.fund.sohu.com/${code}/index.shtml?code=${code}`;
-        return `<a href="${emUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-secondary">天天基金</a> <a href="${sohuUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-secondary">搜狐</a>`;
-      }
-    },
-  ];
-
-  tbody.innerHTML = rows.map(row => {
-    const th = `<th class="fund-detail-row-label">${row.label}</th>`;
-    const style = row.nowrap === false ? ' style="white-space:normal"' : '';
-    const tds = funds.map((f, i) => `<td${style}>${row.render(f, metas[i])}</td>`).join('');
-    return `<tr>${th}${tds}</tr>`;
-  }).join('');
-
-  renderSmppActionRow(tbody, funds);
-}
-
-function renderSmppActionRow(tbody, funds) {
-  const MAX_COMPARE = 10;
-  const actionRow = document.createElement('tr');
-  actionRow.className = 'fund-detail-action-row';
-
-  const th = document.createElement('th');
-  th.className = 'fund-detail-row-label';
-  const compareBtn = document.createElement('button');
-  compareBtn.type = 'button';
-  compareBtn.className = 'btn btn-sm btn-primary fund-detail-compare-btn';
-  compareBtn.title = '在排排网对比选中的基金（最多10只）';
-  th.appendChild(compareBtn);
-  actionRow.appendChild(th);
-
-  // 清理已不存在的基金代码
-  const currentCodes = new Set(funds.map(f => (f.code || '').trim()).filter(Boolean));
-  smppSelectedCodes.forEach(c => { if (!currentCodes.has(c)) smppSelectedCodes.delete(c); });
-
-  function updateCompareBtn() {
-    const n = smppSelectedCodes.size;
-    compareBtn.textContent = n > 0 ? `排排网比较 (${Math.min(n, MAX_COMPARE)})` : '排排网比较';
-    compareBtn.disabled = n === 0;
-  }
-
-  funds.forEach(f => {
-    const td = document.createElement('td');
-    td.className = 'fund-detail-action-cell';
-    const code = (f.code || '').trim();
-
-    if (code) {
-      const selectBtn = document.createElement('button');
-      selectBtn.type = 'button';
-      const isSelected = smppSelectedCodes.has(code);
-      selectBtn.className = 'btn btn-sm fund-detail-select-btn' + (isSelected ? ' active' : '');
-      selectBtn.textContent = isSelected ? '已选' : '选中';
-      selectBtn.addEventListener('click', () => {
-        if (smppSelectedCodes.has(code)) {
-          smppSelectedCodes.delete(code);
-          selectBtn.classList.remove('active');
-          selectBtn.textContent = '选中';
-        } else {
-          smppSelectedCodes.add(code);
-          selectBtn.classList.add('active');
-          selectBtn.textContent = '已选';
-        }
-        updateCompareBtn();
-      });
-      td.appendChild(selectBtn);
-    }
-
-    const deleteBtn = document.createElement('button');
-    deleteBtn.type = 'button';
-    deleteBtn.className = 'btn btn-sm btn-secondary fund-detail-delete-btn';
-    deleteBtn.textContent = '删除';
-    deleteBtn.title = '移除该基金卡片';
-    deleteBtn.addEventListener('click', () => {
+    onDelete: (f, code) => {
       if (code) {
-        smppSelectedCodes.delete(code);
         removeCardByFundCode(code);
       } else {
         const cards = document.querySelectorAll('.fund-card');
-        const idx = funds.indexOf(f);
+        const allFunds = collectFunds();
+        const idx = allFunds.indexOf(f);
         if (idx >= 0 && cards[idx]) {
           cards[idx].remove();
           updateChart();
           saveState();
         }
       }
-    });
-    td.appendChild(deleteBtn);
-    actionRow.appendChild(td);
-  });
-
-  compareBtn.addEventListener('click', async () => {
-    const mapping = await loadSmppMapping();
-    const selected = Array.from(smppSelectedCodes).slice(0, MAX_COMPARE);
-    const internalCodes = selected.map(c => mapping[c]).filter(Boolean);
-    if (internalCodes.length === 0) {
-      const hasMapping = selected.some(c => mapping[c]);
-      alert(selected.length === 0
-        ? '请先选中至少一只基金'
-        : '选中的基金在排排网映射表中未找到对应代码');
-      return;
     }
-    const url = 'https://dc.simuwang.com/comparison/index.html?id=' + internalCodes.join('%7C');
-    window.open(url, '_blank');
   });
-
-  updateCompareBtn();
-  tbody.appendChild(actionRow);
 }
 
 function renderImportResultsList(container, items) {
@@ -2170,16 +1931,20 @@ function init() {
       }
     });
   }
-  const state = loadState();
-  if (state && state.funds && state.funds.length > 0) {
-    restoreState(state);
-  } else {
-    // 无缓存状态时，根据屏幕宽度设置默认悬浮窗开关
-    const showTooltipEl = document.getElementById('show-tooltip');
-    if (showTooltipEl) {
-      showTooltipEl.checked = window.innerWidth >= 900;
+  (async () => {
+    const appliedCompare = await applyCompareFromCacheSession();
+    if (appliedCompare) return;
+    const state = loadState();
+    if (state && state.funds && state.funds.length > 0) {
+      restoreState(state);
+    } else {
+      // 无缓存状态时，根据屏幕宽度设置默认悬浮窗开关
+      const showTooltipEl = document.getElementById('show-tooltip');
+      if (showTooltipEl) {
+        showTooltipEl.checked = window.innerWidth >= 900;
+      }
     }
-  }
+  })();
 }
 
 init();
