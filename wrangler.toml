@@ -7,5 +7,5 @@ directory = "./dist"
 
 [[kv_namespaces]]
 binding = "FUND_DATA"
-id = "<创建后填入>"
-preview_id = "<创建后填入>"
+id = "e38469490c3146f987cab362c2603d02"
+preview_id = "d63cdb5fc401443b9815c7aa15961e65"
