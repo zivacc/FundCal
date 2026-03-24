@@ -14,12 +14,15 @@ function getFeeApiBase() {
 }
 
 const STATS_PAGE_SIZE = 100;
+const COMPARE_SESSION_KEY = 'fundCalCompareFromCache';
 let statsViews = null;
 let currentStatsKey = 'tracking';
 let statsLoadedCounts = {};
 let statsObserver = null;
 let fundDetailCache = {};
 let statsDetail = null;
+const fundStatsSelectedCompareCodes = new Set();
+let currentDetailFunds = [];
 
 // 静态模式下的 allfund.json 缓存，供明细回退使用（避免每次点击都重新加载大文件）
 let allfundStoreCache = null;
@@ -101,6 +104,35 @@ function setProgress(pct) {
   if (!bar) return;
   const v = Math.max(0, Math.min(100, pct));
   bar.style.width = `${v.toFixed(1)}%`;
+}
+
+function getOrCreateFundStatsCompareFab() {
+  let fab = document.getElementById('fund-stats-compare-fab');
+  if (!fab) {
+    fab = document.createElement('div');
+    fab.id = 'fund-stats-compare-fab';
+    fab.className = 'cached-funds-compare-fab';
+    fab.hidden = true;
+    fab.innerHTML = '<button type="button" id="fund-stats-compare-btn" class="cached-funds-compare-btn">去比较</button>';
+    document.body.appendChild(fab);
+  }
+  return /** @type {HTMLDivElement} */ (fab);
+}
+
+function syncFundStatsCompareFab() {
+  const fab = getOrCreateFundStatsCompareFab();
+  const btn = document.getElementById('fund-stats-compare-btn');
+  if (!btn) return;
+  const selectedFunds = currentDetailFunds.filter(f => fundStatsSelectedCompareCodes.has(String(f.code || '').trim()));
+  const count = selectedFunds.length;
+  fab.hidden = count === 0;
+  btn.textContent = count > 0 ? `去比较 (${count})` : '去比较';
+}
+
+function clearFundStatsCompareSelection() {
+  fundStatsSelectedCompareCodes.clear();
+  currentDetailFunds = [];
+  syncFundStatsCompareFab();
 }
 
 function renderSummary(total) {
@@ -414,6 +446,7 @@ async function loadFundsForCard(viewKey, label) {
 }
 
 function renderFundDetailPlaceholder() {
+  clearFundStatsCompareSelection();
   const el = document.getElementById('fund-stats-detail');
   if (!el) return;
   el.innerHTML = `
@@ -425,6 +458,7 @@ function renderFundDetailPlaceholder() {
 }
 
 function renderFundDetailLoading(label) {
+  clearFundStatsCompareSelection();
   const el = document.getElementById('fund-stats-detail');
   if (!el) return;
   el.innerHTML = `
@@ -450,7 +484,13 @@ function renderFundDetail(viewKey, label, detail) {
   if (!el) return;
   const meta = detail.meta;
   const funds = detail.funds || [];
+  currentDetailFunds = funds.slice();
+  const currentCodes = new Set(currentDetailFunds.map(f => String(f.code || '').trim()).filter(Boolean));
+  Array.from(fundStatsSelectedCompareCodes).forEach(code => {
+    if (!currentCodes.has(code)) fundStatsSelectedCompareCodes.delete(code);
+  });
   if (!meta || !funds.length) {
+    syncFundStatsCompareFab();
     el.innerHTML = `
       <div class="fund-stats-detail-card">
         <div class="fund-stats-detail-header">
@@ -472,8 +512,10 @@ function renderFundDetail(viewKey, label, detail) {
   else if (viewKey === 'fundType') typeLabel = '基金类型';
   const listHtml = funds.map((f, idx) => {
     const order = idx + 1;
+    const code = String(f.code || '').trim();
+    const selected = code && fundStatsSelectedCompareCodes.has(code);
     return `
-      <div class="fund-stats-detail-row">
+      <div class="fund-stats-detail-row${selected ? ' fund-stats-detail-row-selected' : ''}" data-code="${code}" tabindex="0" aria-selected="${selected ? 'true' : 'false'}">
         <div class="fund-stats-detail-order">#${order}</div>
         <div class="fund-stats-detail-main">
           <div class="fund-stats-detail-name-line">
@@ -505,6 +547,7 @@ function renderFundDetail(viewKey, label, detail) {
       </div>
     </div>
   `;
+  syncFundStatsCompareFab();
 }
 
 function bindCardInteractions() {
@@ -525,6 +568,25 @@ function bindCardInteractions() {
     }
     renderFundDetailPlaceholder();
   }
+
+  const compareFab = getOrCreateFundStatsCompareFab();
+  const compareBtn = document.getElementById('fund-stats-compare-btn');
+  if (compareBtn) {
+    compareBtn.addEventListener('click', () => {
+      const selectedFunds = currentDetailFunds
+        .filter(f => fundStatsSelectedCompareCodes.has(String(f.code || '').trim()))
+        .map(f => ({ code: String(f.code || '').trim(), name: String(f.name || f.code || '').trim() }))
+        .filter(f => !!f.code);
+      if (!selectedFunds.length) return;
+      try {
+        sessionStorage.setItem(COMPARE_SESSION_KEY, JSON.stringify({ funds: selectedFunds }));
+      } catch {
+        return;
+      }
+      window.location.href = 'index.html';
+    });
+  }
+  if (compareFab) syncFundStatsCompareFab();
 
   gridEl.addEventListener('click', async (evt) => {
     const card = evt.target.closest('.fund-stats-card');
@@ -553,9 +615,45 @@ function bindCardInteractions() {
 
   if (detailWrapper) {
     detailWrapper.addEventListener('click', (evt) => {
-      const btn = evt.target.closest('.fund-stats-detail-close-btn');
+      const target = evt.target;
+      if (!(target instanceof HTMLElement)) return;
+      const btn = target.closest('.fund-stats-detail-close-btn');
       if (!btn) return;
       closeDetailPanel();
+    });
+    detailWrapper.addEventListener('click', (evt) => {
+      const target = evt.target;
+      if (!(target instanceof HTMLElement)) return;
+      const row = target.closest('.fund-stats-detail-row');
+      if (!row) return;
+      const code = String(row.getAttribute('data-code') || '').trim();
+      if (!code) return;
+      if (fundStatsSelectedCompareCodes.has(code)) {
+        fundStatsSelectedCompareCodes.delete(code);
+      } else {
+        fundStatsSelectedCompareCodes.add(code);
+      }
+      row.classList.toggle('fund-stats-detail-row-selected', fundStatsSelectedCompareCodes.has(code));
+      row.setAttribute('aria-selected', fundStatsSelectedCompareCodes.has(code) ? 'true' : 'false');
+      syncFundStatsCompareFab();
+    });
+    detailWrapper.addEventListener('keydown', (evt) => {
+      if (evt.key !== 'Enter' && evt.key !== ' ') return;
+      const target = evt.target;
+      if (!(target instanceof HTMLElement)) return;
+      const row = target.closest('.fund-stats-detail-row');
+      if (!row) return;
+      evt.preventDefault();
+      const code = String(row.getAttribute('data-code') || '').trim();
+      if (!code) return;
+      if (fundStatsSelectedCompareCodes.has(code)) {
+        fundStatsSelectedCompareCodes.delete(code);
+      } else {
+        fundStatsSelectedCompareCodes.add(code);
+      }
+      row.classList.toggle('fund-stats-detail-row-selected', fundStatsSelectedCompareCodes.has(code));
+      row.setAttribute('aria-selected', fundStatsSelectedCompareCodes.has(code) ? 'true' : 'false');
+      syncFundStatsCompareFab();
     });
   }
 }

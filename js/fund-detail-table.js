@@ -9,6 +9,8 @@ import { escapeHtml, getColorForIndex } from './utils.js';
 export const smppSelectedCodes = new Set();
 let _smppMappingCache = null;
 let _smppMappingLoading = null;
+const SMPP_MAX_COMPARE = 10;
+const FUND_DETAIL_FLOATING_ID = 'fund-detail-floating-actions';
 
 export async function loadSmppMapping() {
   if (_smppMappingCache) return _smppMappingCache;
@@ -147,102 +149,107 @@ function formatPctValue(v) {
   return (v * 100).toFixed(2) + '%';
 }
 
-/* ========== 排排网操作行 ========== */
+/* ========== 排排网列选中 + 悬浮按钮 ========== */
 
-function renderSmppActionRow(tbody, funds, smppMapping, { onDelete } = {}) {
-  const MAX_COMPARE = 10;
+function getOrCreateFloatingActions() {
+  let root = document.getElementById(FUND_DETAIL_FLOATING_ID);
+  if (!root) {
+    root = document.createElement('div');
+    root.id = FUND_DETAIL_FLOATING_ID;
+    root.className = 'fund-detail-floating-actions';
+    root.hidden = true;
+    root.innerHTML = `
+      <button type="button" class="fund-detail-floating-btn fund-detail-floating-compare">去排排网比较</button>
+      <button type="button" class="fund-detail-floating-btn fund-detail-floating-delete">删除选中</button>
+    `;
+    document.body.appendChild(root);
+  }
+  const compareBtn = root.querySelector('.fund-detail-floating-compare');
+  const deleteBtn = root.querySelector('.fund-detail-floating-delete');
+  return { root, compareBtn, deleteBtn };
+}
+
+function hideFloatingActions() {
+  const root = document.getElementById(FUND_DETAIL_FLOATING_ID);
+  if (root) root.hidden = true;
+}
+
+function openSmppCompare(mapping) {
+  const selected = Array.from(smppSelectedCodes).slice(0, SMPP_MAX_COMPARE);
+  const internalCodes = selected.map(c => mapping[c]).filter(Boolean);
+  if (internalCodes.length === 0) {
+    alert(selected.length === 0
+      ? '请先选中至少一只基金'
+      : '选中的基金在排排网映射表中未找到对应代码');
+    return;
+  }
+  const url = 'https://dc.simuwang.com/comparison/index.html?id=' + internalCodes.join('%7C');
+  window.open(url, '_blank');
+}
+
+function bindSmppColumnSelection(tbody, funds, smppMapping, { onDelete } = {}) {
   const mapping = smppMapping || {};
-  const actionRow = document.createElement('tr');
-  actionRow.className = 'fund-detail-action-row';
-
-  const th = document.createElement('th');
-  th.className = 'fund-detail-row-label';
-  const compareBtn = document.createElement('button');
-  compareBtn.type = 'button';
-  compareBtn.className = 'btn btn-sm btn-primary fund-detail-compare-btn';
-  compareBtn.title = '在排排网对比选中的基金（最多10只）';
-  th.appendChild(compareBtn);
-  actionRow.appendChild(th);
-
   const currentCodes = new Set(funds.map(f => (f.code || '').trim()).filter(Boolean));
   smppSelectedCodes.forEach(c => { if (!currentCodes.has(c)) smppSelectedCodes.delete(c); });
-
-  function updateCompareBtn() {
-    const n = smppSelectedCodes.size;
-    compareBtn.textContent = n > 0 ? `排排网比较 (${Math.min(n, MAX_COMPARE)})` : '排排网比较';
-    compareBtn.disabled = n === 0;
-  }
-
+  const codeToFund = new Map();
   funds.forEach(f => {
-    const td = document.createElement('td');
-    td.className = 'fund-detail-action-cell';
-    const code = (f.code || '').trim();
-    const hasMapping = code && !!mapping[code];
-
-    if (code) {
-      const selectBtn = document.createElement('button');
-      selectBtn.type = 'button';
-      const isSelected = smppSelectedCodes.has(code);
-      selectBtn.className = 'btn btn-sm fund-detail-select-btn' + (isSelected ? ' active' : '');
-      selectBtn.textContent = isSelected ? '已选' : '选中';
-      if (!hasMapping) {
-        selectBtn.disabled = true;
-        selectBtn.title = '排排网无此基金映射';
-      }
-      selectBtn.addEventListener('click', () => {
-        if (!hasMapping) return;
-        if (smppSelectedCodes.has(code)) {
-          smppSelectedCodes.delete(code);
-          selectBtn.classList.remove('active');
-          selectBtn.textContent = '选中';
-        } else {
-          smppSelectedCodes.add(code);
-          selectBtn.classList.add('active');
-          selectBtn.textContent = '已选';
-        }
-        updateCompareBtn();
-      });
-      td.appendChild(selectBtn);
-
-      if (!hasMapping) {
-        const tag = document.createElement('span');
-        tag.className = 'fund-detail-no-mapping';
-        tag.textContent = '无映射';
-        td.appendChild(tag);
-      }
-    }
-
-    if (onDelete) {
-      const deleteBtn = document.createElement('button');
-      deleteBtn.type = 'button';
-      deleteBtn.className = 'btn btn-sm btn-secondary fund-detail-delete-btn';
-      deleteBtn.textContent = '删除';
-      deleteBtn.title = '移除该基金卡片';
-      deleteBtn.addEventListener('click', () => {
-        smppSelectedCodes.delete(code);
-        onDelete(f, code);
-      });
-      td.appendChild(deleteBtn);
-    }
-
-    actionRow.appendChild(td);
+    const code = String(f?.code || '').trim();
+    if (code) codeToFund.set(code, f);
   });
 
-  compareBtn.addEventListener('click', () => {
-    const selected = Array.from(smppSelectedCodes).slice(0, MAX_COMPARE);
-    const internalCodes = selected.map(c => mapping[c]).filter(Boolean);
-    if (internalCodes.length === 0) {
-      alert(selected.length === 0
-        ? '请先选中至少一只基金'
-        : '选中的基金在排排网映射表中未找到对应代码');
-      return;
-    }
-    const url = 'https://dc.simuwang.com/comparison/index.html?id=' + internalCodes.join('%7C');
-    window.open(url, '_blank');
-  });
+  const { root, compareBtn, deleteBtn } = getOrCreateFloatingActions();
+  if (!compareBtn || !deleteBtn) return;
 
-  updateCompareBtn();
-  tbody.appendChild(actionRow);
+  const updateSelectedCells = () => {
+    tbody.querySelectorAll('td.fund-detail-fund-cell').forEach((td) => {
+      const code = String(td.getAttribute('data-fund-code') || '').trim();
+      const selected = code && smppSelectedCodes.has(code);
+      td.classList.toggle('fund-detail-fund-cell-selected', !!selected);
+      td.setAttribute('aria-selected', selected ? 'true' : 'false');
+      if (selected) td.title = '已选中，点击取消';
+      else if (code && !mapping[code]) td.title = '排排网无映射，仍可用于删除';
+      else td.title = '点击选中此基金列';
+    });
+  };
+
+  const updateFloatingActions = () => {
+    const n = smppSelectedCodes.size;
+    root.hidden = n === 0;
+    compareBtn.textContent = n > 0
+      ? `去排排网比较 (${Math.min(n, SMPP_MAX_COMPARE)})`
+      : '去排排网比较';
+    deleteBtn.hidden = !onDelete;
+    updateSelectedCells();
+  };
+
+  tbody.onclick = (e) => {
+    const target = e.target;
+    if (!(target instanceof HTMLElement)) return;
+    if (target.closest('a,button,input,select,textarea,label')) return;
+    const td = target.closest('td.fund-detail-fund-cell');
+    if (!td || !tbody.contains(td)) return;
+    const code = String(td.getAttribute('data-fund-code') || '').trim();
+    if (!code) return;
+    if (smppSelectedCodes.has(code)) smppSelectedCodes.delete(code);
+    else smppSelectedCodes.add(code);
+    updateFloatingActions();
+  };
+
+  compareBtn.onclick = () => openSmppCompare(mapping);
+
+  deleteBtn.onclick = () => {
+    if (!onDelete) return;
+    const selectedCodes = Array.from(smppSelectedCodes);
+    selectedCodes.forEach((code) => {
+      const fund = codeToFund.get(code);
+      if (fund) onDelete(fund, code);
+    });
+    smppSelectedCodes.clear();
+    hideFloatingActions();
+    updateSelectedCells();
+  };
+
+  updateFloatingActions();
 }
 
 /* ========== 主渲染函数 ========== */
@@ -264,6 +271,8 @@ export async function renderFundDetailTable(tbody, funds, options = {}) {
   if (!tbody) return;
   if (!funds || !funds.length) {
     if (wrapEl) wrapEl.style.display = 'none';
+    smppSelectedCodes.clear();
+    hideFloatingActions();
     return;
   }
   if (wrapEl) wrapEl.style.display = '';
@@ -333,10 +342,13 @@ export async function renderFundDetailTable(tbody, funds, options = {}) {
   tbody.innerHTML = rows.map(row => {
     const th = `<th class="fund-detail-row-label">${row.label}</th>`;
     const style = row.nowrap === false ? ' style="white-space:normal"' : '';
-    const tds = funds.map((f, i) => `<td${style}>${row.render(f, metas[i], i)}</td>`).join('');
+    const tds = funds.map((f, i) => {
+      const code = escapeHtml(String(f?.code || '').trim());
+      return `<td class="fund-detail-fund-cell" data-fund-code="${code}"${style}>${row.render(f, metas[i], i)}</td>`;
+    }).join('');
     return `<tr>${th}${tds}</tr>`;
   }).join('');
 
   const smppMapping = await loadSmppMapping();
-  renderSmppActionRow(tbody, funds, smppMapping, { onDelete });
+  bindSmppColumnSelection(tbody, funds, smppMapping, { onDelete });
 }
