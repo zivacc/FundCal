@@ -50,8 +50,8 @@ function cleanTemp() {
 }
 
 function wranglerBulkPut(jsonFilePath) {
-  const previewFlag = isPreview ? ' --preview' : '';
-  const cmd = `npx wrangler kv:bulk put "${jsonFilePath}" --binding FUND_DATA${previewFlag}`;
+  const previewFlag = isPreview ? ' --preview' : ' --preview=false';
+  const cmd = `npx wrangler kv bulk put "${jsonFilePath}" --binding FUND_DATA --remote${previewFlag}`;
   console.log(`  执行: ${cmd}`);
   execSync(cmd, { cwd: ROOT, stdio: 'inherit' });
 }

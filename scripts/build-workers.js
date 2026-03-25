@@ -13,6 +13,7 @@ const DIST = path.join(ROOT, 'dist');
 
 const COPY_FILES = [
   'index.html',
+  'index-picker.html',
   'cached-funds.html',
   'cached-fund-stats.html',
 ];

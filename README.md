@@ -2,7 +2,10 @@
 
 多基金费率对比工具：输入或拉取基金费率，在同一张图上展示不同基金在各持有期限下的累计费用曲线，并自动标注交叉点。
 
-**在线体验**：[https://zivacc.github.io/FundCal/](https://zivacc.github.io/FundCal/)
+**在线体验（完整）**：[https://fundcal.zivacc.cc.cd/](https://fundcal.zivacc.cc.cd/)
+**在线体验（静态）**：[https://zivacc.github.io/FundCal/](https://zivacc.github.io/FundCal/)
+
+
 
 ---
 
