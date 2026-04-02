@@ -17,4 +17,4 @@
  * 无需配置，自动使用 http://localhost:3457/api/fund
  */
 
-// window.FUND_FEE_API_BASE = 'http://你的阿里云公网IP/api/fund';
+//window.FUND_FEE_API_BASE = 'https://fundcal.ziva.cc.cd/api/fund';

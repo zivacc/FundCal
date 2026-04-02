@@ -96,7 +96,6 @@ function main() {
       const initials = getInitials(name);
       list.push({ code: String(code), name, initials });
       
-      // 生成专门用于列表页的索引 (精简字段，排除不必要的详情)
       fullListForPage.push({
         code: String(code),
         name,
@@ -104,9 +103,12 @@ function main() {
         buyFee: data.buyFee ?? 0,
         annualFee: data.annualFee ?? (data.operationFees?.total ?? 0),
         fundType: data.fundType || '',
+        trackingTarget: data.trackingTarget || '',
+        performanceBenchmark: data.performanceBenchmark || '',
+        fundManager: data.fundManager || '',
+        tradingStatus: data.tradingStatus || null,
         updatedAt: data.updatedAt || '',
-        // 这里保留 sellFeeSegments 的极简形式，仅前两段
-        sellFeeSegments: (data.sellFeeSegments || data.redeemSegments || []).slice(0, 2)
+        sellFeeSegments: data.sellFeeSegments || data.redeemSegments || [],
       });
     }
     fs.writeFileSync(SEARCH_INDEX_PATH, JSON.stringify(list, null, 2), 'utf8');

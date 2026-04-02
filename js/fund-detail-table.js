@@ -17,7 +17,7 @@ export async function loadSmppMapping() {
   if (_smppMappingLoading) return _smppMappingLoading;
   _smppMappingLoading = (async () => {
     try {
-      const res = await fetch('data/smpp/simuwang-code-mapping-2026-03-22.json');
+      const res = await fetch('data/smpp/simuwang-code-mapping.json');
       if (res.ok) { _smppMappingCache = await res.json(); return _smppMappingCache; }
     } catch { /* ignore */ }
     return {};

@@ -72,6 +72,26 @@ function build() {
     console.log(`  复制 ${dir}/`);
   }
 
+  // 排排网映射：找到 data/smpp/ 下最新的映射文件，复制为稳定文件名
+  const smppSrc = path.join(ROOT, 'data', 'smpp');
+  const smppDest = path.join(DIST, 'data', 'smpp');
+  if (fs.existsSync(smppSrc)) {
+    const mappingFiles = fs.readdirSync(smppSrc)
+      .filter(f => f.startsWith('simuwang-code-mapping-') && f.endsWith('.json'))
+      .sort();
+    if (mappingFiles.length > 0) {
+      const latest = mappingFiles[mappingFiles.length - 1];
+      ensureDir(smppDest);
+      fs.copyFileSync(
+        path.join(smppSrc, latest),
+        path.join(smppDest, 'simuwang-code-mapping.json')
+      );
+      console.log(`  复制 ${latest} → data/smpp/simuwang-code-mapping.json`);
+    } else {
+      console.warn('  跳过：data/smpp/ 中无排排网映射文件');
+    }
+  }
+
   console.log(`构建完成 → ${DIST}`);
 }
 
