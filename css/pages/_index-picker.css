@@ -7,19 +7,44 @@
    ═══════════════════════════════════════════════════════════════ */
 
 .modal-index-picker {
-  width: min(720px, 100%);
-  max-height: calc(100vh - 2rem);
+  width: min(900px, 95vw);
+  height: min(88vh, 720px);
 }
 
+/* 宽屏：左右双栏布局 */
 .modal-index-picker .modal-body {
   display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  flex-direction: row;
+  gap: 0;
   overflow: hidden;
+  padding: 0;
 }
 
 .index-picker-top {
+  flex: 0 0 40%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 1rem;
+}
+
+.index-picker-divider {
+  width: 1px;
+  height: auto;
+  align-self: stretch;
+  background: var(--border-subtle);
+  margin: 0;
   flex-shrink: 0;
+}
+
+.index-picker-bottom {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 1rem;
 }
 
 .index-picker-search-row {
@@ -34,13 +59,14 @@
 }
 
 .index-picker-index-list {
-  flex: 1 1 auto;
-  max-height: none;
-  overflow: auto;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   padding-right: 4px;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-subtle);
   background: var(--bg-base);
+  margin-top: 0.5rem;
 }
 
 /* 指数列表项 - 弹窗内 */
@@ -106,19 +132,6 @@
   margin-left: 0.35rem;
 }
 
-.index-picker-divider {
-  height: 1px;
-  background: var(--border-subtle);
-  margin: 0.25rem 0;
-}
-
-.index-picker-bottom {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
 
 .index-picker-bottom-header {
   display: flex;

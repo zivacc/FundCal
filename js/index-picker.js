@@ -9,6 +9,21 @@ let indexPickerStatsCache = null;
 let indexPickerSelectedIndex = null;
 let indexPickerSelectedCodes = new Set();
 
+let _pickerToastTimer = null;
+function showPickerToast(msg, duration = 3000) {
+  let el = document.getElementById('fund-floating-toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'fund-floating-toast';
+    el.className = 'fund-floating-toast';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.classList.add('visible');
+  clearTimeout(_pickerToastTimer);
+  _pickerToastTimer = setTimeout(() => el.classList.remove('visible'), duration);
+}
+
 /**
  * 初始化指数选择弹窗
  * @param {{ addFundCard: Function }} deps - 需要从 app 主模块传入的依赖
@@ -323,19 +338,25 @@ export function setupIndexPickerModal({ addFundCard }) {
 
   if (applyBtn) {
     applyBtn.addEventListener('click', async () => {
-      if (!indexPickerSelectedCodes.size) {
-        closeModal(backdrop);
-        return;
-      }
-      for (const code of indexPickerSelectedCodes) {
-        const data = await fetchFundFeeFromAPI(code);
-        if (data) {
-          addFundCard(data);
-        } else {
-          addFundCard({ code, name: `基金${code}` });
+      if (!indexPickerSelectedCodes.size) return;
+      const codes = Array.from(indexPickerSelectedCodes);
+      applyBtn.disabled = true;
+      applyBtn.textContent = '添加中…';
+      try {
+        for (const code of codes) {
+          const data = await fetchFundFeeFromAPI(code);
+          addFundCard(data || { code, name: `基金${code}` });
         }
+        // 清空选中状态
+        indexPickerSelectedCodes.clear();
+        fundListEl.querySelectorAll('.index-picker-fund-item-selected')
+          .forEach(el => el.classList.remove('index-picker-fund-item-selected'));
+        updateHint();
+        showPickerToast(`已添加 ${codes.length} 只基金`);
+      } finally {
+        applyBtn.disabled = false;
+        applyBtn.textContent = '添加';
       }
-      closeModal(backdrop);
     });
   }
 }
