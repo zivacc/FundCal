@@ -365,9 +365,7 @@ function createFundCard(index, color, initialData) {
   const nameDropdown = card.querySelector('.fund-name-dropdown');
 
   function resizeFundNameInput() {
-    const minCh = parseInt(nameInput.dataset.minCh, 10) || 10;
-    const len = (nameInput.value || '').length;
-    nameInput.style.width = `${Math.max(minCh, len + 1)}ch`;
+    // 宽度由 CSS width:100% 控制，无需动态设置
   }
 
   function showNameDropdown(items) {
@@ -1266,7 +1264,7 @@ async function updateChart() {
 
   setupCrosshair(canvas);
 
-  // 底部色带：左右各收缩 100px 与图表对齐，悬停/点击段时在下方显示气泡
+  // 底部色带：与图表横轴对齐，每段直接显示对应基金名称
   const bandEl = document.getElementById('optimal-band');
   if (bandEl) {
     bandEl.innerHTML = '';
@@ -1276,50 +1274,39 @@ async function updateChart() {
       bandEl.style.marginRight = '15px';
       const strip = document.createElement('div');
       strip.className = 'optimal-band-strip';
-      let pinnedSegment = null;
       displaySegments.forEach(seg => {
-        const widthPct = ((seg.end - seg.start + 1) / displayDays * 100).toFixed(2) + '%';
+        const segDays = seg.end - seg.start + 1;
+        const widthPct = (segDays / displayDays * 100).toFixed(2) + '%';
+        const color = seg.redNoText ? 'var(--danger)' : (funds[seg.fundIndex].color || getColorForIndex(seg.fundIndex));
+        const labelText = seg.redNoText ? '惩罚期' : getFundDisplayName(funds[seg.fundIndex]);
         const segDiv = document.createElement('div');
         segDiv.className = 'optimal-band-segment';
         segDiv.style.width = widthPct;
-        segDiv.style.backgroundColor = seg.redNoText ? 'var(--danger)' : (funds[seg.fundIndex].color || getColorForIndex(seg.fundIndex));
-        const tooltip = document.createElement('div');
-        tooltip.className = 'optimal-band-segment-tooltip';
-        tooltip.textContent = seg.redNoText ? '惩罚期' : getFundDisplayName(funds[seg.fundIndex]);
-        tooltip.setAttribute('aria-hidden', 'true');
-        segDiv.appendChild(tooltip);
-        const showTip = () => { tooltip.classList.add('visible'); };
-        const hideTip = () => { if (pinnedSegment !== segDiv) tooltip.classList.remove('visible'); };
-        segDiv.addEventListener('mouseenter', showTip);
-        segDiv.addEventListener('mouseleave', hideTip);
-        segDiv.addEventListener('click', (e) => {
-          e.preventDefault();
-          if (pinnedSegment === segDiv) {
-            pinnedSegment = null;
-            tooltip.classList.remove('visible');
-          } else {
-            if (pinnedSegment) pinnedSegment.querySelector('.optimal-band-segment-tooltip')?.classList.remove('visible');
-            pinnedSegment = segDiv;
-            tooltip.classList.add('visible');
-          }
-        });
+        segDiv.style.backgroundColor = color;
+        segDiv.title = `${labelText}（${seg.start}～${seg.end}天）`;
+        // 仅宽度足够时显示文字（占比 > 4% 或绝对天数 > 20天）
+        const showLabel = (segDays / displayDays) > 0.04 || segDays > 20;
+        if (showLabel) {
+          const label = document.createElement('span');
+          label.className = 'optimal-band-segment-label';
+          label.textContent = labelText;
+          segDiv.appendChild(label);
+        }
         strip.appendChild(segDiv);
       });
       bandEl.appendChild(strip);
-      // 使用交叉点数据标注天数，与图表横轴一致，避免大显示天数时因分段舍入产生偏移
-      if (optimalSwitches.length > 0) {
-        const labelsRow = document.createElement('div');
-        labelsRow.className = 'optimal-band-labels';
-        optimalSwitches.forEach(s => {
-          const leftPct = ((s.days - displayMin) / displayDays * 100).toFixed(2) + '%';
-          const span = document.createElement('span');
-          span.className = 'optimal-band-boundary-label';
-          span.style.left = leftPct;
-          span.textContent = s.days;
-          labelsRow.appendChild(span);
-        });
-        bandEl.appendChild(labelsRow);
-      }
+      // 交叉点天数标注行，与图表横轴对齐
+      const labelsRow = document.createElement('div');
+      labelsRow.className = 'optimal-band-labels';
+      optimalSwitches.forEach(s => {
+        const leftPct = ((s.days - displayMin) / displayDays * 100).toFixed(2) + '%';
+        const span = document.createElement('span');
+        span.className = 'optimal-band-boundary-label';
+        span.style.left = leftPct;
+        span.textContent = s.days + '天';
+        labelsRow.appendChild(span);
+      });
+      bandEl.appendChild(labelsRow);
     } else {
       bandEl.style.display = 'none';
       bandEl.style.marginLeft = '';

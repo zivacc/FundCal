@@ -146,9 +146,11 @@
   font-size: 0.88rem;
   font-weight: 600;
   margin: 0 0 0.75rem 0;
+  padding-right: 1.8rem; /* 为右上角关闭按钮留空 */
   display: flex;
   align-items: center;
   gap: 0.4rem;
+  min-width: 0;
 }
 
 .fund-card-color {
@@ -158,6 +160,122 @@
   border-radius: 50%;
   flex-shrink: 0;
   box-shadow: 0 0 6px currentColor;
+}
+
+/* 颜色圆点（card header 中） */
+.fund-card .color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 6px currentColor;
+}
+
+/* 名称区域 */
+.fund-card .fund-name-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.fund-card .fund-name {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.3rem 0.5rem;
+  font-size: 0.85rem;
+  font-family: var(--font-body);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.fund-card .fund-name:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+.fund-card .fund-name::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* 基金代码 */
+.fund-card .fund-code {
+  display: block;
+  margin-top: 0.1rem;
+  color: var(--text-tertiary);
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+}
+
+/* 搜索下拉 */
+.fund-card .fund-name-dropdown {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  margin-top: 2px;
+  max-height: 220px;
+  overflow-y: auto;
+  list-style: none;
+  padding: 0.25rem 0;
+  margin: 0;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  z-index: 25;
+  display: none;
+}
+
+.fund-card .fund-name-dropdown.fund-name-dropdown-visible {
+  display: block;
+}
+
+.fund-card .fund-name-dropdown [role="option"] {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.82rem;
+  cursor: pointer;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.fund-card .fund-name-dropdown [role="option"]:hover,
+.fund-card .fund-name-dropdown [role="option"].fund-search-item-active {
+  background: var(--accent-subtle);
+  color: var(--accent);
+}
+
+/* 关闭按钮 — 右上角 */
+.fund-card .remove-btn {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  transition: all var(--transition-fast);
+}
+
+.fund-card .remove-btn:hover {
+  background: var(--danger-subtle);
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
 .fund-card-row {
