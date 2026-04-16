@@ -619,6 +619,9 @@ h1 {
   right: max(12px, env(safe-area-inset-right));
   bottom: max(12px, env(safe-area-inset-bottom));
   z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
 }
 
 .cached-funds-compare-fab[hidden] {
@@ -645,6 +648,15 @@ h1 {
 
 .cached-funds-compare-btn:active {
   transform: translateY(0);
+}
+
+.cached-funds-jiuquan-btn {
+  background: linear-gradient(135deg, #34d399, #059669);
+  box-shadow: 0 8px 24px color-mix(in srgb, #059669 45%, transparent);
+}
+
+.cached-funds-jiuquan-btn:hover {
+  box-shadow: 0 12px 28px color-mix(in srgb, #059669 55%, transparent);
 }
 
 .cached-funds-empty {
@@ -1490,6 +1502,37 @@ h1 {
   border-color: var(--red);
   color: var(--red);
   box-shadow: 0 8px 20px rgba(248, 113, 113, 0.18);
+}
+
+.fund-detail-floating-jiuquan {
+  color: #fff;
+  background: linear-gradient(135deg, #34d399, #059669);
+  box-shadow: 0 8px 24px rgba(5, 150, 105, 0.35);
+}
+
+/* ── Toast 提示 ── */
+.fund-floating-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 80px;
+  transform: translateX(-50%) translateY(8px);
+  padding: 0.55rem 1.1rem;
+  border-radius: 999px;
+  background: var(--bg-raised, #1a1a2e);
+  color: var(--text-primary, #e8edf4);
+  font-size: 0.82rem;
+  border: 1px solid var(--border-hover, #3a4d6a);
+  box-shadow: var(--shadow-md, 0 4px 16px rgba(0,0,0,.3));
+  z-index: 200;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.fund-floating-toast.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
 }
 
 /* ── 基金卡片（单行横向排列，不需滚动时居中，多时可横向滚动）── */

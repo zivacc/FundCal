@@ -1,0 +1,404 @@
+/* ══════════════════════════════════════════════════════════════
+   统计分析页
+   ══════════════════════════════════════════════════════════════ */
+
+.fund-stats-summary {
+  margin-bottom: 1.25rem;
+  text-align: center;
+}
+
+.fund-stats-summary-card {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.24), transparent 55%), var(--bg-elevated);
+  box-shadow: var(--shadow-md);
+}
+
+.fund-stats-summary-number {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.fund-stats-summary-label {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.fund-stats-summary-sub {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.fund-stats-section {
+  margin-top: 1.5rem;
+}
+
+.fund-stats-summary-extra {
+  margin-left: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* Toggle 按钮组 */
+.fund-stats-toggle {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  border-radius: 999px;
+  padding: 2px;
+  background: var(--bg-subtle);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 0.75rem;
+  width: 100%;
+  max-width: 100%;
+}
+
+.fund-stats-toggle-btn {
+  position: relative;
+  z-index: 1;
+  border: none;
+  background: transparent;
+  padding: 0.4rem 1.1rem;
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: var(--text-muted);
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 999px;
+  transition: color 0.15s ease-out;
+  flex: 1 1 0;
+  text-align: center;
+}
+
+.fund-stats-toggle-btn-active {
+  color: var(--text-primary);
+}
+
+.fund-stats-toggle-btn:hover {
+  color: var(--text-primary);
+}
+
+.fund-stats-toggle-slider {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  width: calc((100% - 4px) / 4);
+  border-radius: 999px;
+  background: transparent;
+  border: 1px solid var(--accent);
+  box-shadow: 0 0 0 1px var(--accent-glow);
+  transition: transform 0.2s ease-out;
+}
+
+.fund-stats-toggle-subtitle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+/* 统计网格 */
+.fund-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.75rem;
+}
+
+/* 统计卡片 */
+.fund-stats-card {
+  position: relative;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition: transform 0.15s ease-out, box-shadow 0.15s ease-out, border-color 0.15s ease-out, background 0.15s ease-out;
+  cursor: pointer;
+}
+
+.fund-stats-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.16), transparent 60%);
+  opacity: 0;
+  transition: opacity 0.2s ease-out;
+}
+
+.fund-stats-card:hover {
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-hover);
+  background: var(--bg-hover);
+}
+
+.fund-stats-card:hover::before {
+  opacity: 1;
+}
+
+.fund-stats-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.fund-stats-card-title {
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fund-stats-card-count {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--accent);
+}
+
+.fund-stats-card-bar-wrap {
+  position: relative;
+  width: 100%;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--bg-subtle);
+  overflow: hidden;
+  margin-bottom: 0.25rem;
+}
+
+.fund-stats-card-bar {
+  position: absolute;
+  inset: 0;
+  width: 0%;
+  background: linear-gradient(90deg, var(--accent), var(--success));
+  transform-origin: left;
+  animation: fund-stats-bar-grow 0.4s ease-out forwards;
+}
+
+.fund-stats-card-meta {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.fund-stats-empty {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.fund-stats-grid-sentinel {
+  width: 100%;
+  height: 1px;
+}
+
+.fund-stats-fade-in {
+  opacity: 0;
+  transform: translateY(4px);
+  animation: fund-stats-fade-in 0.25s ease-out forwards;
+}
+
+/* 详情面板 */
+.fund-stats-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.fund-stats-main-left {
+  flex: 1 1 auto;
+  min-width: 0;
+  transition: flex-basis var(--transition-normal), max-width var(--transition-normal);
+}
+
+.fund-stats-main-right {
+  position: relative;
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: 0;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(8px);
+  transition: max-width var(--transition-normal), opacity var(--transition-normal), transform var(--transition-normal);
+}
+
+.fund-stats-main.fund-stats-main-show-detail .fund-stats-main-left {
+  flex: 0 0 62%;
+  max-width: 62%;
+}
+
+.fund-stats-main.fund-stats-main-show-detail .fund-stats-main-right {
+  max-width: 38%;
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(0);
+}
+
+.fund-stats-detail-section {
+  margin-top: 0;
+  max-height: none;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.fund-stats-detail-placeholder {
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--border-subtle);
+  padding: 0.85rem 1rem;
+  background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.18), transparent 55%), var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+}
+
+.fund-stats-detail-card {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-md);
+  padding: 0.9rem 1rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.fund-stats-detail-loading {
+  position: relative;
+  overflow: hidden;
+}
+
+.fund-stats-detail-loading::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.12), transparent);
+  transform: translateX(-100%);
+  animation: fund-stats-detail-shimmer 1.2s infinite;
+}
+
+.fund-stats-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.4rem;
+}
+
+.fund-stats-detail-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fund-stats-detail-meta {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.fund-stats-detail-close-btn {
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-tertiary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1.1rem;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.fund-stats-detail-close-btn:hover {
+  background: var(--danger-subtle);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.fund-stats-detail-list {
+  margin-top: 0.35rem;
+  max-height: 100%;
+  overflow: auto;
+  padding-right: 0.25rem;
+  flex: 1 1 auto;
+  min-height: 0;
+  scrollbar-gutter: stable;
+}
+
+.fund-stats-detail-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.35rem 0.2rem;
+  border-bottom: 1px solid rgba(37, 48, 68, 0.6);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast);
+}
+
+.fund-stats-detail-row:last-child {
+  border-bottom: none;
+}
+
+.fund-stats-detail-row:hover {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.fund-stats-detail-row-selected {
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg-subtle));
+  box-shadow: inset 2px 0 0 0 var(--accent);
+}
+
+.fund-stats-detail-order {
+  flex-shrink: 0;
+  width: 2.2rem;
+  font-size: 0.78rem;
+  font-family: var(--font-mono);
+  color: var(--text-tertiary);
+}
+
+.fund-stats-detail-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.fund-stats-detail-name {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fund-stats-detail-code {
+  font-size: 0.78rem;
+  font-family: var(--font-mono);
+  color: var(--text-tertiary);
+}
+
+.fund-stats-detail-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid rgba(37, 48, 68, 0.8);
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  background: rgba(15, 23, 42, 0.9);
+}

@@ -1,0 +1,27 @@
+/* ══════════════════════════════════════════════════════════════
+   Toast 提示
+   ══════════════════════════════════════════════════════════════ */
+
+.fund-floating-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 80px;
+  transform: translateX(-50%) translateY(8px);
+  padding: 0.55rem 1.1rem;
+  border-radius: 999px;
+  background: var(--bg-raised);
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  border: 1px solid var(--border-hover);
+  box-shadow: var(--shadow-md);
+  z-index: 200;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.fund-floating-toast.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}

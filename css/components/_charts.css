@@ -1,0 +1,395 @@
+/* ══════════════════════════════════════════════════════════════
+   图表容器
+   ══════════════════════════════════════════════════════════════ */
+
+.chart-container {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+  position: relative;
+  min-height: 500px;
+  height: calc(100vh - 14rem);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 装饰性背景 */
+.chart-container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 80%, rgba(56, 189, 248, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 80% 20%, rgba(167, 139, 250, 0.06) 0%, transparent 40%);
+  pointer-events: none;
+}
+
+.chart-main {
+  display: flex;
+  align-items: stretch;
+  gap: 0.75rem;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.chart-main-left {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-main-right {
+  flex: 0 0 340px;
+  max-width: 380px;
+  min-width: 220px;
+  display: flex;
+  flex-direction: row;
+  border-left: 1px solid var(--border-subtle);
+  transition: flex-basis 0.25s, min-width 0.25s, padding 0.25s;
+}
+
+/* 图表区域 */
+.chart-wrapper {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 310px;
+}
+
+/* 图表底部 */
+.chart-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.chart-footer-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.chart-footer-right {
+  flex-shrink: 0;
+}
+
+.chart-options {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* 最优区间 */
+.optimal-band {
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-muted);
+  border-radius: var(--radius-md);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   图表基金列表（右侧面板）
+   ═══════════════════════════════════════════════════════════════ */
+
+.chart-fund-list-toggle {
+  flex-shrink: 0;
+  width: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s;
+}
+
+.chart-fund-list-toggle:hover {
+  color: var(--text-primary);
+}
+
+.chart-fund-list-toggle-arrow {
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.chart-fund-list-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-left: 0.5rem;
+  overflow: hidden;
+}
+
+/* 收起态 */
+.chart-main-right.collapsed {
+  flex: 0 0 36px;
+  min-width: 36px;
+  max-width: 36px;
+  padding-left: 0;
+}
+
+.chart-main-right.collapsed .chart-fund-list-body {
+  display: none;
+}
+
+.chart-main-right.collapsed .chart-fund-list-toggle {
+  width: 100%;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 0;
+  overflow-y: auto;
+  align-items: center;
+}
+
+.chart-collapsed-dots {
+  display: none;
+}
+
+.chart-main-right.collapsed .chart-collapsed-dots {
+  display: contents;
+}
+
+.chart-collapsed-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  box-shadow: 0 0 4px currentColor;
+  opacity: 0.35;
+}
+
+.chart-collapsed-dot.active {
+  opacity: 1;
+}
+
+.chart-fund-list-header {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.chart-fund-list-hint {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+
+.chart-fund-list-show-all,
+.chart-fund-list-hide-all {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.chart-fund-list-show-all {
+  margin-left: auto;
+}
+
+.chart-fund-list-show-all-active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.chart-fund-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  max-height: 50vh;
+  padding-right: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.chart-fund-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  padding: 0.25rem 0.35rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all var(--transition-fast);
+}
+
+.chart-fund-list-item:hover {
+  background: var(--bg-hover);
+}
+
+.chart-fund-list-item-active {
+  border-color: var(--accent);
+  background: rgba(56, 189, 248, 0.07);
+}
+
+.chart-fund-list-item-left {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.chart-fund-list-color {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  box-shadow: 0 0 6px currentColor;
+}
+
+.chart-fund-list-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chart-fund-list-code {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   交叉点图例
+   ═══════════════════════════════════════════════════════════════ */
+
+.crossover-legend {
+  font-size: 0.8rem;
+}
+
+.crossover-legend .none {
+  color: var(--text-muted);
+}
+
+.crossover-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-right: 1rem;
+  margin-bottom: 0.35rem;
+  padding: 0.25rem 0.5rem;
+  background: var(--bg-muted);
+  border-radius: var(--radius-sm);
+}
+
+.crossover-legend-color {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-shadow: 0 0 4px currentColor;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   十字线悬浮
+   ═══════════════════════════════════════════════════════════════ */
+
+.chart-crosshair-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.chart-crosshair-overlay .chart-crosshair-v,
+.chart-crosshair-overlay .chart-crosshair-h,
+.chart-crosshair-overlay .chart-crosshair-label-x,
+.chart-crosshair-overlay .chart-crosshair-label-y,
+.chart-crosshair-overlay .chart-crosshair-info {
+  opacity: 0;
+  transition: opacity 0.1s ease-out;
+}
+
+.chart-crosshair-overlay.visible .chart-crosshair-v,
+.chart-crosshair-overlay.visible .chart-crosshair-h,
+.chart-crosshair-overlay.visible .chart-crosshair-label-x,
+.chart-crosshair-overlay.visible .chart-crosshair-label-y,
+.chart-crosshair-overlay.visible .chart-crosshair-info {
+  opacity: 1;
+}
+
+.chart-crosshair-v {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.35);
+  transform: translateX(-50%);
+  z-index: 1;
+}
+
+.chart-crosshair-h {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.35);
+  transform: translateY(-50%);
+  z-index: 1;
+}
+
+.chart-crosshair-label-x {
+  position: absolute;
+  bottom: 4px;
+  transform: translate(-50%, 0);
+  font-size: 0.7rem;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+  background: var(--bg-raised);
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-hover);
+  box-shadow: var(--shadow-sm);
+  z-index: 10;
+}
+
+.chart-crosshair-label-y {
+  position: absolute;
+  left: 4px;
+  transform: translate(0, -50%);
+  font-size: 0.7rem;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+  background: var(--bg-raised);
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-hover);
+  box-shadow: var(--shadow-sm);
+  z-index: 10;
+}
+
+.chart-crosshair-info {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: var(--bg-glass);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border-hover);
+  border-radius: var(--radius-md);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  box-shadow: var(--shadow-md);
+  z-index: 10;
+}

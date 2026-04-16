@@ -115,7 +115,31 @@ function setStatus(msg, isError = false) {
 function updateCompareFab() {
   const fab = document.getElementById('cached-funds-compare-fab');
   if (!fab) return;
-  fab.hidden = selectedCompareCodes.size === 0;
+  const n = selectedCompareCodes.size;
+  fab.hidden = n === 0;
+  const compareBtn = document.getElementById('cached-funds-compare-btn');
+  if (compareBtn) compareBtn.textContent = n > 0 ? `去比较 (${n})` : '去比较';
+  const jiuquanBtn = document.getElementById('cached-funds-jiuquan-btn');
+  if (jiuquanBtn) {
+    if (n <= 0) jiuquanBtn.textContent = '去韭圈儿';
+    else if (n > 6) jiuquanBtn.textContent = `去韭圈儿 (${n}) ⚠超6只`;
+    else jiuquanBtn.textContent = `去韭圈儿 (${n})`;
+  }
+}
+
+let _cachePageToastTimer = null;
+function showToast(msg) {
+  let el = document.getElementById('fund-floating-toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'fund-floating-toast';
+    el.className = 'fund-floating-toast';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.classList.add('visible');
+  clearTimeout(_cachePageToastTimer);
+  _cachePageToastTimer = setTimeout(() => el.classList.remove('visible'), 3200);
 }
 
 function setProgress(done, total) {
@@ -820,6 +844,15 @@ function setupEvents() {
         return;
       }
       window.location.href = 'index.html';
+    });
+  }
+
+  const jiuquanBtn = document.getElementById('cached-funds-jiuquan-btn');
+  if (jiuquanBtn) {
+    jiuquanBtn.addEventListener('click', () => {
+      const codes = Array.from(selectedCompareCodes);
+      if (!codes.length) return;
+      window.open('https://app.jiucaishuo.com/pagesA/manager/fund_pk?code=' + codes.join(','), '_blank');
     });
   }
 

@@ -1,0 +1,323 @@
+/* ══════════════════════════════════════════════════════════════
+   主页 - 费率计算器
+   ══════════════════════════════════════════════════════════════ */
+
+/* 此文件包含费率计算器主页的特有样式 */
+/* 通用组件样式已提取到 components/ 目录 */
+
+/* ═══════════════════════════════════════════════════════════════
+   操作栏
+   ═══════════════════════════════════════════════════════════════ */
+
+.actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.actions-above-cards {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  margin-top: 1.25rem;
+}
+
+.actions-above-cards-center {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.actions-above-cards-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: auto;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   表单行
+   ═══════════════════════════════════════════════════════════════ */
+
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+
+.form-row label {
+  min-width: 72px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.form-row input {
+  flex: 1;
+  padding: 0.4rem 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+}
+
+.form-hint {
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  line-height: 1.4;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   显示天数行
+   ═══════════════════════════════════════════════════════════════ */
+
+.calc-days-row {
+  align-items: center;
+  flex-wrap: wrap;
+  row-gap: 0.75rem;
+}
+
+.calc-days-row #calc-days-min,
+.calc-days-row #calc-days-max {
+  max-width: 90px;
+}
+
+.calc-days-sep {
+  color: var(--text-tertiary);
+  font-weight: 500;
+  user-select: none;
+}
+
+.calc-days-actions-right {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.calc-days-quick-btn {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.8rem;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   买入费率折扣
+   ═══════════════════════════════════════════════════════════════ */
+
+.calc-discount-wrap {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: 0.5rem;
+}
+
+.calc-discount-label {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Toggle 开关按钮
+   ═══════════════════════════════════════════════════════════════ */
+
+.toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1.1rem;
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  transition: all var(--transition-fast);
+  user-select: none;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.toggle-btn:hover {
+  border-color: var(--border-hover);
+  background: var(--bg-raised);
+}
+
+.toggle-btn:has(.toggle-btn-input:checked) {
+  background: var(--accent-subtle);
+  border-color: var(--accent);
+  color: var(--text-primary);
+  box-shadow: 0 0 0 1px var(--accent), 0 0 14px var(--accent-glow);
+}
+
+.toggle-btn:has(.toggle-btn-input:checked):hover {
+  background: rgba(56, 189, 248, 0.18);
+  border-color: var(--accent-hover);
+  box-shadow: 0 0 0 1px var(--accent-hover), 0 0 18px var(--accent-glow);
+}
+
+.toggle-btn-input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  margin: 0;
+  pointer-events: none;
+}
+
+.toggle-btn-inline {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+.hide-penetrate-linked {
+  display: none;
+}
+
+.toggle-select {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.8rem;
+  border-radius: var(--radius-sm);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   分段费率表格
+   ═══════════════════════════════════════════════════════════════ */
+
+.segments-table {
+  width: 100%;
+  font-size: 0.8rem;
+  margin-top: 0.75rem;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.segments-table th {
+  color: var(--text-tertiary);
+  font-weight: 600;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.5rem 0.5rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.segments-table td {
+  padding: 0.35rem 0.5rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.segments-table tr:last-child td {
+  border-bottom: none;
+}
+
+.segments-table input {
+  width: 100%;
+  max-width: 80px;
+  padding: 0.25rem 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+
+.segment-actions {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.segment-del-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  transition: all var(--transition-fast);
+}
+
+.segment-del-btn:hover {
+  color: var(--danger);
+  background: var(--danger-subtle);
+}
+
+.segment-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.segment-quick {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  margin-left: 0.25rem;
+}
+
+/* 基金卡片名称输入 */
+.fund-card-name-wrap {
+  position: relative;
+  flex: 1;
+}
+
+.fund-card-name-input {
+  width: 100%;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.85rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  transition: border-color var(--transition-fast);
+}
+
+.fund-card-name-input:focus {
+  outline: none;
+  border-color: var(--border-focus);
+}
+
+/* 卡片内下拉 */
+.fund-card .fund-search-dropdown {
+  max-height: 200px;
+}
+
+/* 卖出费率无上限行 */
+.segments-table .unbounded-days-cell,
+.segments-table .unbounded-rate-cell {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+/* 费率单位 */
+.fee-unit {
+  color: var(--text-tertiary);
+  font-size: 0.75rem;
+  margin-left: 0.25rem;
+}
+
+/* 折扣标签 */
+.discount-tag {
+  font-size: 0.7rem;
+  padding: 0.1rem 0.3rem;
+  border-radius: var(--radius-sm);
+  background: var(--accent-subtle);
+  color: var(--accent);
+  margin-left: 0.35rem;
+}

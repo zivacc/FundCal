@@ -113,7 +113,7 @@ function getOrCreateFundStatsCompareFab() {
     fab.id = 'fund-stats-compare-fab';
     fab.className = 'cached-funds-compare-fab';
     fab.hidden = true;
-    fab.innerHTML = '<button type="button" id="fund-stats-compare-btn" class="cached-funds-compare-btn">去比较</button>';
+    fab.innerHTML = '<button type="button" id="fund-stats-compare-btn" class="cached-funds-compare-btn">去比较</button><button type="button" id="fund-stats-jiuquan-btn" class="cached-funds-compare-btn cached-funds-jiuquan-btn">去韭圈儿</button>';
     document.body.appendChild(fab);
   }
   return /** @type {HTMLDivElement} */ (fab);
@@ -122,11 +122,32 @@ function getOrCreateFundStatsCompareFab() {
 function syncFundStatsCompareFab() {
   const fab = getOrCreateFundStatsCompareFab();
   const btn = document.getElementById('fund-stats-compare-btn');
+  const jBtn = document.getElementById('fund-stats-jiuquan-btn');
   if (!btn) return;
   const selectedFunds = currentDetailFunds.filter(f => fundStatsSelectedCompareCodes.has(String(f.code || '').trim()));
   const count = selectedFunds.length;
   fab.hidden = count === 0;
   btn.textContent = count > 0 ? `去比较 (${count})` : '去比较';
+  if (jBtn) {
+    if (count <= 0) jBtn.textContent = '去韭圈儿';
+    else if (count > 6) jBtn.textContent = `去韭圈儿 (${count}) ⚠超6只`;
+    else jBtn.textContent = `去韭圈儿 (${count})`;
+  }
+}
+
+let _statsToastTimer = null;
+function showStatsToast(msg) {
+  let el = document.getElementById('fund-floating-toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'fund-floating-toast';
+    el.className = 'fund-floating-toast';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.classList.add('visible');
+  clearTimeout(_statsToastTimer);
+  _statsToastTimer = setTimeout(() => el.classList.remove('visible'), 3200);
 }
 
 function clearFundStatsCompareSelection() {
@@ -584,6 +605,17 @@ function bindCardInteractions() {
         return;
       }
       window.location.href = 'index.html';
+    });
+  }
+  const jiuquanBtn = document.getElementById('fund-stats-jiuquan-btn');
+  if (jiuquanBtn) {
+    jiuquanBtn.addEventListener('click', () => {
+      const codes = currentDetailFunds
+        .filter(f => fundStatsSelectedCompareCodes.has(String(f.code || '').trim()))
+        .map(f => String(f.code || '').trim())
+        .filter(Boolean);
+      if (!codes.length) return;
+      window.open('https://app.jiucaishuo.com/pagesA/manager/fund_pk?code=' + codes.join(','), '_blank');
     });
   }
   if (compareFab) syncFundStatsCompareFab();

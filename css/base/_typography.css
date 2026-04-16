@@ -1,0 +1,57 @@
+/* ══════════════════════════════════════════════════════════════
+   字体排版
+   ══════════════════════════════════════════════════════════════ */
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text-primary);
+}
+
+h1 {
+  font-size: 1.65rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, var(--text-primary) 40%, var(--accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+h2 {
+  font-size: 1.25rem;
+}
+
+h3 {
+  font-size: 1rem;
+}
+
+/* 渐变标题工具类 */
+.gradient-title {
+  background: linear-gradient(135deg, var(--text-primary) 40%, var(--accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* 霓虹标题工具类 */
+.neon-title {
+  color: var(--accent);
+  text-shadow:
+    0 0 10px var(--accent-glow),
+    0 0 20px rgba(56, 189, 248, 0.3),
+    0 0 40px rgba(56, 189, 248, 0.2);
+}
+
+/* 副标题 */
+.subtitle {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+/* 等宽字体工具类 */
+.mono {
+  font-family: var(--font-mono);
+}

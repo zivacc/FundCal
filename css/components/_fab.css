@@ -1,0 +1,114 @@
+/* ══════════════════════════════════════════════════════════════
+   浮动操作按钮 (FAB)
+   ══════════════════════════════════════════════════════════════ */
+
+/* 基金详情浮动操作 */
+.fund-detail-floating-actions {
+  position: fixed;
+  right: max(12px, env(safe-area-inset-right));
+  bottom: max(12px, env(safe-area-inset-bottom));
+  z-index: 65;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.fund-detail-floating-actions[hidden] {
+  display: none !important;
+}
+
+.fund-detail-floating-btn {
+  padding: 0.55rem 0.95rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), opacity var(--transition-fast);
+}
+
+.fund-detail-floating-btn:hover {
+  transform: translateY(-1px);
+}
+
+.fund-detail-floating-btn:active {
+  transform: translateY(0);
+}
+
+.fund-detail-floating-compare {
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.fund-detail-floating-compare:hover {
+  box-shadow: 0 12px 32px color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+.fund-detail-floating-delete {
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+  border-color: var(--border);
+}
+
+.fund-detail-floating-delete:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.18);
+}
+
+.fund-detail-floating-jiuquan {
+  color: #fff;
+  background: linear-gradient(135deg, var(--success), #059669);
+  box-shadow: 0 8px 24px rgba(5, 150, 105, 0.35);
+}
+
+.fund-detail-floating-jiuquan:hover {
+  box-shadow: 0 12px 32px rgba(5, 150, 105, 0.45);
+}
+
+/* 缓存基金列表页浮动按钮 */
+.cached-funds-compare-fab {
+  position: fixed;
+  right: max(12px, env(safe-area-inset-right));
+  bottom: max(12px, env(safe-area-inset-bottom));
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.cached-funds-compare-fab[hidden] {
+  display: none !important;
+}
+
+.cached-funds-compare-btn {
+  padding: 12px 20px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  border: none;
+  border-radius: 999px;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 45%, transparent);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.cached-funds-compare-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.cached-funds-compare-btn:active {
+  transform: translateY(0);
+}
+
+.cached-funds-jiuquan-btn {
+  background: linear-gradient(135deg, var(--success), #059669);
+  box-shadow: 0 8px 24px color-mix(in srgb, #059669 45%, transparent);
+}
+
+.cached-funds-jiuquan-btn:hover {
+  box-shadow: 0 12px 28px color-mix(in srgb, #059669 55%, transparent);
+}

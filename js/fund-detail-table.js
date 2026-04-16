@@ -149,6 +149,37 @@ function formatPctValue(v) {
   return (v * 100).toFixed(2) + '%';
 }
 
+/* ========== 韭圈儿跳转工具 ========== */
+
+const JIUQUAN_WARN_THRESHOLD = 6;
+
+function openJiuquanCompare(codes) {
+  if (!codes || !codes.length) return;
+  const url = 'https://app.jiucaishuo.com/pagesA/manager/fund_pk?code=' + codes.join(',');
+  window.open(url, '_blank');
+}
+
+function jiuquanBtnText(count) {
+  if (count <= 0) return '去韭圈儿';
+  if (count > JIUQUAN_WARN_THRESHOLD) return `去韭圈儿 (${count}) ⚠超${JIUQUAN_WARN_THRESHOLD}只`;
+  return `去韭圈儿 (${count})`;
+}
+
+let _floatingToastTimer = null;
+function showFloatingToast(msg) {
+  let el = document.getElementById('fund-floating-toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'fund-floating-toast';
+    el.className = 'fund-floating-toast';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.classList.add('visible');
+  clearTimeout(_floatingToastTimer);
+  _floatingToastTimer = setTimeout(() => el.classList.remove('visible'), 3200);
+}
+
 /* ========== 排排网列选中 + 悬浮按钮 ========== */
 
 function getOrCreateFloatingActions() {
@@ -160,13 +191,15 @@ function getOrCreateFloatingActions() {
     root.hidden = true;
     root.innerHTML = `
       <button type="button" class="fund-detail-floating-btn fund-detail-floating-compare">去排排网比较</button>
+      <button type="button" class="fund-detail-floating-btn fund-detail-floating-jiuquan">去韭圈儿</button>
       <button type="button" class="fund-detail-floating-btn fund-detail-floating-delete">删除选中</button>
     `;
     document.body.appendChild(root);
   }
   const compareBtn = root.querySelector('.fund-detail-floating-compare');
+  const jiuquanBtn = root.querySelector('.fund-detail-floating-jiuquan');
   const deleteBtn = root.querySelector('.fund-detail-floating-delete');
-  return { root, compareBtn, deleteBtn };
+  return { root, compareBtn, jiuquanBtn, deleteBtn };
 }
 
 function hideFloatingActions() {
@@ -197,7 +230,7 @@ function bindSmppColumnSelection(tbody, funds, smppMapping, { onDelete } = {}) {
     if (code) codeToFund.set(code, f);
   });
 
-  const { root, compareBtn, deleteBtn } = getOrCreateFloatingActions();
+  const { root, compareBtn, jiuquanBtn, deleteBtn } = getOrCreateFloatingActions();
   if (!compareBtn || !deleteBtn) return;
 
   const updateSelectedCells = () => {
@@ -207,7 +240,6 @@ function bindSmppColumnSelection(tbody, funds, smppMapping, { onDelete } = {}) {
       td.classList.toggle('fund-detail-fund-cell-selected', !!selected);
       td.setAttribute('aria-selected', selected ? 'true' : 'false');
       if (selected) td.title = '已选中，点击取消';
-      else if (code && !mapping[code]) td.title = '排排网无映射，仍可用于删除';
       else td.title = '点击选中此基金列';
     });
   };
@@ -218,6 +250,9 @@ function bindSmppColumnSelection(tbody, funds, smppMapping, { onDelete } = {}) {
     compareBtn.textContent = n > 0
       ? `去排排网比较 (${Math.min(n, SMPP_MAX_COMPARE)})`
       : '去排排网比较';
+    if (jiuquanBtn) {
+      jiuquanBtn.textContent = jiuquanBtnText(n);
+    }
     deleteBtn.hidden = !onDelete;
     updateSelectedCells();
   };
@@ -236,6 +271,14 @@ function bindSmppColumnSelection(tbody, funds, smppMapping, { onDelete } = {}) {
   };
 
   compareBtn.onclick = () => openSmppCompare(mapping);
+
+  if (jiuquanBtn) {
+    jiuquanBtn.onclick = () => {
+      const codes = Array.from(smppSelectedCodes);
+      if (!codes.length) return;
+      openJiuquanCompare(codes);
+    };
+  }
 
   deleteBtn.onclick = () => {
     if (!onDelete) return;

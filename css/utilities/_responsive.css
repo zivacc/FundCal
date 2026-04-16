@@ -1,0 +1,292 @@
+/* ══════════════════════════════════════════════════════════════
+   响应式断点
+   ══════════════════════════════════════════════════════════════ */
+
+/*
+  断点定义:
+  - xs: < 480px   (小手机)
+  - sm: 480-640px (手机)
+  - md: 640-768px (大手机/平板竖屏)
+  - lg: 768-1024px (平板横屏/小笔记本)
+  - xl: 1024-1280px (笔记本)
+  - 2xl: > 1280px (桌面)
+*/
+
+/* ── 中等屏幕及以下 (1024px) ── */
+@media (max-width: 1024px) {
+  :root {
+    --radius-lg: 12px;
+    --radius-xl: 18px;
+  }
+
+  .container {
+    padding: 1rem;
+  }
+}
+
+/* ── 平板横屏 (980px) ── */
+@media (max-width: 980px) {
+  .index-page-content {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── 平板竖屏及以下 (900px) ── */
+@media (max-width: 900px) {
+  .fund-stats-main {
+    flex-direction: column;
+  }
+
+  .fund-stats-main-left,
+  .fund-stats-main.fund-stats-main-show-detail .fund-stats-main-left {
+    flex: 1 1 auto;
+    max-width: 100%;
+  }
+
+  .fund-stats-main-right {
+    position: fixed;
+    inset: 0;
+    max-width: 100%;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(8px);
+    background: var(--bg-base);
+    z-index: 60;
+    display: block;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .fund-stats-main.fund-stats-main-show-detail .fund-stats-main-right {
+    max-width: 100%;
+    width: 100%;
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+}
+
+/* ── 平板及以下 (768px) ── */
+@media (max-width: 768px) {
+  :root {
+    --radius-lg: 10px;
+    --radius-xl: 14px;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .page-header-right {
+    flex-direction: row;
+    gap: 0.75rem;
+  }
+
+  /* 导航响应式 */
+  .nav-links {
+    display: none;
+  }
+
+  .nav-mobile-menu-btn {
+    display: flex;
+  }
+
+  /* 表格横向滚动 */
+  .table-container,
+  .cached-funds-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table,
+  .cached-funds-table {
+    min-width: 600px;
+  }
+
+  /* 图表高度调整 */
+  .chart-container {
+    height: auto;
+    min-height: 400px;
+  }
+
+  .chart-main {
+    flex-direction: column;
+  }
+
+  .chart-main-right {
+    flex: 0 0 auto;
+    max-width: none;
+    border-left: none;
+    border-top: 1px solid var(--border-subtle);
+    padding-top: 0.75rem;
+  }
+
+  /* 网格响应式 */
+  .card-quarter {
+    grid-column: span 6;
+  }
+
+  .card-third {
+    grid-column: span 6;
+  }
+}
+
+/* ── 手机 (640px) ── */
+@media (max-width: 640px) {
+  body {
+    font-size: 14px;
+  }
+
+  h1 {
+    font-size: 1.25rem;
+  }
+
+  .container {
+    padding: 0.75rem;
+  }
+
+  /* 基金卡片全宽 */
+  .fund-cards {
+    flex-direction: column;
+    align-items: stretch;
+    width: auto;
+  }
+
+  .fund-card {
+    width: 100%;
+  }
+
+  /* 图表容器 */
+  .chart-container {
+    padding: 0.875rem;
+    min-height: 350px;
+  }
+
+  .chart-wrapper {
+    min-height: 250px;
+  }
+
+  /* 模态框全屏 */
+  .modal {
+    width: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding: 0.875rem;
+  }
+
+  .modal-index-picker {
+    width: min(100%, 100% - 1.5rem);
+  }
+
+  .modal-index-picker .modal-body {
+    flex-direction: column;
+  }
+
+  .index-picker-bottom-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  /* 按钮增大 */
+  .btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .btn-sm {
+    min-height: 36px;
+    padding: 0.5rem 0.875rem;
+  }
+
+  /* 输入框增大（防止 iOS 缩放） */
+  .input,
+  .select,
+  .fund-search-input,
+  .cached-funds-search-input {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  /* 指数页响应式 */
+  .index-page-search-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .index-page-summary {
+    grid-template-columns: 1fr;
+  }
+
+  /* 筛选面板响应式 */
+  .cf-filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* 导入区域响应式 */
+  .import-main {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── 小手机 (520px) ── */
+@media (max-width: 520px) {
+  .fund-stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── 触摸设备优化 ── */
+@media (hover: none) {
+  .btn:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .btn-primary:hover {
+    transform: none;
+  }
+
+  .card:hover {
+    transform: none;
+  }
+
+  .fund-card:hover {
+    transform: none;
+  }
+
+  .table tbody tr:hover {
+    background: transparent;
+  }
+
+  .cached-funds-table tbody tr:hover {
+    background: transparent;
+  }
+
+  .fund-stats-card:hover {
+    transform: none;
+  }
+}
+
+/* ── 安全区域适配 (iPhone X+) ── */
+@supports (padding: max(0px)) {
+  .container {
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  .nav-header {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+
+  .modal-footer {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}

@@ -1,0 +1,267 @@
+/* ══════════════════════════════════════════════════════════════
+   模态框
+   ══════════════════════════════════════════════════════════════ */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 10, 18, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: all var(--transition-normal);
+}
+
+.modal-backdrop[aria-hidden="false"],
+.modal-backdrop.open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal {
+  width: min(640px, 100%);
+  max-height: calc(100vh - 2rem);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: scale(0.95) translateY(10px);
+  transition: transform var(--transition-normal);
+  position: relative;
+}
+
+.modal-backdrop[aria-hidden="false"] .modal,
+.modal-backdrop.open .modal {
+  transform: scale(1) translateY(0);
+}
+
+/* 顶部发光线 */
+.modal::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--gradient-border);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(
+    180deg,
+    rgba(56, 189, 248, 0.05) 0%,
+    transparent 100%
+  );
+}
+
+.modal-title,
+.modal-header h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  background: none;
+  -webkit-text-fill-color: var(--text-primary);
+}
+
+.modal-close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  transition: all var(--transition-fast);
+}
+
+.modal-close-btn:hover {
+  background: var(--danger-subtle);
+  color: var(--danger);
+}
+
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem;
+}
+
+.modal-intro {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+.modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--border);
+  background: var(--bg-muted);
+}
+
+.modal-footer-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.modal-footer-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.modal-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* 确认弹窗 */
+.modal-confirm {
+  width: min(540px, 100%);
+}
+
+/* JSON 弹窗 */
+.modal-json {
+  width: min(800px, 100%);
+}
+
+.modal-json-pre {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  overflow: auto;
+  max-height: 60vh;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* 导入结果列表 */
+.fund-import-result-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.fund-import-result-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.fund-import-result-item-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.fund-import-result-item-code {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text-tertiary);
+}
+
+.fund-import-result-item-name {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  margin-left: 0.5rem;
+}
+
+/* 导入区域 */
+.import-main {
+  display: grid;
+  grid-template-columns: 1.6fr 1.1fr;
+  gap: 0.9rem;
+  align-items: stretch;
+}
+
+.import-file-wrap {
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--border);
+  background: linear-gradient(135deg, rgba(37, 48, 68, 0.5), rgba(12, 17, 23, 0.9));
+  padding: 0.8rem 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  transition: all var(--transition-fast);
+}
+
+.import-file-wrap.import-file-dragover {
+  border-color: var(--accent);
+  background: radial-gradient(circle at top, rgba(56, 189, 248, 0.18), rgba(12, 17, 23, 0.95));
+  box-shadow: 0 0 0 1px var(--accent), 0 0 24px var(--accent-glow);
+  transform: translateY(-1px);
+}
+
+.import-file-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.import-file-title {
+  font-size: 0.86rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.import-file-subtitle {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.import-file-hint {
+  font-size: 0.76rem;
+  color: var(--text-tertiary);
+  margin-top: 0.15rem;
+}
+
+.modal-file-input {
+  display: none;
+}
+
+.import-file-select-btn {
+  margin-top: 0.5rem;
+}
+
+.import-text-wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.import-text-wrap .modal-textarea {
+  flex: 1;
+  min-height: 100%;
+}

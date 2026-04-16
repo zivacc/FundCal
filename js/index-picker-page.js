@@ -440,6 +440,11 @@ function renderCharts() {
   if (typeof Chart === 'undefined' || !els.barCanvas || !els.scatterCanvas) return;
   destroyCharts();
 
+  const chartGridColor = 'rgba(56, 189, 248, 0.06)';
+  const chartTickColor = '#5b7a9d';
+  const chartTitleColor = '#94b8db';
+  const chartFont = { family: "'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif", size: 11 };
+
   const topRows = state.sortedRows.filter(r => Number.isFinite(getBarNumber(r))).slice(0, 10);
   state.charts.bar = new Chart(els.barCanvas, {
     type: 'bar',
@@ -456,8 +461,15 @@ function renderCharts() {
         tooltip: { callbacks: { title(items) { const idx = items[0]?.dataIndex; return idx != null && topRows[idx] ? `${topRows[idx].name}(${topRows[idx].code})` : ''; } } }
       },
       scales: {
-        x: { ticks: { maxRotation: 45, minRotation: 0, autoSkip: true, font: { size: 11 } } },
-        y: { beginAtZero: true }
+        x: {
+          ticks: { maxRotation: 45, minRotation: 0, autoSkip: true, color: chartTickColor, font: chartFont },
+          grid: { color: chartGridColor }
+        },
+        y: {
+          beginAtZero: true,
+          ticks: { color: chartTickColor, font: chartFont },
+          grid: { color: chartGridColor }
+        }
       }
     }
   });
@@ -479,8 +491,16 @@ function renderCharts() {
       parsing: false,
       plugins: { tooltip: { callbacks: { label(ctx) { const item = ctx.raw || {}; return `${item.label || ''} 年化:${ctx.parsed.x.toFixed(2)}% 收益:${ctx.parsed.y.toFixed(2)}%`; } } } },
       scales: {
-        x: { title: { display: true, text: '年化费率(%)' } },
-        y: { title: { display: true, text: `${state.returnPeriod}收益(%)` } }
+        x: {
+          title: { display: true, text: '年化费率(%)', color: chartTitleColor, font: chartFont },
+          ticks: { color: chartTickColor, font: chartFont },
+          grid: { color: chartGridColor }
+        },
+        y: {
+          title: { display: true, text: `${state.returnPeriod}收益(%)`, color: chartTitleColor, font: chartFont },
+          ticks: { color: chartTickColor, font: chartFont },
+          grid: { color: chartGridColor }
+        }
       }
     }
   });

@@ -1,0 +1,254 @@
+/* ══════════════════════════════════════════════════════════════
+   表格系统
+   ══════════════════════════════════════════════════════════════ */
+
+.table-container {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  overflow: hidden;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table thead {
+  background: linear-gradient(
+    180deg,
+    rgba(56, 189, 248, 0.08) 0%,
+    var(--bg-muted) 100%
+  );
+}
+
+.table th {
+  padding: 0.875rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg-muted);
+}
+
+.table td {
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.table tbody tr {
+  transition: background var(--transition-fast);
+}
+
+.table tbody tr:hover {
+  background: var(--bg-hover);
+}
+
+/* 选中行 */
+.table tbody tr.selected {
+  background: var(--accent-subtle);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+/* 交替行 */
+.table-striped tbody tr:nth-child(even) {
+  background: rgba(6, 16, 24, 0.4);
+}
+
+/* 排序指示器 */
+.table th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.table th.sortable:hover {
+  color: var(--accent);
+}
+
+.table th.sorted {
+  color: var(--accent);
+}
+
+.table th.sorted::after {
+  content: ' ▲';
+  font-size: 0.625rem;
+}
+
+.table th.sorted.desc::after {
+  content: ' ▼';
+}
+
+/* 等宽数字列 */
+.table-cell-mono {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+}
+
+/* 状态颜色 */
+.table-cell-positive {
+  color: var(--success);
+}
+
+.table-cell-negative {
+  color: var(--danger);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   基金详情表格（图表下方）
+   ═══════════════════════════════════════════════════════════════ */
+
+.fund-detail-table-wrap {
+  margin-top: 1.25rem;
+  margin-bottom: 1.75rem;
+  overflow-x: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--bg-elevated);
+}
+
+.fund-detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.fund-detail-table th,
+.fund-detail-table td {
+  padding: 0.45rem 0.7rem;
+  border-bottom: 1px solid var(--border-subtle);
+  border-right: 1px solid var(--border-subtle);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.fund-detail-table th:last-child,
+.fund-detail-table td:last-child {
+  border-right: none;
+}
+
+.fund-detail-table tr:last-child th,
+.fund-detail-table tr:last-child td {
+  border-bottom: none;
+}
+
+.fund-detail-table th.fund-detail-row-label {
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--bg-muted);
+  min-width: 7rem;
+  white-space: nowrap;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+
+.fund-detail-table td {
+  color: var(--text-primary);
+  min-width: 7rem;
+}
+
+.fund-detail-table td.fund-detail-fund-cell {
+  cursor: pointer;
+  transition: background var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.fund-detail-table td.fund-detail-fund-cell-selected {
+  background: color-mix(in srgb, var(--accent) 20%, var(--bg-subtle)) !important;
+  box-shadow: inset 0 -2px 0 0 var(--accent);
+}
+
+.fund-detail-table tr:first-child td {
+  font-weight: 600;
+}
+
+.fund-detail-color-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 0.4rem;
+  vertical-align: middle;
+  box-shadow: 0 0 5px currentColor;
+}
+
+/* 收益显示行 */
+.fund-detail-return-line {
+  display: grid;
+  grid-template-columns: 4.6em minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: 0.45rem;
+  padding: 0.08rem 0.28rem;
+  border-radius: var(--radius-sm);
+}
+
+.fund-detail-return-best {
+  background: var(--accent-subtle);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.fund-detail-return-period {
+  color: var(--text-secondary);
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.fund-detail-return-value {
+  color: var(--text-primary);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 操作行 */
+.fund-detail-action-row th,
+.fund-detail-action-row td {
+  padding-top: 0.55rem;
+  padding-bottom: 0.55rem;
+  border-bottom: none;
+}
+
+.fund-detail-action-cell {
+  white-space: nowrap;
+}
+
+.fund-detail-action-cell .btn + .btn {
+  margin-left: 0.4rem;
+}
+
+.fund-detail-select-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  min-width: 3.6em;
+  transition: all 0.15s ease;
+}
+
+.fund-detail-select-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(56, 189, 248, 0.08);
+}
+
+.fund-detail-select-btn.active {
+  border-color: var(--accent);
+  color: #fff;
+  background: var(--accent);
+}
+
+.fund-detail-delete-btn {
+  opacity: 0.6;
+  transition: opacity 0.15s ease;
+}
+
+.fund-detail-delete-btn:hover {
+  opacity: 1;
+}

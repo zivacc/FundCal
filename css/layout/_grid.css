@@ -1,0 +1,15 @@
+/* ══════════════════════════════════════════════════════════════
+   网格系统
+   ══════════════════════════════════════════════════════════════ */
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 1rem;
+}
+
+.card-full { grid-column: span 12; }
+.card-half { grid-column: span 6; }
+.card-third { grid-column: span 4; }
+.card-quarter { grid-column: span 3; }
+.card-two-thirds { grid-column: span 8; }

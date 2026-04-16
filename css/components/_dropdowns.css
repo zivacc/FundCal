@@ -1,0 +1,82 @@
+/* ══════════════════════════════════════════════════════════════
+   下拉菜单
+   ══════════════════════════════════════════════════════════════ */
+
+.fund-search-dropdown {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  margin-top: 2px;
+  max-height: 280px;
+  overflow-y: auto;
+  list-style: none;
+  padding: 0.25rem 0;
+  margin: 0;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  z-index: 20;
+  display: none;
+}
+
+.fund-search-dropdown.fund-search-dropdown-visible {
+  display: block;
+}
+
+.fund-search-dropdown [role="option"] {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.fund-search-dropdown [role="option"]:hover,
+.fund-search-dropdown [role="option"].fund-search-item-active {
+  background: var(--accent-subtle);
+  color: var(--accent);
+}
+
+.fund-search-code {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+  width: 3.5rem;
+}
+
+.fund-search-name {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fund-search-add-btn {
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.fund-search-add-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.fund-search-add-btn.added {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-subtle);
+}

@@ -1,0 +1,162 @@
+/* ══════════════════════════════════════════════════════════════
+   动画定义
+   ══════════════════════════════════════════════════════════════ */
+
+/* 数据脉冲效果 */
+@keyframes data-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 var(--accent-glow);
+  }
+  50% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+}
+
+.data-pulse {
+  animation: data-pulse 2s ease-in-out infinite;
+}
+
+/* 淡入效果 */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fade-in 0.25s ease-out forwards;
+}
+
+/* 统计页淡入 */
+@keyframes fund-stats-fade-in {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 进度条增长 */
+@keyframes fund-stats-bar-grow {
+  from {
+    width: 0%;
+  }
+}
+
+/* 详情加载闪烁 */
+@keyframes fund-stats-detail-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* 骨架屏闪烁 */
+@keyframes fund-stats-detail-row-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* 加载波纹效果 */
+@keyframes loading-wave {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.loading-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.loading-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(56, 189, 248, 0.15),
+    transparent
+  );
+  animation: loading-wave 1.5s infinite;
+}
+
+/* 按钮涟漪效果 */
+@keyframes ripple {
+  to {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+/* 发光边框效果 */
+.glow-border {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  overflow: hidden;
+}
+
+.glow-border::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: var(--gradient-border);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity var(--transition-glow);
+}
+
+.glow-border:hover::before {
+  opacity: 1;
+}
+
+.glow-border-active::before {
+  opacity: 0.6;
+}
+
+.glow-border-active:hover::before {
+  opacity: 1;
+}
+
+/* 玻璃拟态面板 */
+.glass-panel {
+  background: var(--bg-glass);
+  backdrop-filter: var(--glass-blur) var(--glass-saturate);
+  -webkit-backdrop-filter: var(--glass-blur) var(--glass-saturate);
+  border: 1px solid rgba(56, 189, 248, 0.15);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    var(--shadow-md);
+}
+
+.glass-panel:hover {
+  background: rgba(10, 22, 40, 0.9);
+  border-color: rgba(56, 189, 248, 0.3);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    var(--shadow-lg),
+    var(--shadow-glow);
+}

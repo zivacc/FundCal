@@ -1,0 +1,305 @@
+/* ══════════════════════════════════════════════════════════════
+   卡片系统
+   ══════════════════════════════════════════════════════════════ */
+
+.card {
+  position: relative;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  transition: all var(--transition-normal);
+  overflow: hidden;
+}
+
+/* 顶部渐变装饰 */
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100px;
+  background: var(--gradient-glow);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--transition-normal);
+}
+
+.card:hover {
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.card:hover::before {
+  opacity: 1;
+}
+
+/* 卡片头部 */
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.card-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* 状态指示器 */
+.card-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent-glow);
+  animation: data-pulse 2s ease-in-out infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   基金卡片
+   ═══════════════════════════════════════════════════════════════ */
+
+.fund-cards {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+  margin-left: auto;
+  margin-right: auto;
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 0.5rem;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
+}
+
+.fund-cards::-webkit-scrollbar {
+  height: 20px;
+}
+
+.fund-cards::-webkit-scrollbar-track {
+  background: var(--bg-base);
+  border-radius: 3px;
+}
+
+.fund-cards::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+.fund-cards::-webkit-scrollbar-thumb:hover {
+  background: var(--border-hover);
+}
+
+.fund-card {
+  flex: 0 0 auto;
+  width: 360px;
+  min-height: 0;
+  scroll-snap-align: start;
+  scroll-snap-stop: normal;
+  position: relative;
+  background: linear-gradient(
+    145deg,
+    rgba(15, 31, 53, 0.9) 0%,
+    var(--bg-surface) 100%
+  );
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
+}
+
+.fund-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--card-accent-color, var(--accent));
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+}
+
+.fund-card:hover {
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow-md);
+}
+
+.fund-card:hover::after {
+  opacity: 1;
+}
+
+.fund-card h3 {
+  font-size: 0.88rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.fund-card-color {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 6px currentColor;
+}
+
+.fund-card-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.fund-card-row label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  min-width: 4.5rem;
+}
+
+.fund-card-row input {
+  flex: 1;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.85rem;
+  font-family: var(--font-mono);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  transition: border-color var(--transition-fast);
+}
+
+.fund-card-row input:focus {
+  outline: none;
+  border-color: var(--border-focus);
+}
+
+.fund-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.fund-card-delete {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.75rem;
+}
+
+/* 卖出费率分段表格 */
+.segments-table-wrap {
+  margin: 0.5rem 0;
+}
+
+.segments-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.segments-table th,
+.segments-table td {
+  padding: 0.25rem 0.35rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.segments-table th {
+  color: var(--text-tertiary);
+  font-weight: 500;
+  font-size: 0.75rem;
+}
+
+.segments-table input {
+  width: 100%;
+  max-width: 80px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  padding: 0.25rem 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  transition: border-color var(--transition-fast);
+}
+
+.segments-table input:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+/* 快捷按钮组 */
+.segment-quick-btns,
+.unbounded-quick-btns {
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.segment-quick-btns .btn-sm,
+.unbounded-quick-btns .btn-sm {
+  padding: 0.15rem 0.35rem;
+  font-size: 0.7rem;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   统计卡片
+   ═══════════════════════════════════════════════════════════════ */
+
+.stat-card {
+  text-align: center;
+  padding: 1.5rem 1rem;
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 0.25rem;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.stat-change {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+  font-size: 0.8125rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+}
+
+.stat-change.positive {
+  color: var(--success);
+  background: var(--success-subtle);
+}
+
+.stat-change.negative {
+  color: var(--danger);
+  background: var(--danger-subtle);
+}

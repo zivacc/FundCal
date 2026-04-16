@@ -1205,9 +1205,9 @@ async function updateChart() {
   if (chartInstance) chartInstance.destroy();
 
   const Chart = window.Chart;
-  const gridColor = 'rgba(37, 48, 68, 0.6)';
-  const tickColor = '#94a3b8';
-  const titleColor = '#94a3b8';
+  const gridColor = 'rgba(56, 189, 248, 0.06)';
+  const tickColor = '#5b7a9d';
+  const titleColor = '#94b8db';
   const chartFont = { family: "'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif" };
 
   chartInstance = new Chart(canvas, {
