@@ -15,7 +15,8 @@
   padding: 0.75rem 1rem;
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-subtle);
-  background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.24), transparent 55%), var(--bg-elevated);
+  background: var(--bg-elevated);
+  border-top: var(--ledger-line);
   box-shadow: var(--shadow-md);
 }
 
@@ -50,7 +51,7 @@
   position: relative;
   display: flex;
   align-items: stretch;
-  border-radius: 999px;
+  border-radius: 0;
   padding: 2px;
   background: var(--bg-subtle);
   box-shadow: var(--shadow-sm);
@@ -70,7 +71,7 @@
   color: var(--text-muted);
   font-weight: 600;
   cursor: pointer;
-  border-radius: 999px;
+  border-radius: 0;
   transition: color 0.15s ease-out;
   flex: 1 1 0;
   text-align: center;
@@ -90,10 +91,9 @@
   bottom: 2px;
   left: 2px;
   width: calc((100% - 4px) / 4);
-  border-radius: 999px;
-  background: transparent;
+  border-radius: 0;
+  background: var(--accent-subtle);
   border: 1px solid var(--accent);
-  box-shadow: 0 0 0 1px var(--accent-glow);
   transition: transform 0.2s ease-out;
 }
 
@@ -126,14 +126,16 @@
 .fund-stats-card::before {
   content: '';
   position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.16), transparent 60%);
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--accent);
   opacity: 0;
   transition: opacity 0.2s ease-out;
 }
 
 .fund-stats-card:hover {
-  transform: translateY(-2px) scale(1.01);
   box-shadow: var(--shadow-md);
   border-color: var(--border-hover);
   background: var(--bg-hover);
@@ -169,7 +171,7 @@
   position: relative;
   width: 100%;
   height: 4px;
-  border-radius: 999px;
+  border-radius: 0;
   background: var(--bg-subtle);
   overflow: hidden;
   margin-bottom: 0.25rem;
@@ -179,7 +181,7 @@
   position: absolute;
   inset: 0;
   width: 0%;
-  background: linear-gradient(90deg, var(--accent), var(--success));
+  background: var(--accent);
   transform-origin: left;
   animation: fund-stats-bar-grow 0.4s ease-out forwards;
 }
@@ -251,10 +253,10 @@
 }
 
 .fund-stats-detail-placeholder {
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   border: 1px dashed var(--border-subtle);
   padding: 0.85rem 1rem;
-  background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.18), transparent 55%), var(--bg-surface);
+  background: var(--bg-surface);
   color: var(--text-secondary);
   font-size: 0.82rem;
 }
@@ -280,7 +282,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.12), transparent);
+  background: linear-gradient(90deg, transparent, rgba(185, 28, 28, 0.12), transparent);
   transform: translateX(-100%);
   animation: fund-stats-detail-shimmer 1.2s infinite;
 }
@@ -312,7 +314,7 @@
   flex-shrink: 0;
   width: 1.75rem;
   height: 1.75rem;
-  border-radius: 999px;
+  border-radius: 0;
   border: 1px solid transparent;
   background: transparent;
   color: var(--text-tertiary);
@@ -325,9 +327,9 @@
 }
 
 .fund-stats-detail-close-btn:hover {
-  background: var(--danger-subtle);
-  border-color: var(--danger);
-  color: var(--danger);
+  background: var(--accent-subtle);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .fund-stats-detail-list {
@@ -345,9 +347,9 @@
   align-items: flex-start;
   gap: 0.5rem;
   padding: 0.35rem 0.2rem;
-  border-bottom: 1px solid rgba(37, 48, 68, 0.6);
+  border-bottom: 1px solid var(--border-subtle);
   cursor: pointer;
-  border-radius: var(--radius-sm);
+  border-radius: 0;
   transition: background var(--transition-fast);
 }
 
@@ -396,9 +398,9 @@
   display: inline-flex;
   align-items: center;
   padding: 0.05rem 0.45rem;
-  border-radius: 999px;
-  border: 1px solid rgba(37, 48, 68, 0.8);
+  border-radius: 0;
+  border: 1px solid var(--border-subtle);
   font-size: 0.7rem;
   color: var(--text-secondary);
-  background: rgba(15, 23, 42, 0.9);
+  background: var(--bg-input);
 }

@@ -4,7 +4,7 @@
 
 .table-container {
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   background: var(--bg-surface);
   overflow: hidden;
 }
@@ -15,22 +15,18 @@
 }
 
 .table thead {
-  background: linear-gradient(
-    180deg,
-    rgba(56, 189, 248, 0.08) 0%,
-    var(--bg-muted) 100%
-  );
+  background: var(--bg-muted);
 }
 
 .table th {
-  padding: 0.875rem 1rem;
-  font-size: 0.75rem;
-  font-weight: 600;
+  padding: 0.7rem 1rem;
+  font-size: 0.72rem;
+  font-weight: 700;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.14em;
   text-align: left;
-  border-bottom: 1px solid var(--border);
+  border-bottom: var(--ledger-line);
   position: sticky;
   top: 0;
   z-index: 1;
@@ -58,9 +54,9 @@
   box-shadow: inset 3px 0 0 var(--accent);
 }
 
-/* 交替行 */
+/* 交替行：暖调灰 */
 .table-striped tbody tr:nth-child(even) {
-  background: rgba(6, 16, 24, 0.4);
+  background: rgba(20, 16, 14, 0.55);
 }
 
 /* 排序指示器 */
@@ -109,8 +105,8 @@
   margin-top: 1.25rem;
   margin-bottom: 1.75rem;
   overflow-x: auto;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
+  border: 1px solid rgba(184, 140, 115, 0.7);
+  border-radius: 0;
   background: var(--bg-elevated);
 }
 
@@ -123,8 +119,8 @@
 .fund-detail-table th,
 .fund-detail-table td {
   padding: 0.45rem 0.7rem;
-  border-bottom: 1px solid var(--border-subtle);
-  border-right: 1px solid var(--border-subtle);
+  border-bottom: 1px solid rgba(184, 140, 115, 0.6);
+  border-right: 1px solid rgba(184, 140, 115, 0.6);
   text-align: left;
   white-space: nowrap;
 }
@@ -173,10 +169,10 @@
   display: inline-block;
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: 0;
   margin-right: 0.4rem;
   vertical-align: middle;
-  box-shadow: 0 0 5px currentColor;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
 }
 
 /* 收益显示行 */
@@ -186,7 +182,7 @@
   align-items: baseline;
   column-gap: 0.45rem;
   padding: 0.08rem 0.28rem;
-  border-radius: var(--radius-sm);
+  border-radius: 0;
 }
 
 .fund-detail-return-best {
@@ -235,7 +231,7 @@
 .fund-detail-select-btn:hover {
   border-color: var(--accent);
   color: var(--accent);
-  background: rgba(56, 189, 248, 0.08);
+  background: var(--accent-subtle);
 }
 
 .fund-detail-select-btn.active {

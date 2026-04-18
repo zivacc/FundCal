@@ -86,7 +86,7 @@
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(56, 189, 248, 0.15),
+    rgba(185, 28, 28, 0.15),
     transparent
   );
   animation: loading-wave 1.5s infinite;
@@ -145,18 +145,18 @@
   background: var(--bg-glass);
   backdrop-filter: var(--glass-blur) var(--glass-saturate);
   -webkit-backdrop-filter: var(--glass-blur) var(--glass-saturate);
-  border: 1px solid rgba(56, 189, 248, 0.15);
-  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  border-top: var(--ledger-line);
+  border-radius: 0;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    inset 0 1px 0 rgba(255, 200, 180, 0.04),
     var(--shadow-md);
 }
 
 .glass-panel:hover {
-  background: rgba(10, 22, 40, 0.9);
-  border-color: rgba(56, 189, 248, 0.3);
+  background: rgba(23, 19, 16, 0.92);
+  border-color: var(--border-hover);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    var(--shadow-lg),
-    var(--shadow-glow);
+    inset 0 1px 0 rgba(255, 200, 180, 0.06),
+    var(--shadow-lg);
 }

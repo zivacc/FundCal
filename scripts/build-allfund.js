@@ -106,6 +106,7 @@ function main() {
         trackingTarget: data.trackingTarget || '',
         performanceBenchmark: data.performanceBenchmark || '',
         fundManager: data.fundManager || '',
+        establishmentDate: data.establishmentDate || '',
         tradingStatus: data.tradingStatus || null,
         updatedAt: data.updatedAt || '',
         sellFeeSegments: data.sellFeeSegments || data.redeemSegments || [],

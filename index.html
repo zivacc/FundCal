@@ -8,7 +8,8 @@
   <link rel="stylesheet" href="css/main.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
 </head>
@@ -78,7 +79,7 @@
           <div class="optimal-band" id="optimal-band" aria-hidden="true"></div>
         </div>
         <aside class="chart-main-right" id="chart-main-right" aria-label="参与图表计算的基金列表">
-          <button type="button" class="chart-fund-list-toggle" id="chart-fund-list-toggle" title="收起/展开列表"><span class="chart-fund-list-toggle-arrow">‹</span></button>
+          <button type="button" class="chart-fund-list-toggle" id="chart-fund-list-toggle" title="收起/展开列表"><span class="chart-fund-list-toggle-arrow">›</span></button>
           <div class="chart-fund-list-body">
             <div class="chart-fund-list-header">
               <span>显示基金</span>
@@ -115,6 +116,26 @@
             <button type="button" class="btn btn-secondary btn-random-bottom" id="random-data-bottom" title="从已缓存中随机 3–8 只">随机数据</button>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- 业绩比较图表（基于各基金阶段收益数据） -->
+    <div class="stage-return-chart-container" id="stage-return-chart-container" hidden>
+      <div class="stage-return-chart-header">
+        <div class="stage-return-chart-title">
+          <h3>业绩比较</h3>
+          <span class="stage-return-chart-subtitle">点击时间节点切换基准；鼠标悬停查看各基金表现</span>
+        </div>
+        <div class="stage-return-chart-actions">
+          <button type="button" class="btn btn-sm btn-secondary" id="stage-return-reset" title="重置基准至默认">重置基准</button>
+        </div>
+      </div>
+      <div class="stage-return-chart-wrapper">
+        <canvas id="stage-return-canvas"></canvas>
+      </div>
+      <div class="stage-return-chart-footer">
+        <span class="stage-return-chart-baseline-hint" id="stage-return-baseline-hint"></span>
+        <span class="stage-return-chart-note">点击任意节点（含 <b>今天 / 成立来</b>）可切换基准；★ 为默认基准。注：<b>成立来</b> 各基金起点不同，切为基准后各曲线将从自身 0% 起分叉。</span>
       </div>
     </div>
 

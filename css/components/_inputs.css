@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════════════
-   输入框系统
+   输入框系统 - 铁账主题
    ══════════════════════════════════════════════════════════════ */
 
 .input-group {
@@ -8,14 +8,14 @@
 
 .input {
   width: 100%;
-  padding: 0.625rem 0.875rem;
+  padding: 0.55rem 0.875rem;
   background: var(--bg-input);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: 0;
   color: var(--text-primary);
   font-family: var(--font-body);
   font-size: 0.875rem;
-  transition: all var(--transition-fast);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .input::placeholder {
@@ -29,17 +29,10 @@
 .input:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow:
-    0 0 0 3px var(--accent-subtle),
-    0 0 20px rgba(56, 189, 248, 0.1);
-  background: linear-gradient(
-    180deg,
-    rgba(56, 189, 248, 0.05) 0%,
-    var(--bg-input) 100%
-  );
+  box-shadow: inset 0 0 0 1px var(--accent);
+  background: var(--bg-input);
 }
 
-/* 带图标的输入框 */
 .input-with-icon {
   padding-left: 2.5rem;
 }
@@ -73,7 +66,7 @@
   font-family: var(--font-body);
   background: var(--bg-input);
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: 0;
   color: var(--text-primary);
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
@@ -84,8 +77,8 @@
 
 .fund-search-input:focus {
   outline: none;
-  border-color: var(--border-focus);
-  box-shadow: 0 0 0 3px var(--accent-subtle), 0 0 20px rgba(56, 189, 248, 0.1);
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
 }
 
 /* 下拉选择框 */
@@ -95,15 +88,15 @@ select {
   padding: 0.5rem 2.5rem 0.5rem 0.75rem;
   background: var(--bg-input);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: 0;
   color: var(--text-primary);
   font-family: var(--font-body);
   font-size: 0.85rem;
   cursor: pointer;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235b7a9d' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238a7a6b' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 0.75rem center;
-  transition: all var(--transition-fast);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .select:hover,
@@ -115,8 +108,8 @@ select:hover {
 select:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-subtle);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2338bdf8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  box-shadow: inset 0 0 0 1px var(--accent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23b91c1c' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
 }
 
 /* 数字输入框 */
@@ -132,7 +125,7 @@ textarea {
   padding: 0.75rem;
   background: var(--bg-input);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: 0;
   color: var(--text-primary);
   font-family: var(--font-body);
   font-size: 0.85rem;
@@ -143,8 +136,8 @@ textarea {
 .modal-textarea:focus,
 textarea:focus {
   outline: none;
-  border-color: var(--border-focus);
-  box-shadow: 0 0 0 3px var(--accent-subtle);
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
 }
 
 .modal-textarea::placeholder,

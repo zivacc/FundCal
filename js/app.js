@@ -15,6 +15,7 @@ import {
 } from './import-utils.js';
 import { setupIndexPickerModal } from './index-picker.js';
 import { renderFundDetailTable } from './fund-detail-table.js';
+import { renderStageReturnChart, resetStageReturnChartState } from './stage-return-chart.js';
 
 // 注册 Chart.js 标注插件（由 script 标签加载，全局名 chartjs-plugin-annotation）
 if (typeof window !== 'undefined' && window.Chart && window['chartjs-plugin-annotation']) {
@@ -326,12 +327,12 @@ function createFundCard(index, color, initialData) {
       <button type="button" class="remove-btn" title="移除该基金" aria-label="移除该基金">×</button>
     </h3>
     <div class="form-row form-row-fee">
-      <span class="segment-section-label">买入费率</span>
+      <span class="segment-section-label">买入</span>
       <input type="text" class="input-buy-fee" placeholder="0.1">
       <span class="input-unit">%</span>
     </div>
     <div class="form-row form-row-annual form-row-fee">
-      <span class="segment-section-label">年化费率</span>
+      <span class="segment-section-label">年化</span>
       <input type="text" class="input-annual-fee" placeholder="1.5">
       <span class="input-unit">%</span>
     </div>
@@ -762,7 +763,7 @@ function initChartFundListToggle() {
   toggleBtn.addEventListener('click', () => {
     const collapsed = aside.classList.toggle('collapsed');
     const arrow = toggleBtn.querySelector('.chart-fund-list-toggle-arrow');
-    if (arrow) arrow.textContent = collapsed ? '›' : '‹';
+    if (arrow) arrow.textContent = collapsed ? '‹' : '›';
     toggleBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
   });
 }
@@ -1038,6 +1039,8 @@ async function updateChart() {
     if (crosshairEl) crosshairEl.classList.remove('visible');
     hideChartHoverTooltip();
     legendEl.innerHTML = '<p class="none">请添加基金并填写费率</p>';
+    renderFundDetailTableForMainPage([]);
+    resetStageReturnChartState();
     return;
   }
 
@@ -1203,10 +1206,10 @@ async function updateChart() {
   if (chartInstance) chartInstance.destroy();
 
   const Chart = window.Chart;
-  const gridColor = 'rgba(56, 189, 248, 0.06)';
-  const tickColor = '#5b7a9d';
-  const titleColor = '#94b8db';
-  const chartFont = { family: "'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif" };
+  const gridColor = 'rgba(185, 28, 28, 0.14)';
+  const tickColor = '#ffffff';
+  const titleColor = '#ffffff';
+  const chartFont = { family: "'LXGW WenKai', 'Noto Serif SC', 'Songti SC', 'PingFang SC', 'Microsoft YaHei', serif" };
 
   chartInstance = new Chart(canvas, {
     type: 'line',
@@ -1224,8 +1227,8 @@ async function updateChart() {
           labels: {
             filter: (item, chart) => !chart.datasets[item.datasetIndex].crossover,
             color: tickColor,
-            font: { ...chartFont, size: 12, weight: '500' },
-            padding: 16,
+            font: { ...chartFont, size: 14, weight: '600' },
+            padding: 18,
             usePointStyle: true,
             pointStyle: 'circle',
             boxWidth: 8,
@@ -1240,21 +1243,21 @@ async function updateChart() {
       },
       scales: {
         x: {
-          title: { display: true, text: '持有天数（天）', color: titleColor, font: { ...chartFont, size: 12 } },
+          title: { display: true, text: '持有天数（天）', color: titleColor, font: { ...chartFont, size: 15, weight: '600' } },
           type: 'linear',
           min: displayMin,
           max: displayMax,
           offset: false,
           grid: { color: gridColor, lineWidth: 0.5 },
-          ticks: { color: tickColor, font: { ...chartFont, size: 11 } }
+          ticks: { color: tickColor, font: { ...chartFont, size: 14, weight: '500' } }
         },
         y: {
-          title: { display: true, text: '累计费率（%）', color: titleColor, font: { ...chartFont, size: 12 } },
+          title: { display: true, text: '累计费率（%）', color: titleColor, font: { ...chartFont, size: 15, weight: '600' } },
           beginAtZero: true,
           grid: { color: gridColor, lineWidth: 0.5 },
           ticks: {
             color: tickColor,
-            font: { ...chartFont, size: 11 },
+            font: { ...chartFont, size: 14, weight: '500' },
             callback: v => v + '%'
           }
         }
@@ -1283,7 +1286,6 @@ async function updateChart() {
         segDiv.className = 'optimal-band-segment';
         segDiv.style.width = widthPct;
         segDiv.style.backgroundColor = color;
-        segDiv.title = `${labelText}（${seg.start}～${seg.end}天）`;
         // 仅宽度足够时显示文字（占比 > 4% 或绝对天数 > 20天）
         const showLabel = (segDays / displayDays) > 0.04 || segDays > 20;
         if (showLabel) {
@@ -1388,15 +1390,24 @@ async function renderFundDetailTableForMainPage(funds) {
   const tbody = document.getElementById('fund-detail-tbody');
   if (!wrap || !tbody) return;
 
-  await renderFundDetailTable(tbody, funds, {
-    wrapEl: wrap,
-    showDiscountedBuyFee: true,
-    fetchMeta: async (code) => {
-      if (_fundMetaCache[code]) return _fundMetaCache[code];
+  // 一次性拉取 metas，复用给详情表与业绩比较图表
+  const metas = await Promise.all((funds || []).map(async (f) => {
+    const code = String(f?.code || '').trim();
+    if (!code) return {};
+    if (_fundMetaCache[code]) return _fundMetaCache[code];
+    try {
       const data = await fetchFundFeeFromAPI(code);
       if (data) { _fundMetaCache[code] = data; return data; }
-      return {};
-    },
+    } catch { /* ignore */ }
+    return {};
+  }));
+
+  renderStageReturnChart(funds, metas);
+
+  await renderFundDetailTable(tbody, funds, {
+    wrapEl: wrap,
+    metas,
+    showDiscountedBuyFee: true,
     onDelete: (f, code) => {
       if (code) {
         removeCardByFundCode(code);

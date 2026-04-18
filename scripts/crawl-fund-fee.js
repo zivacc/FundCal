@@ -207,6 +207,7 @@ async function fetchSohuOperationFees(code) {
  * - 基金管理人
  * - 业绩比较基准
  * - 基金类型（例如：货币型-普通货币、混合型-偏股 等）
+ * - 成立日期（格式统一为 YYYY-MM-DD）
  * URL 形如：https://fundf10.eastmoney.com/jbgk_<code>.html
  */
 async function fetchFundBasicInfo(code) {
@@ -219,7 +220,8 @@ async function fetchFundBasicInfo(code) {
         fundManager: '',
         performanceBenchmark: '',
         fundType: '',
-        netAssetScale: null
+        netAssetScale: null,
+        establishmentDate: ''
       };
     }
     const html = await res.text();
@@ -230,6 +232,7 @@ async function fetchFundBasicInfo(code) {
     let performanceBenchmark = '';
     let fundType = '';
     let netAssetScale = null;
+    let establishmentDate = '';
     for (const row of rows) {
       for (let i = 0; i < row.length; i++) {
         const label = row[i];
@@ -255,16 +258,30 @@ async function fetchFundBasicInfo(code) {
           if (idxShare !== -1) raw = raw.slice(0, idxShare).trim();
           netAssetScale = parseNetAssetScale(raw);
         }
+        // 成立日期：天天基金「基本概况」通常是「成立日期/规模」标签，值形如
+        // "2012-04-26 / 15.84亿份" 或 "2012年04月26日 / ..."；只取日期部分并标准化为 YYYY-MM-DD
+        if (!establishmentDate && /成立日期/.test(label) && i + 1 < row.length) {
+          const raw = row[i + 1].replace(/<[^>]+>/g, '').trim();
+          const m1 = raw.match(/(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+          const m2 = raw.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+          const m = m1 || m2;
+          if (m) {
+            const mm = String(m[2]).padStart(2, '0');
+            const dd = String(m[3]).padStart(2, '0');
+            establishmentDate = `${m[1]}-${mm}-${dd}`;
+          }
+        }
       }
     }
-    return { trackingTarget, fundManager, performanceBenchmark, fundType, netAssetScale };
+    return { trackingTarget, fundManager, performanceBenchmark, fundType, netAssetScale, establishmentDate };
   } catch {
     return {
       trackingTarget: '',
       fundManager: '',
       performanceBenchmark: '',
       fundType: '',
-      netAssetScale: null
+      netAssetScale: null,
+      establishmentDate: ''
     };
   }
 }
@@ -485,7 +502,7 @@ async function fetchFundFee(code) {
     fetchFundBasicInfo(code),
     fetchFundStageReturnsInfo(code)
   ]);
-  const { trackingTarget, fundManager, performanceBenchmark, fundType, netAssetScale } = basicInfo;
+  const { trackingTarget, fundManager, performanceBenchmark, fundType, netAssetScale, establishmentDate } = basicInfo;
   const { stageReturns, stageReturnsAsOf } = stageInfo;
 
   // ---------- 1. 交易状态：申购状态、赎回状态 ----------
@@ -723,6 +740,7 @@ async function fetchFundFee(code) {
     fundManager,
     performanceBenchmark,
     fundType,
+    ...(establishmentDate ? { establishmentDate } : {}),
     ...(netAssetScale ? { netAssetScale } : {}),
     ...(stageReturns?.length ? { stageReturns } : {}),
     ...(stageReturnsAsOf ? { stageReturnsAsOf } : {}),
@@ -774,7 +792,7 @@ function saveFund(data) {
       }
 
       // 2) 关键信息字段：本次为空/缺失时，保留旧值，防止被覆盖成空
-      const keyFields = ['trackingTarget', 'fundManager', 'performanceBenchmark', 'fundType'];
+      const keyFields = ['trackingTarget', 'fundManager', 'performanceBenchmark', 'fundType', 'establishmentDate'];
       for (const key of keyFields) {
         const oldVal = (old[key] || '').trim?.() ?? old[key];
         const newVal = (data[key] || '').trim?.() ?? data[key];

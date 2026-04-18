@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>铁账 Iron Ledger - 主题原型预览</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css" rel="stylesheet">
+  <style>
+    /* ══════════════════════════════════════════════════════════════
+       铁账 (Iron Ledger) 主题原型
+       朱砂暗红 · 零圆角 · 暖炭底 · 压印质感
+       ══════════════════════════════════════════════════════════════ */
+
+    :root {
+      /* ── 背景色梯度（暖炭调） ── */
+      --bg-base: #0c0a09;
+      --bg-raised: #1a1614;
+      --bg-surface: #211c19;
+      --bg-input: #0f0d0c;
+      --bg-elevated: #1c1714;
+      --bg-subtle: #141110;
+      --bg-hover: #2a2220;
+      --bg-muted: #171312;
+
+      /* ── 边框 ── */
+      --border: rgba(185, 28, 28, 0.18);
+      --border-hover: rgba(185, 28, 28, 0.40);
+      --border-focus: #b91c1c;
+      --border-subtle: rgba(120, 80, 60, 0.15);
+
+      /* ── 文字 ── */
+      --text-primary: #f5f0eb;
+      --text-secondary: #a8998c;
+      --text-tertiary: #6b5d52;
+      --text-muted: #4a3f38;
+
+      /* ── 主色：朱砂红 ── */
+      --accent: #b91c1c;
+      --accent-hover: #dc2626;
+      --accent-active: #991b1b;
+      --accent-subtle: rgba(185, 28, 28, 0.10);
+      --accent-glow: rgba(185, 28, 28, 0.35);
+
+      /* ── 辅色：铜金 ── */
+      --copper: #b87333;
+      --copper-subtle: rgba(184, 115, 51, 0.10);
+
+      /* ── 状态色 ── */
+      --success: #16a34a;
+      --success-subtle: rgba(22, 163, 74, 0.10);
+      --warning: #d97706;
+      --warning-subtle: rgba(217, 119, 6, 0.10);
+      --danger: #dc2626;
+      --danger-subtle: rgba(220, 38, 38, 0.10);
+
+      /* ── 渐变 ── */
+      --gradient-primary: linear-gradient(135deg, #b91c1c 0%, #b87333 100%);
+
+      /* ── 阴影（压印式） ── */
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.5), inset 0 1px 0 rgba(245,240,235,0.03);
+      --shadow-md: 0 2px 8px rgba(0,0,0,0.6), inset 0 1px 0 rgba(245,240,235,0.04);
+      --shadow-lg: 0 4px 16px rgba(0,0,0,0.7), inset 0 1px 0 rgba(245,240,235,0.05);
+      --shadow-glow: 0 0 12px rgba(185,28,28,0.25), 0 0 24px rgba(185,28,28,0.08);
+
+      /* ── 字体 ── */
+      --font-body: 'LXGW WenKai', 'Noto Serif SC', 'Songti SC', 'SimSun', -apple-system, 'PingFang SC', 'Microsoft YaHei', serif;
+      --font-mono: 'DM Mono', 'JetBrains Mono', 'Consolas', monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    ::selection {
+      background: var(--accent-glow);
+      color: var(--text-primary);
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg-base);
+      color: var(--text-primary);
+      min-height: 100vh;
+      line-height: 1.7;
+      font-size: 15px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* 滚动条 */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg-base); }
+    ::-webkit-scrollbar-thumb { background: rgba(185,28,28,0.25); }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(185,28,28,0.45); }
+
+    /* ── 页面布局 ── */
+    .page { max-width: 1200px; margin: 0 auto; padding: 2.5rem 2rem 4rem; }
+
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      padding-bottom: 1.5rem;
+      margin-bottom: 2rem;
+      border-bottom: 2px solid var(--accent);
+    }
+    .page-header h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--text-primary);
+      text-shadow: 0 0 40px rgba(185,28,28,0.15);
+    }
+    .page-header .subtitle {
+      color: var(--text-secondary);
+      font-size: 0.88rem;
+      margin-top: 0.2rem;
+    }
+    .page-header-right {
+      display: flex; gap: 1.5rem; align-items: center;
+    }
+    .page-header-link {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.88rem;
+      padding-bottom: 2px;
+      border-bottom: 1px solid transparent;
+      transition: all 0.15s;
+    }
+    .page-header-link:hover {
+      color: var(--accent-hover);
+      border-bottom-color: var(--accent);
+    }
+
+    /* ── Section 标题 ── */
+    .section { margin-bottom: 2.5rem; }
+    .section-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ══════════════════════════════════════
+       组件：卡片
+       ══════════════════════════════════════ */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1rem;
+    }
+
+    .card {
+      position: relative;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--accent);
+      padding: 1.25rem;
+      box-shadow: var(--shadow-sm);
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .card:hover {
+      border-color: var(--border-hover);
+      box-shadow: var(--shadow-md);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.6rem;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .card-dot {
+      width: 8px; height: 8px;
+      flex-shrink: 0;
+    }
+    .card-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    /* 基金卡片 */
+    .fund-card {
+      position: relative;
+    }
+    .fund-card::after {
+      content: '';
+      position: absolute;
+      top: 3px; left: 0;
+      width: 3px; height: calc(100% - 3px);
+      background: var(--accent);
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .fund-card:hover::after { opacity: 1; }
+
+    .fund-card-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.35rem;
+    }
+    .fund-card-row label {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      min-width: 5rem;
+      flex-shrink: 0;
+    }
+    .fund-card-row .value {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: var(--text-primary);
+    }
+
+    /* 统计卡片 */
+    .stat-card {
+      text-align: center;
+      padding: 1.75rem 1rem;
+    }
+    .stat-value {
+      font-size: 2.2rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.2;
+      margin-bottom: 0.2rem;
+    }
+    .stat-label {
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+    }
+    .stat-badge {
+      display: inline-block;
+      margin-top: 0.5rem;
+      padding: 0.15rem 0.45rem;
+      font-size: 0.75rem;
+      font-family: var(--font-mono);
+    }
+    .stat-badge.positive { color: var(--success); background: var(--success-subtle); }
+    .stat-badge.negative { color: var(--danger); background: var(--danger-subtle); }
+
+    /* ══════════════════════════════════════
+       组件：按钮
+       ══════════════════════════════════════ */
+    .btn-row { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; margin-bottom: 1rem; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      padding: 0.6rem 1.2rem;
+      font-family: var(--font-body);
+      font-size: 0.82rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      transition: all 0.12s;
+      user-select: none;
+    }
+    .btn:active { transform: scale(0.97); }
+
+    .btn-primary {
+      background: var(--accent);
+      border-color: var(--accent-hover);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(185,28,28,0.3);
+    }
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      box-shadow: var(--shadow-glow);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      border-color: var(--border);
+      color: var(--text-secondary);
+    }
+    .btn-secondary:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-subtle);
+      box-shadow: inset 0 0 0 1px var(--accent);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      padding: 0.5rem 0.7rem;
+    }
+    .btn-ghost:hover { color: var(--accent); background: var(--accent-subtle); }
+
+    .btn-danger {
+      background: transparent;
+      border-color: var(--border);
+      color: var(--text-secondary);
+    }
+    .btn-danger:hover {
+      border-color: var(--danger);
+      color: var(--danger);
+      background: var(--danger-subtle);
+      box-shadow: inset 0 0 0 1px var(--danger);
+    }
+
+    .btn-copper {
+      background: var(--copper);
+      border-color: var(--copper);
+      color: #fff;
+    }
+    .btn-copper:hover {
+      background: #c9844a;
+      box-shadow: 0 0 12px rgba(184,115,51,0.3);
+    }
+
+    .btn-sm { padding: 0.35rem 0.7rem; font-size: 0.75rem; }
+    .btn-lg { padding: 0.85rem 1.8rem; font-size: 0.92rem; }
+
+    /* ══════════════════════════════════════
+       组件：输入框
+       ══════════════════════════════════════ */
+    .form-row {
+      display: flex; align-items: center; gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+    .form-row label {
+      min-width: 5rem; font-size: 0.82rem; color: var(--text-secondary); flex-shrink: 0;
+    }
+
+    .input {
+      flex: 1;
+      padding: 0.55rem 0.75rem;
+      font-family: var(--font-body);
+      font-size: 0.88rem;
+      background: var(--bg-input);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      border-bottom: 2px solid var(--border);
+      transition: all 0.12s;
+    }
+    .input::placeholder { color: var(--text-muted); }
+    .input:hover { border-color: var(--border-hover); }
+    .input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-subtle);
+      background: linear-gradient(180deg, rgba(185,28,28,0.03) 0%, var(--bg-input) 100%);
+    }
+
+    .input-mono {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+    }
+
+    .select {
+      appearance: none;
+      padding: 0.55rem 2.5rem 0.55rem 0.75rem;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-bottom: 2px solid var(--border);
+      color: var(--text-primary);
+      font-family: var(--font-body);
+      font-size: 0.88rem;
+      cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b5d52' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.65rem center;
+      transition: all 0.12s;
+    }
+    .select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-subtle);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23b91c1c' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    }
+
+    .search-wrap {
+      position: relative;
+      flex: 1;
+    }
+    .search-icon {
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      pointer-events: none;
+    }
+    .input-search { padding-left: 2.2rem; }
+    .input-search:focus ~ .search-icon { color: var(--accent); }
+
+    /* ══════════════════════════════════════
+       组件：表格
+       ══════════════════════════════════════ */
+    .table-wrap {
+      border: 1px solid var(--border);
+      background: var(--bg-surface);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    thead {
+      background: var(--bg-muted);
+      border-bottom: 2px solid var(--accent);
+    }
+    th {
+      padding: 0.75rem 1rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-secondary);
+      text-align: left;
+    }
+    td {
+      padding: 0.6rem 1rem;
+      font-size: 0.85rem;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    tbody tr { transition: background 0.1s; }
+    tbody tr:hover { background: var(--bg-hover); }
+    tbody tr:nth-child(even) { background: rgba(14,12,11,0.4); }
+    tbody tr:nth-child(even):hover { background: var(--bg-hover); }
+
+    .cell-mono { font-family: var(--font-mono); font-size: 0.82rem; }
+    .cell-positive { color: var(--success); }
+    .cell-negative { color: var(--danger); }
+    .cell-warn { color: var(--warning); }
+
+    tr.row-selected {
+      background: var(--accent-subtle) !important;
+      box-shadow: inset 3px 0 0 var(--accent);
+    }
+
+    th.sortable { cursor: pointer; user-select: none; }
+    th.sortable:hover { color: var(--accent); }
+    th.sorted { color: var(--accent); }
+    th.sorted::after { content: ' \25B2'; font-size: 0.55rem; }
+
+    /* ══════════════════════════════════════
+       组件：弹窗
+       ══════════════════════════════════════ */
+    .modal-demo-area {
+      background: rgba(12,10,9,0.6);
+      border: 1px solid var(--border-subtle);
+      padding: 3rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal {
+      width: 480px;
+      max-width: 100%;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-hover);
+      border-top: 3px solid var(--accent);
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      flex-direction: column;
+    }
+    .modal::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--gradient-primary);
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.85rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(185,28,28,0.04) 0%, transparent 100%);
+    }
+    .modal-title { font-size: 1rem; font-weight: 600; }
+    .modal-close {
+      width: 28px; height: 28px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      font-size: 1.1rem;
+      transition: all 0.12s;
+    }
+    .modal-close:hover {
+      background: var(--danger-subtle);
+      border-color: var(--danger);
+      color: var(--danger);
+    }
+    .modal-body { padding: 1.25rem; }
+    .modal-body p { color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 0.5rem; }
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.6rem;
+      padding: 0.85rem 1.25rem;
+      border-top: 1px solid var(--border);
+      background: var(--bg-muted);
+    }
+
+    /* ══════════════════════════════════════
+       组件：Toast / FAB
+       ══════════════════════════════════════ */
+    .toast-demo {
+      display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;
+    }
+    .toast {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--bg-raised);
+      border: 1px solid var(--border-hover);
+      border-left: 3px solid var(--accent);
+      box-shadow: var(--shadow-md);
+      font-size: 0.82rem;
+    }
+
+    .fab-demo { display: flex; gap: 0.6rem; }
+    .fab-btn {
+      padding: 0.6rem 1.1rem;
+      border: none;
+      font-size: 0.82rem;
+      font-weight: 600;
+      font-family: var(--font-body);
+      color: #fff;
+      cursor: pointer;
+      transition: all 0.12s;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .fab-btn:active { transform: scale(0.97); }
+    .fab-compare {
+      background: var(--accent);
+      box-shadow: 0 4px 12px rgba(185,28,28,0.35);
+    }
+    .fab-compare:hover { background: var(--accent-hover); box-shadow: var(--shadow-glow); }
+    .fab-jiuquan {
+      background: var(--success);
+      box-shadow: 0 4px 12px rgba(22,163,74,0.3);
+    }
+    .fab-jiuquan:hover { background: #1bba55; }
+
+    /* ══════════════════════════════════════
+       组件：颜色色板
+       ══════════════════════════════════════ */
+    .palette {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .swatch {
+      height: 56px;
+      display: flex;
+      align-items: flex-end;
+      padding: 0.3rem 0.5rem;
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      border: 1px solid var(--border-subtle);
+    }
+    .swatch-label { color: rgba(255,255,255,0.7); text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
+
+    /* ══════════════════════════════════════
+       组件：图表容器预览
+       ══════════════════════════════════════ */
+    .chart-preview {
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--accent);
+      background: var(--bg-surface);
+      padding: 1.25rem;
+      box-shadow: var(--shadow-md);
+      min-height: 200px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .chart-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 0.6rem;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .chart-toolbar-title { font-size: 0.88rem; font-weight: 600; }
+    .chart-area {
+      flex: 1;
+      min-height: 120px;
+      background:
+        repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 29px,
+          rgba(185,28,28,0.04) 29px,
+          rgba(185,28,28,0.04) 30px
+        ),
+        repeating-linear-gradient(
+          90deg,
+          transparent,
+          transparent 59px,
+          rgba(185,28,28,0.04) 59px,
+          rgba(185,28,28,0.04) 60px
+        );
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      padding: 0 0.5rem;
+    }
+    .chart-bar {
+      flex: 1;
+      transition: opacity 0.15s;
+    }
+    .chart-bar:hover { opacity: 0.8; }
+
+    /* 色带 */
+    .band-strip {
+      display: flex;
+      height: 28px;
+      overflow: hidden;
+    }
+    .band-segment {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      transition: filter 0.15s;
+    }
+    .band-segment:hover { filter: brightness(1.25); }
+    .band-label {
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: rgba(255,255,255,0.9);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      padding: 0 4px;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+    }
+    .band-days {
+      position: relative;
+      height: 1.1rem;
+      margin-top: 2px;
+    }
+    .band-days span {
+      position: absolute;
+      transform: translateX(-50%);
+      font-size: 0.62rem;
+      font-family: var(--font-mono);
+      color: var(--text-tertiary);
+    }
+
+    /* ══════════════════════════════════════
+       组件：筛选标签
+       ══════════════════════════════════════ */
+    .tags { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 1rem; }
+    .tag {
+      padding: 0.25rem 0.6rem;
+      font-size: 0.75rem;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.12s;
+      font-family: var(--font-body);
+    }
+    .tag:hover { border-color: var(--accent); color: var(--accent); }
+    .tag.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    /* ══════════════════════════════════════
+       组件：Toggle 开关
+       ══════════════════════════════════════ */
+    .toggle-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+    .toggle {
+      position: relative;
+      width: 36px; height: 18px;
+      background: var(--bg-hover);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .toggle::after {
+      content: '';
+      position: absolute;
+      top: 2px; left: 2px;
+      width: 12px; height: 12px;
+      background: var(--text-tertiary);
+      transition: all 0.15s;
+    }
+    .toggle.on { background: var(--accent-subtle); border-color: var(--accent); }
+    .toggle.on::after { left: 20px; background: var(--accent); }
+    .toggle-label { font-size: 0.82rem; color: var(--text-secondary); }
+
+    /* ══════════════════════════════════════
+       组件：进度条
+       ══════════════════════════════════════ */
+    .progress-bar {
+      height: 6px;
+      background: var(--bg-hover);
+      overflow: hidden;
+      margin-bottom: 0.5rem;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--gradient-primary);
+      transition: width 0.3s;
+    }
+
+    /* ══════════════════════════════════════
+       排版预览
+       ══════════════════════════════════════ */
+    .typo-row { margin-bottom: 0.75rem; }
+    .typo-label {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.1rem;
+    }
+
+    /* ══════════════════════════════════════
+       响应式
+       ══════════════════════════════════════ */
+    @media (max-width: 768px) {
+      .page { padding: 1.25rem 1rem; }
+      .cards-grid { grid-template-columns: 1fr; }
+      .page-header { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+
+    <!-- 页头 -->
+    <div class="page-header">
+      <div>
+        <h1>基金费率计算器</h1>
+        <div class="subtitle">FundCal - 铁账 (Iron Ledger) 主题原型</div>
+      </div>
+      <div class="page-header-right">
+        <a href="#" class="page-header-link">数据库列表</a>
+        <a href="#" class="page-header-link">统计分析</a>
+        <a href="#" class="page-header-link">指数选基</a>
+      </div>
+    </div>
+
+    <!-- 色板 -->
+    <div class="section">
+      <div class="section-title">色彩系统</div>
+      <div class="palette">
+        <div class="swatch" style="background:#0c0a09"><span class="swatch-label">Base #0c0a09</span></div>
+        <div class="swatch" style="background:#1a1614"><span class="swatch-label">Raised #1a1614</span></div>
+        <div class="swatch" style="background:#211c19"><span class="swatch-label">Surface #211c19</span></div>
+        <div class="swatch" style="background:#2a2220"><span class="swatch-label">Hover #2a2220</span></div>
+        <div class="swatch" style="background:#b91c1c"><span class="swatch-label">Accent #b91c1c</span></div>
+        <div class="swatch" style="background:#dc2626"><span class="swatch-label">Accent Hover #dc2626</span></div>
+        <div class="swatch" style="background:#b87333"><span class="swatch-label">Copper #b87333</span></div>
+        <div class="swatch" style="background:#16a34a"><span class="swatch-label">Success #16a34a</span></div>
+        <div class="swatch" style="background:#d97706"><span class="swatch-label">Warning #d97706</span></div>
+        <div class="swatch" style="background:#dc2626"><span class="swatch-label">Danger #dc2626</span></div>
+      </div>
+      <div class="palette">
+        <div class="swatch" style="background:#f5f0eb"><span class="swatch-label" style="color:#0c0a09">Text #f5f0eb</span></div>
+        <div class="swatch" style="background:#a8998c"><span class="swatch-label" style="color:#0c0a09">Secondary #a8998c</span></div>
+        <div class="swatch" style="background:#6b5d52"><span class="swatch-label">Tertiary #6b5d52</span></div>
+        <div class="swatch" style="background:#4a3f38"><span class="swatch-label">Muted #4a3f38</span></div>
+      </div>
+    </div>
+
+    <!-- 排版 -->
+    <div class="section">
+      <div class="section-title">排版 / LXGW WenKai + DM Mono</div>
+      <div class="typo-row">
+        <div class="typo-label">H1 / 1.75rem / 700</div>
+        <h1 style="font-size:1.75rem;font-weight:700;text-shadow:0 0 40px rgba(185,28,28,0.15)">基金费率对比计算器</h1>
+      </div>
+      <div class="typo-row">
+        <div class="typo-label">H2 / 1.25rem / 600</div>
+        <h2 style="font-size:1.25rem;font-weight:600">持有天数与累计费率</h2>
+      </div>
+      <div class="typo-row">
+        <div class="typo-label">Body / 0.88rem / 400</div>
+        <p style="color:var(--text-secondary);font-size:0.88rem">比较不同基金在不同持有期的总费率（买入+年化+卖出），找出最优持有策略。霞鹜文楷为中文正文提供温润的阅读感受。</p>
+      </div>
+      <div class="typo-row">
+        <div class="typo-label">Mono / DM Mono 0.85rem</div>
+        <p style="font-family:var(--font-mono);font-size:0.85rem;color:var(--text-primary)">001234 天弘沪深300ETF联接A &nbsp; 费率: 0.12% &nbsp; 年化: 0.50%</p>
+      </div>
+    </div>
+
+    <!-- 按钮 -->
+    <div class="section">
+      <div class="section-title">按钮系统</div>
+      <div class="btn-row">
+        <button class="btn btn-primary">添加基金</button>
+        <button class="btn btn-secondary">导入</button>
+        <button class="btn btn-copper">按指数选择</button>
+        <button class="btn btn-danger">清空</button>
+        <button class="btn btn-ghost">更多选项</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-sm btn-secondary">全选</button>
+        <button class="btn btn-sm btn-secondary">联接基金</button>
+        <button class="btn btn-sm btn-secondary">增强</button>
+        <button class="btn btn-sm btn-secondary">反选</button>
+        <button class="btn btn-sm btn-primary">确认</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-lg btn-primary">开始计算</button>
+        <button class="btn btn-lg btn-secondary">导出快照</button>
+      </div>
+    </div>
+
+    <!-- 输入框 -->
+    <div class="section">
+      <div class="section-title">输入控件</div>
+      <div style="max-width: 480px">
+        <div class="form-row">
+          <label>基金名称</label>
+          <input type="text" class="input" placeholder="输入基金名称或代码..." value="天弘沪深300ETF联接A">
+        </div>
+        <div class="form-row">
+          <label>买入费率</label>
+          <input type="text" class="input input-mono" placeholder="0.10" value="0.12" style="max-width:120px">
+          <span style="color:var(--text-tertiary);font-size:0.82rem">%</span>
+        </div>
+        <div class="form-row">
+          <label>年化费率</label>
+          <input type="text" class="input input-mono" placeholder="1.50" value="0.50" style="max-width:120px">
+          <span style="color:var(--text-tertiary);font-size:0.82rem">%</span>
+        </div>
+        <div class="form-row">
+          <label>排序方式</label>
+          <select class="select">
+            <option>费率（低→高）</option>
+            <option>名称（A→Z）</option>
+            <option>规模（大→小）</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>搜索</label>
+          <div class="search-wrap">
+            <input type="text" class="input input-search" placeholder="搜索基金名称 / 代码 / 拼音首字母...">
+            <span class="search-icon">&#x1F50D;</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 标签筛选 -->
+    <div class="section">
+      <div class="section-title">筛选标签</div>
+      <div class="tags">
+        <span class="tag active">全部</span>
+        <span class="tag">股票型</span>
+        <span class="tag">混合型</span>
+        <span class="tag">债券型</span>
+        <span class="tag">指数型</span>
+        <span class="tag">ETF联接</span>
+        <span class="tag">增强型</span>
+        <span class="tag">QDII</span>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+        <span class="toggle-label">跳过前 7 天</span>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle" onclick="this.classList.toggle('on')"></div>
+        <span class="toggle-label">联接基金穿透</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:68%"></div></div>
+      <span style="font-size:0.75rem;color:var(--text-tertiary);font-family:var(--font-mono)">加载中... 68/100</span>
+    </div>
+
+    <!-- 卡片 -->
+    <div class="section">
+      <div class="section-title">基金卡片</div>
+      <div class="cards-grid">
+
+        <div class="card fund-card">
+          <div class="card-header">
+            <div class="card-dot" style="background:#b91c1c"></div>
+            <div class="card-title">天弘沪深300ETF联接A</div>
+          </div>
+          <div class="fund-card-row"><label>基金代码</label><span class="value">001234</span></div>
+          <div class="fund-card-row"><label>买入费率</label><span class="value">0.12%</span></div>
+          <div class="fund-card-row"><label>年化费率</label><span class="value">0.50%</span></div>
+          <div class="fund-card-row"><label>卖出费率</label><span class="value">0 - 1.50%</span></div>
+        </div>
+
+        <div class="card fund-card">
+          <div class="card-header">
+            <div class="card-dot" style="background:#b87333"></div>
+            <div class="card-title">易方达蓝筹精选混合</div>
+          </div>
+          <div class="fund-card-row"><label>基金代码</label><span class="value">005827</span></div>
+          <div class="fund-card-row"><label>买入费率</label><span class="value">0.15%</span></div>
+          <div class="fund-card-row"><label>年化费率</label><span class="value">1.50%</span></div>
+          <div class="fund-card-row"><label>卖出费率</label><span class="value">0 - 1.50%</span></div>
+        </div>
+
+        <div class="card fund-card">
+          <div class="card-header">
+            <div class="card-dot" style="background:#16a34a"></div>
+            <div class="card-title">招商中证白酒指数A</div>
+          </div>
+          <div class="fund-card-row"><label>基金代码</label><span class="value">161725</span></div>
+          <div class="fund-card-row"><label>买入费率</label><span class="value">0.10%</span></div>
+          <div class="fund-card-row"><label>年化费率</label><span class="value">1.00%</span></div>
+          <div class="fund-card-row"><label>卖出费率</label><span class="value">0 - 1.50%</span></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div class="section">
+      <div class="section-title">统计卡片</div>
+      <div class="cards-grid" style="grid-template-columns: repeat(4, 1fr)">
+        <div class="card stat-card">
+          <div class="stat-value">1,247</div>
+          <div class="stat-label">数据库基金总数</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-value">0.43%</div>
+          <div class="stat-label">平均年化费率</div>
+          <span class="stat-badge negative">-0.02%</span>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-value">365</div>
+          <div class="stat-label">最优持有天数</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-value">23.8%</div>
+          <div class="stat-label">近一年收益</div>
+          <span class="stat-badge positive">+2.1%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 表格 -->
+    <div class="section">
+      <div class="section-title">数据表格</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="sortable sorted">基金代码</th>
+              <th class="sortable">基金名称</th>
+              <th class="sortable">类型</th>
+              <th class="sortable">年化费率</th>
+              <th class="sortable">近1年收益</th>
+              <th class="sortable">规模(亿)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="cell-mono">001234</td>
+              <td>天弘沪深300ETF联接A</td>
+              <td>指数型</td>
+              <td class="cell-mono">0.50%</td>
+              <td class="cell-mono cell-positive">+18.23%</td>
+              <td class="cell-mono">234.5</td>
+            </tr>
+            <tr class="row-selected">
+              <td class="cell-mono">005827</td>
+              <td>易方达蓝筹精选混合</td>
+              <td>混合型</td>
+              <td class="cell-mono">1.50%</td>
+              <td class="cell-mono cell-negative">-5.67%</td>
+              <td class="cell-mono">89.2</td>
+            </tr>
+            <tr>
+              <td class="cell-mono">161725</td>
+              <td>招商中证白酒指数A</td>
+              <td>指数型</td>
+              <td class="cell-mono">1.00%</td>
+              <td class="cell-mono cell-positive">+12.45%</td>
+              <td class="cell-mono">456.7</td>
+            </tr>
+            <tr>
+              <td class="cell-mono">110011</td>
+              <td>易方达中小盘混合</td>
+              <td>混合型</td>
+              <td class="cell-mono">1.50%</td>
+              <td class="cell-mono cell-warn">+0.34%</td>
+              <td class="cell-mono">67.8</td>
+            </tr>
+            <tr>
+              <td class="cell-mono">000961</td>
+              <td>天弘中证计算机ETF联接A</td>
+              <td>指数型</td>
+              <td class="cell-mono">0.50%</td>
+              <td class="cell-mono cell-positive">+31.20%</td>
+              <td class="cell-mono">12.3</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 图表区域 -->
+    <div class="section">
+      <div class="section-title">图表容器 + 最优区间色带</div>
+      <div class="chart-preview">
+        <div class="chart-toolbar">
+          <span class="chart-toolbar-title">持有天数 vs 累计费率</span>
+          <div style="display:flex;gap:0.4rem">
+            <button class="btn btn-sm btn-secondary">7天</button>
+            <button class="btn btn-sm btn-primary">365天</button>
+            <button class="btn btn-sm btn-secondary">1095天</button>
+          </div>
+        </div>
+        <div class="chart-area">
+          <div class="chart-bar" style="height:20%;background:#b91c1c"></div>
+          <div class="chart-bar" style="height:35%;background:#b91c1c"></div>
+          <div class="chart-bar" style="height:28%;background:#b87333"></div>
+          <div class="chart-bar" style="height:55%;background:#b87333"></div>
+          <div class="chart-bar" style="height:42%;background:#16a34a"></div>
+          <div class="chart-bar" style="height:65%;background:#16a34a"></div>
+          <div class="chart-bar" style="height:50%;background:#b91c1c"></div>
+          <div class="chart-bar" style="height:78%;background:#b91c1c"></div>
+          <div class="chart-bar" style="height:60%;background:#b87333"></div>
+          <div class="chart-bar" style="height:85%;background:#b87333"></div>
+          <div class="chart-bar" style="height:72%;background:#16a34a"></div>
+          <div class="chart-bar" style="height:90%;background:#16a34a"></div>
+        </div>
+        <!-- 色带 -->
+        <div>
+          <div class="band-strip">
+            <div class="band-segment" style="width:30%;background:#b91c1c"><span class="band-label">天弘沪深300</span></div>
+            <div class="band-segment" style="width:45%;background:#b87333"><span class="band-label">易方达蓝筹精选</span></div>
+            <div class="band-segment" style="width:25%;background:#16a34a"><span class="band-label">招商白酒</span></div>
+          </div>
+          <div class="band-days">
+            <span style="left:30%">109天</span>
+            <span style="left:75%">473天</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 弹窗 -->
+    <div class="section">
+      <div class="section-title">弹窗</div>
+      <div class="modal-demo-area">
+        <div class="modal">
+          <div class="modal-header">
+            <span class="modal-title">按指数选择基金</span>
+            <button class="modal-close">&times;</button>
+          </div>
+          <div class="modal-body">
+            <p>先选择一个跟踪指数，再在下方勾选需要添加的基金。</p>
+            <input type="text" class="input" placeholder="输入指数名称 / 拼音首字母..." style="width:100%;margin-top:0.5rem">
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary">取消</button>
+            <button class="btn btn-primary">添加</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast + FAB -->
+    <div class="section">
+      <div class="section-title">Toast 提示 / 浮动按钮</div>
+      <div class="toast-demo">
+        <div class="toast">已添加 3 只基金</div>
+        <div class="toast" style="border-left-color:var(--success)">导入完成</div>
+        <div class="toast" style="border-left-color:var(--warning)">超过 6 只基金</div>
+      </div>
+      <div class="fab-demo">
+        <button class="fab-btn fab-compare">去比较 (3)</button>
+        <button class="fab-btn fab-jiuquan">去韭圈儿 (3)</button>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

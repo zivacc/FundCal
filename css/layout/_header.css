@@ -9,7 +9,7 @@
   gap: 1rem;
   margin-bottom: 0.5rem;
   padding-bottom: 1.25rem;
-  border-bottom: 1px solid var(--border);
+  border-bottom: var(--ledger-line-thin);
 }
 
 .page-header h1 {
@@ -31,10 +31,8 @@
 .page-header-link {
   font-size: 1rem;
   font-weight: 600;
-  background: linear-gradient(135deg, var(--text-primary) 40%, var(--accent) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--accent);
+  letter-spacing: 0.04em;
   text-decoration: none;
   transition: opacity var(--transition-fast);
 }
@@ -84,12 +82,12 @@
 .nav-logo-icon {
   width: 32px;
   height: 32px;
-  border-radius: var(--radius-md);
-  background: var(--gradient-primary);
+  border-radius: 0;
+  background: var(--accent);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: var(--shadow-glow);
+  box-shadow: var(--shadow-sm);
 }
 
 .nav-links {
@@ -123,11 +121,10 @@
   bottom: -1px;
   left: 50%;
   transform: translateX(-50%);
-  width: 20px;
+  width: 24px;
   height: 2px;
   background: var(--accent);
-  border-radius: 2px;
-  box-shadow: 0 0 8px var(--accent-glow);
+  border-radius: 0;
 }
 
 /* 移动端汉堡菜单 */

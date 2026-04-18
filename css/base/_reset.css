@@ -21,10 +21,12 @@ html {
 
 body {
   font-family: var(--font-body);
-  background: var(--bg-base);
+  background:
+    linear-gradient(180deg, rgba(185, 28, 28, 0.03) 0%, transparent 200px),
+    var(--bg-base);
   color: var(--text-primary);
   min-height: 100vh;
-  line-height: 1.6;
+  line-height: 1.65;
   font-size: 14px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -83,7 +85,7 @@ img {
 
 ::-webkit-scrollbar-thumb {
   background: var(--border);
-  border-radius: 5px;
+  border-radius: 0;
 }
 
 ::-webkit-scrollbar-thumb:hover {

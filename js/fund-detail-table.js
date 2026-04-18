@@ -338,6 +338,7 @@ export async function renderFundDetailTable(tbody, funds, options = {}) {
     },
     { label: '基金代码', render: (f) => escapeHtml(f.code || '-') },
     { label: '基金类型', render: (_f, m) => escapeHtml(m.fundType || '-') },
+    { label: '成立日期', render: (f, m) => escapeHtml(m.establishmentDate || f.establishmentDate || '-') },
     { label: '规模数据', render: (_f, m) => formatNetAssetScale(m.netAssetScale), nowrap: false },
   ];
 

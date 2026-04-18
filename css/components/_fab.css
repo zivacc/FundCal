@@ -1,8 +1,7 @@
 /* ══════════════════════════════════════════════════════════════
-   浮动操作按钮 (FAB)
+   浮动操作按钮 (FAB) - 铁账主题
    ══════════════════════════════════════════════════════════════ */
 
-/* 基金详情浮动操作 */
 .fund-detail-floating-actions {
   position: fixed;
   right: max(12px, env(safe-area-inset-right));
@@ -18,31 +17,26 @@
 }
 
 .fund-detail-floating-btn {
-  padding: 0.55rem 0.95rem;
+  padding: 0.55rem 1rem;
   border: 1px solid transparent;
-  border-radius: 999px;
-  font-size: 0.82rem;
-  font-weight: 600;
+  border-radius: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   cursor: pointer;
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast), opacity var(--transition-fast);
-}
-
-.fund-detail-floating-btn:hover {
-  transform: translateY(-1px);
-}
-
-.fund-detail-floating-btn:active {
-  transform: translateY(0);
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast);
+  box-shadow: var(--shadow-md);
 }
 
 .fund-detail-floating-compare {
-  color: #fff;
-  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
-  box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 40%, transparent);
+  color: #fff8f5;
+  background: var(--accent);
+  border-color: var(--accent-active);
 }
 
 .fund-detail-floating-compare:hover {
-  box-shadow: 0 12px 32px color-mix(in srgb, var(--accent) 50%, transparent);
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
 
 .fund-detail-floating-delete {
@@ -53,18 +47,18 @@
 
 .fund-detail-floating-delete:hover {
   border-color: var(--danger);
-  color: var(--danger);
-  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.18);
+  color: var(--text-primary);
+  background: var(--danger-subtle);
 }
 
 .fund-detail-floating-jiuquan {
-  color: #fff;
-  background: linear-gradient(135deg, var(--success), #059669);
-  box-shadow: 0 8px 24px rgba(5, 150, 105, 0.35);
+  color: #fff8f5;
+  background: var(--copper);
+  border-color: #8a5624;
 }
 
 .fund-detail-floating-jiuquan:hover {
-  box-shadow: 0 12px 32px rgba(5, 150, 105, 0.45);
+  background: #c98548;
 }
 
 /* 缓存基金列表页浮动按钮 */
@@ -83,32 +77,30 @@
 }
 
 .cached-funds-compare-btn {
-  padding: 12px 20px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #fff;
-  background: linear-gradient(135deg, var(--accent), var(--purple));
-  border: none;
-  border-radius: 999px;
-  box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 45%, transparent);
+  padding: 12px 22px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #fff8f5;
+  background: var(--accent);
+  border: 1px solid var(--accent-active);
+  border-radius: 0;
+  box-shadow: var(--shadow-md);
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: background var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .cached-funds-compare-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 28px color-mix(in srgb, var(--accent) 55%, transparent);
-}
-
-.cached-funds-compare-btn:active {
-  transform: translateY(0);
+  background: var(--accent-hover);
+  box-shadow: var(--shadow-lg);
 }
 
 .cached-funds-jiuquan-btn {
-  background: linear-gradient(135deg, var(--success), #059669);
-  box-shadow: 0 8px 24px color-mix(in srgb, #059669 45%, transparent);
+  background: var(--copper);
+  border-color: #8a5624;
 }
 
 .cached-funds-jiuquan-btn:hover {
-  box-shadow: 0 12px 28px color-mix(in srgb, #059669 55%, transparent);
+  background: #c98548;
 }

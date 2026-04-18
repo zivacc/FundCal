@@ -440,10 +440,10 @@ function renderCharts() {
   if (typeof Chart === 'undefined' || !els.barCanvas || !els.scatterCanvas) return;
   destroyCharts();
 
-  const chartGridColor = 'rgba(56, 189, 248, 0.06)';
-  const chartTickColor = '#5b7a9d';
-  const chartTitleColor = '#94b8db';
-  const chartFont = { family: "'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif", size: 11 };
+  const chartGridColor = 'rgba(185, 28, 28, 0.08)';
+  const chartTickColor = '#8a7a6b';
+  const chartTitleColor = '#c7b8a8';
+  const chartFont = { family: "'LXGW WenKai', 'Noto Serif SC', 'Songti SC', 'PingFang SC', 'Microsoft YaHei', serif", size: 11 };
 
   const topRows = state.sortedRows.filter(r => Number.isFinite(getBarNumber(r))).slice(0, 10);
   state.charts.bar = new Chart(els.barCanvas, {

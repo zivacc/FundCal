@@ -142,6 +142,49 @@
     font-size: 1.25rem;
   }
 
+  .subtitle,
+  .page-header p {
+    font-size: 0.75rem;
+    line-height: 1.45;
+  }
+
+  /* 按钮/切换文字紧凑 */
+  .btn,
+  .btn-sm {
+    padding: 0.45rem 0.65rem;
+    font-size: 0.78rem;
+    white-space: nowrap;
+  }
+
+  .toggle-btn-text,
+  .toggle-select,
+  .calc-discount-label {
+    font-size: 0.72rem;
+    white-space: nowrap;
+  }
+
+  .chart-options {
+    gap: 0.35rem;
+    flex-wrap: wrap;
+  }
+
+  .actions,
+  .actions-above-cards-right,
+  .calc-days-actions-right {
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .calc-days-row label,
+  .calc-days-sep {
+    font-size: 0.78rem;
+  }
+
+  .page-header-link {
+    font-size: 0.78rem;
+    white-space: nowrap;
+  }
+
   .container {
     padding: 0.75rem;
   }
@@ -260,6 +303,27 @@
 @media (max-width: 520px) {
   .fund-stats-grid {
     grid-template-columns: 1fr;
+  }
+
+  h1 {
+    font-size: 1.1rem;
+  }
+
+  .subtitle,
+  .page-header p {
+    font-size: 0.7rem;
+  }
+
+  .btn,
+  .btn-sm {
+    padding: 0.4rem 0.55rem;
+    font-size: 0.72rem;
+  }
+
+  .toggle-btn-text,
+  .toggle-select,
+  .calc-discount-label {
+    font-size: 0.68rem;
   }
 }
 

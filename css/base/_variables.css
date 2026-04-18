@@ -1,63 +1,67 @@
 /* ══════════════════════════════════════════════════════════════
-   CSS 变量 - 科技感深色仪表盘主题
+   CSS 变量 - 铁账 (Iron Ledger) 主题
+   朱砂红 × 暖炭黑 × 铜金：传统账簿 × 工业金属 × 金融终端
    ══════════════════════════════════════════════════════════════ */
 
 :root {
-  /* ── 背景色梯度 ── */
-  --bg-base: #050a12;           /* 最深背景，接近纯黑带微蓝 */
-  --bg-raised: #0a1628;         /* 略浅背景，卡片基底 */
-  --bg-surface: #0f1f35;        /* 面板/卡片主体背景 */
-  --bg-input: #060d18;          /* 输入框背景 */
-  --bg-elevated: #0c1a2e;       /* 悬浮面板 */
-  --bg-subtle: #071018;         /* 次级背景 */
-  --bg-hover: #132744;          /* 悬停状态背景 */
-  --bg-muted: #0a1524;          /* 弱化背景 */
-  --bg-glass: rgba(10, 22, 40, 0.85); /* 玻璃拟态背景 */
+  /* ── 背景色梯度：暖炭黑 ── */
+  --bg-base: #0c0a09;           /* 最深底色：暖炭黑 */
+  --bg-raised: #171310;         /* 略浅底：卡片基底 */
+  --bg-surface: #211c19;        /* 面板/卡片主体 */
+  --bg-input: #14100e;          /* 输入框背景 */
+  --bg-elevated: #1e1916;       /* 悬浮面板 */
+  --bg-subtle: #100d0b;         /* 次级背景 */
+  --bg-hover: #2a231f;          /* 悬停状态 */
+  --bg-muted: #1a1613;          /* 弱化背景 */
+  --bg-glass: rgba(23, 19, 16, 0.88); /* 玻璃拟态 */
 
-  /* ── 边框系统 ── */
-  --border: rgba(56, 189, 248, 0.15);       /* 默认边框：青色透明 */
-  --border-hover: rgba(56, 189, 248, 0.35); /* 悬停边框 */
-  --border-focus: #38bdf8;                   /* 聚焦边框：亮青色 */
-  --border-subtle: rgba(30, 64, 175, 0.2);  /* 弱化边框 */
-  --border-glow: rgba(56, 189, 248, 0.5);   /* 发光边框 */
+  /* ── 边框系统：朱砂透明 ── */
+  --border: rgba(185, 28, 28, 0.32);       /* 默认边框 */
+  --border-hover: rgba(185, 28, 28, 0.55); /* 悬停边框 */
+  --border-focus: #b91c1c;                 /* 聚焦边框：朱砂 */
+  --border-subtle: rgba(184, 140, 115, 0.38);/* 弱化边框：暖棕 */
+  --border-glow: rgba(185, 28, 28, 0.65);  /* 强调边框 */
 
-  /* ── 文字色阶 ── */
-  --text-primary: #f0f6ff;      /* 主文字：带蓝调的白 */
-  --text-secondary: #94b8db;    /* 次文字：淡蓝灰 */
-  --text-tertiary: #5b7a9d;     /* 三级文字：暗蓝灰 */
-  --text-muted: #3d5a80;        /* 禁用/弱化文字 */
-  --text-inverse: #050a12;      /* 反色文字 */
+  /* ── 文字色阶：象牙暖白 ── */
+  --text-primary: #f5f0eb;      /* 主文字：象牙白 */
+  --text-secondary: #c7b8a8;    /* 次文字：暖米灰 */
+  --text-tertiary: #8a7a6b;     /* 三级文字：炭褐 */
+  --text-muted: #5a4e44;        /* 弱化/禁用 */
+  --text-inverse: #0c0a09;      /* 反色文字 */
 
-  /* ── 主色调：科技青蓝 ── */
-  --accent: #38bdf8;            /* 主强调色：天青 */
-  --accent-hover: #60cdff;      /* 悬停态 */
-  --accent-active: #0ea5e9;     /* 激活态 */
-  --accent-subtle: rgba(56, 189, 248, 0.12);
-  --accent-glow: rgba(56, 189, 248, 0.4);
-  --accent-neon: 0 0 20px rgba(56, 189, 248, 0.6), 0 0 40px rgba(56, 189, 248, 0.3);
+  /* ── 主色调：朱砂红 ── */
+  --accent: #b91c1c;            /* 主强调色：朱砂 */
+  --accent-hover: #dc2626;      /* 悬停态 */
+  --accent-active: #991b1b;     /* 激活态 */
+  --accent-subtle: rgba(185, 28, 28, 0.15);
+  --accent-glow: rgba(185, 28, 28, 0.35);
+  --accent-neon: 0 2px 0 rgba(185, 28, 28, 0.5), inset 0 1px 0 rgba(255, 200, 180, 0.08);
 
-  /* ── 辅助色：电紫 ── */
-  --purple: #a78bfa;
-  --purple-glow: rgba(167, 139, 250, 0.4);
-  --purple-subtle: rgba(167, 139, 250, 0.12);
+  /* ── 辅助色：铜金 ── */
+  --purple: #b87333;            /* 保留变量名兼容，值改铜金 */
+  --purple-glow: rgba(184, 115, 51, 0.35);
+  --purple-subtle: rgba(184, 115, 51, 0.14);
+  --copper: #b87333;
+  --copper-glow: rgba(184, 115, 51, 0.35);
+  --copper-subtle: rgba(184, 115, 51, 0.14);
 
-  /* ── 辅助色：霓虹粉 ── */
-  --pink: #f472b6;
-  --pink-glow: rgba(244, 114, 182, 0.4);
-  --pink-subtle: rgba(244, 114, 182, 0.12);
+  /* ── 辅助色：赭石（替代粉色）── */
+  --pink: #c2410c;
+  --pink-glow: rgba(194, 65, 12, 0.35);
+  --pink-subtle: rgba(194, 65, 12, 0.14);
 
   /* ── 数据状态颜色 ── */
-  --success: #22d3a0;           /* 成功/上涨：翡翠绿 */
-  --success-glow: rgba(34, 211, 160, 0.4);
-  --success-subtle: rgba(34, 211, 160, 0.12);
+  --success: #4d8f6c;           /* 上涨：墨绿（与朱砂红共存不抢眼）*/
+  --success-glow: rgba(77, 143, 108, 0.35);
+  --success-subtle: rgba(77, 143, 108, 0.14);
 
-  --warning: #fbbf24;           /* 警告/持平：琥珀黄 */
-  --warning-glow: rgba(251, 191, 36, 0.4);
-  --warning-subtle: rgba(251, 191, 36, 0.12);
+  --warning: #d97706;           /* 警告：赭黄 */
+  --warning-glow: rgba(217, 119, 6, 0.35);
+  --warning-subtle: rgba(217, 119, 6, 0.14);
 
-  --danger: #ef4444;            /* 危险/下跌：鲜红 */
-  --danger-glow: rgba(239, 68, 68, 0.4);
-  --danger-subtle: rgba(239, 68, 68, 0.12);
+  --danger: #7f1d1d;            /* 下跌/危险：暗朱（与 accent 区分）*/
+  --danger-glow: rgba(127, 29, 29, 0.45);
+  --danger-subtle: rgba(127, 29, 29, 0.16);
 
   /* 兼容别名 */
   --green: var(--success);
@@ -67,37 +71,41 @@
   --yellow-subtle: var(--warning-subtle);
   --red-subtle: var(--danger-subtle);
 
-  /* ── 渐变定义 ── */
-  --gradient-primary: linear-gradient(135deg, #38bdf8 0%, #a78bfa 100%);
-  --gradient-surface: linear-gradient(180deg, rgba(56, 189, 248, 0.08) 0%, transparent 60%);
-  --gradient-card: linear-gradient(145deg, rgba(56, 189, 248, 0.06) 0%, transparent 50%);
-  --gradient-glow: radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.15) 0%, transparent 60%);
-  --gradient-border: linear-gradient(135deg, rgba(56, 189, 248, 0.4), rgba(167, 139, 250, 0.4));
+  /* ── 渐变（大幅弱化，铁账偏好纯色+细线）── */
+  --gradient-primary: linear-gradient(180deg, #b91c1c 0%, #991b1b 100%);
+  --gradient-surface: linear-gradient(180deg, rgba(185, 28, 28, 0.06) 0%, transparent 70%);
+  --gradient-card: linear-gradient(180deg, rgba(185, 28, 28, 0.04) 0%, transparent 40%);
+  --gradient-glow: radial-gradient(circle at 50% 0%, rgba(185, 28, 28, 0.1) 0%, transparent 70%);
+  --gradient-border: linear-gradient(180deg, rgba(185, 28, 28, 0.5), rgba(184, 115, 51, 0.3));
 
-  /* ── 圆角 ── */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
+  /* ── 圆角：全零 ── */
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
 
-  /* ── 阴影 ── */
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 40px rgba(56, 189, 248, 0.05);
-  --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.6), 0 0 60px rgba(56, 189, 248, 0.08);
-  --shadow-glow: 0 0 20px rgba(56, 189, 248, 0.3), 0 0 40px rgba(56, 189, 248, 0.1);
-  --shadow-glow-strong: 0 0 30px rgba(56, 189, 248, 0.5), 0 0 60px rgba(56, 189, 248, 0.2);
+  /* ── 阴影：金属压印 (inset) ── */
+  --shadow-sm: 0 1px 0 rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 200, 180, 0.04);
+  --shadow-md: 0 2px 0 rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 200, 180, 0.05);
+  --shadow-lg: 0 4px 0 rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 200, 180, 0.06);
+  --shadow-glow: 0 0 0 1px rgba(185, 28, 28, 0.4), inset 0 1px 0 rgba(255, 200, 180, 0.06);
+  --shadow-glow-strong: 0 0 0 1px rgba(185, 28, 28, 0.7), inset 0 1px 0 rgba(255, 200, 180, 0.08);
 
-  /* ── 字体 ── */
-  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
-    'Microsoft YaHei', sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  /* ── 字体：霞鹜文楷 + DM Mono ── */
+  --font-body: 'LXGW WenKai', 'Noto Serif SC', 'Songti SC', 'STSong', 'PingFang SC',
+    'Microsoft YaHei', serif;
+  --font-mono: 'DM Mono', 'JetBrains Mono', 'Consolas', monospace;
 
   /* ── 过渡 ── */
-  --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-glow: 0.3s ease-out;
+  --transition-fast: 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-glow: 0.25s ease-out;
 
-  /* ── 玻璃拟态参数 ── */
-  --glass-blur: blur(16px);
-  --glass-saturate: saturate(180%);
+  /* ── 玻璃拟态 ── */
+  --glass-blur: blur(10px);
+  --glass-saturate: saturate(140%);
+
+  /* ── 铁账特有：账簿红线 ── */
+  --ledger-line: 3px solid #b91c1c;
+  --ledger-line-thin: 1px solid rgba(185, 28, 28, 0.45);
 }

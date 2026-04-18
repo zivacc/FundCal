@@ -110,18 +110,30 @@
 
 /* Toggle 选择器 */
 .toggle-select {
-  padding: 0.25rem 0.5rem;
-  border-radius: var(--radius-sm);
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding: 0.25rem 1.75rem 0.25rem 0.5rem;
+  border-radius: 0;
   border: 1px solid var(--border);
-  background: var(--bg-input);
+  background-color: var(--bg-input);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a7a6b' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
   color: var(--text-primary);
+  font-family: var(--font-body);
   font-size: 0.8rem;
   cursor: pointer;
 }
 
+.toggle-select::-ms-expand {
+  display: none;
+}
+
 .toggle-select:focus {
   outline: none;
-  border-color: var(--border-focus);
+  border-color: var(--accent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23b91c1c' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
 }
 
 /* Toggle 按钮 */
@@ -142,22 +154,11 @@
 
 .toggle-btn-text {
   font-size: 0.8rem;
-  color: var(--text-secondary);
-  padding: 0.25rem 0.5rem;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
+  color: inherit;
   background: transparent;
-  transition: all var(--transition-fast);
-}
-
-.toggle-btn-input:checked + .toggle-btn-text {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-subtle);
-}
-
-.toggle-btn:hover .toggle-btn-text {
-  border-color: var(--border-hover);
+  border: none;
+  padding: 0;
+  transition: color var(--transition-fast);
 }
 
 .toggle-btn-inline {

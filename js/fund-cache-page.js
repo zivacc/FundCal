@@ -1,4 +1,4 @@
-/** @typedef {{code:string,name:string,buyFee:number,annualFee:number,sellFeeSegments?:Array<{days:number,rate:number,unbounded?:boolean}>,trackingTarget?:string,fundManager?:string,performanceBenchmark?:string,tradingStatus?:{subscribe?:string,redeem?:string},initials?:string,fundType?:string,updatedAt?:string,raw?:any}} CachedFundRow */
+/** @typedef {{code:string,name:string,buyFee:number,annualFee:number,sellFeeSegments?:Array<{days:number,rate:number,unbounded?:boolean}>,trackingTarget?:string,fundManager?:string,performanceBenchmark?:string,tradingStatus?:{subscribe?:string,redeem?:string},initials?:string,fundType?:string,establishmentDate?:string,updatedAt?:string,raw?:any}} CachedFundRow */
 
 /** @type {CachedFundRow[]} */
 let allFunds = [];
@@ -211,6 +211,11 @@ function compareByCurrentSort(a, b, sort) {
      const bv = b.fundType || '';
      return factor * av.localeCompare(bv, 'zh-CN');
    }
+   if (key === 'establishmentDate') {
+     const av = a.establishmentDate || '';
+     const bv = b.establishmentDate || '';
+     return factor * av.localeCompare(bv);
+   }
    if (key === 'sellFee') {
      const ra = Array.isArray(a.sellFeeSegments) && a.sellFeeSegments.length ? (a.sellFeeSegments[0].rate ?? 0) : 0;
      const rb = Array.isArray(b.sellFeeSegments) && b.sellFeeSegments.length ? (b.sellFeeSegments[0].rate ?? 0) : 0;
@@ -317,7 +322,7 @@ function renderTable() {
   if (!pageRows.length) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="13" class="cached-funds-empty">没有匹配的基金</td>
+        <td colspan="14" class="cached-funds-empty">没有匹配的基金</td>
       </tr>
     `;
     return;
@@ -333,6 +338,7 @@ function renderTable() {
       <td>${escapeHtml(f.code)}</td>
       <td>${escapeHtml(f.name)}</td>
       <td>${escapeHtml(f.fundType || '-')}</td>
+      <td>${escapeHtml(f.establishmentDate || '-')}</td>
       <td>${formatPercent(f.buyFee)}</td>
       <td>${annualText}</td>
       <td>${formatSellFeeSegments(f.sellFeeSegments)}</td>
@@ -371,6 +377,7 @@ async function loadCachedFunds() {
           annualFee: f.annualFee ?? (f.operationFees?.total ?? 0),
           sellFeeSegments: f.sellFeeSegments ?? f.redeemSegments ?? [],
           fundType: f.fundType || '',
+          establishmentDate: f.establishmentDate || '',
           trackingTarget: f.trackingTarget || '',
           performanceBenchmark: f.performanceBenchmark || '',
           fundManager: f.fundManager || '',
@@ -397,6 +404,7 @@ async function loadCachedFunds() {
           annualFee: row.annualFee ?? origin?.annualFee ?? (origin?.operationFees?.total ?? 0),
           sellFeeSegments: row.sellFeeSegments ?? origin?.sellFeeSegments ?? origin?.redeemSegments ?? [],
           fundType: row.fundType || origin?.fundType || '',
+          establishmentDate: row.establishmentDate || origin?.establishmentDate || '',
           trackingTarget: row.trackingTarget || origin?.trackingTarget || '',
           performanceBenchmark: row.performanceBenchmark || origin?.performanceBenchmark || '',
           fundManager: row.fundManager || origin?.fundManager || '',
@@ -728,6 +736,7 @@ function setupEvents() {
         else if (key === 'buyFee') mappedKey = 'buy';
         else if (key === 'annualFee') mappedKey = 'annual';
         else if (key === 'fundType') mappedKey = 'fundType';
+        else if (key === 'establishmentDate') mappedKey = 'establishmentDate';
         else if (key === 'sellFee') mappedKey = 'sellFee';
         else if (key === 'trackingTarget') mappedKey = 'trackingTarget';
         else if (key === 'performanceBenchmark') mappedKey = 'performanceBenchmark';
