@@ -1,6 +1,6 @@
 # 部署与运维指南
 
-同一份代码支持三种部署方式：本地开发、阿里云 ECS 服务器、GitHub Pages 纯静态托管。
+同一份代码支持四种部署方式：本地开发、GitHub Pages 纯静态托管、Cloudflare Workers（推荐）、阿里云 ECS 服务器。
 
 ---
 
@@ -88,7 +88,128 @@ window.FUND_FEE_API_BASE = 'http://你的阿里云公网IP/api/fund';
 
 ---
 
-## 三、阿里云 ECS 服务器部署
+## 三、Cloudflare Workers 部署（推荐）
+
+全球 CDN 加速 + 免费额度足够个人使用，页面和 API 部署在同一个 Worker 中。
+
+### 架构
+
+```
+用户浏览器
+    ↓ Cloudflare 全球边缘节点
+Worker (src/worker.js)
+    ├── 静态资源 ← dist/ 目录（HTML/CSS/JS/图片）
+    ├── /api/fund/* ← Cloudflare KV（基金数据）
+    └── /data/allfund/*.json ← Cloudflare KV（索引文件）
+```
+
+### 1. 前提
+
+- 已有 Cloudflare 账号（免费即可）
+- 本地已安装 Node.js
+
+### 2. 登录 Wrangler
+
+```bash
+npx wrangler login       # 浏览器会跳转授权
+npx wrangler whoami       # 验证登录成功
+```
+
+### 3. 创建 KV 命名空间
+
+```bash
+npx wrangler kv namespace create FUND_DATA
+npx wrangler kv namespace create FUND_DATA --preview
+```
+
+记下输出的两个 namespace ID，填入 `wrangler.toml`：
+
+```toml
+name = "fundcal"
+main = "src/worker.js"
+compatibility_date = "2024-12-01"
+
+[assets]
+directory = "./dist"
+
+[[kv_namespaces]]
+binding = "FUND_DATA"
+id = "你的_production_namespace_id"
+preview_id = "你的_preview_namespace_id"
+```
+
+### 4. 上传数据到 KV
+
+```bash
+# 确保已有 allfund.json（如没有，先爬取并构建）
+node scripts/build-allfund.js
+npm run build-all
+
+# 上传全部数据（索引 + 26000+ 只基金，约 2 分钟）
+npm run upload-kv
+
+# 或分开上传
+npm run upload-kv -- --meta-only     # 仅索引文件
+npm run upload-kv -- --funds-only    # 仅基金数据
+```
+
+### 5. 部署
+
+```bash
+npm run deploy:workers
+```
+
+会自动执行：`build:workers`（复制前端文件到 `dist/`）→ `wrangler deploy`（上传静态资源 + Worker 代码）。
+
+部署成功后访问：`https://你的worker名.workers.dev`
+
+### 6. 绑定自定义域名（推荐，大陆访问加速）
+
+`.workers.dev` 域名在中国大陆访问较慢，建议绑定自定义域名：
+
+1. 在 Cloudflare Dashboard 添加你的域名，修改域名注册商的 DNS 服务器为 Cloudflare 提供的地址
+2. 等待域名状态变为 Active
+3. Workers & Pages → `fundcal` → Settings → Domains & Routes → Add → Custom Domain
+4. 输入域名（如 `fund.yourdomain.com`），Cloudflare 自动配置 DNS 和 SSL
+
+### 7. 更新数据
+
+```bash
+# 爬取 + 构建
+node scripts/crawl-all-fund-fee.js
+node scripts/build-allfund.js
+npm run build-all
+
+# 上传到 KV
+npm run upload-kv
+
+# 如果前端代码也有变更，重新部署
+npm run deploy:workers
+```
+
+> 仅更新数据时只需 `upload-kv`，不需要重新 `deploy:workers`。
+> 前端代码变更（HTML/CSS/JS）才需要重新部署。
+
+### 8. 本地调试
+
+```bash
+npm run dev:workers      # 本地启动 Wrangler 开发服务器（含 KV 模拟）
+```
+
+### 故障排查
+
+| 现象 | 可能原因 | 处理 |
+|------|---------|------|
+| `assets.directory does not exist` | 未先构建 dist | 使用 `npm run deploy:workers`（自动构建） |
+| `npm ci` 报锁文件不同步 | package-lock.json 过期 | `npm install` 更新锁文件后提交 |
+| 列表页数据为 0 | KV 未上传或 list-index.json 缺失 | `npm run upload-kv -- --meta-only` |
+| 基金详情 404 | 基金数据未上传到 KV | `npm run upload-kv -- --funds-only` |
+| 排排网比较不可用 | 映射文件未部署 | 确认 `data/smpp/` 下有映射文件后重新 `deploy:workers` |
+| `FUND_DATA has both a namespace ID and a preview ID` | wrangler v4 要求显式指定 | 脚本已自动处理，确保用 `npm run upload-kv` |
+
+---
+
+## 四、阿里云 ECS 服务器部署
 
 ### 1. 准备
 
@@ -180,7 +301,7 @@ pm2 stop fund-api        # 停止
 
 ---
 
-## 四、域名与 HTTPS（可选）
+## 五、域名与 HTTPS（可选，仅阿里云 ECS）
 
 1. **域名解析**：在阿里云「域名解析」添加 A 记录，指向 ECS 公网 IP
 
@@ -202,15 +323,18 @@ certbot --nginx -d fund.yourdomain.com
 
 ---
 
-## 五、Git 同步工作流
+## 六、Git 同步工作流
 
 ### 架构
 
 ```
 本地电脑  ──git push──→  GitHub  ←──git pull──  阿里云服务器
  (开发)                 (版本中心)               (生产)
-                            ↓
-                     GitHub Pages (静态托管)
+      \                     ↓
+       \             GitHub Pages (静态托管)
+        \
+         └── npm run upload-kv ──→  Cloudflare KV (数据)
+         └── npm run deploy:workers → Cloudflare Workers (页面+API)
 ```
 
 ### 日常流程
@@ -234,12 +358,17 @@ bash scripts/deploy.sh
 
 | 文件 | 是否入库 | 说明 |
 |------|:---:|------|
-| `data/allfund/allfund.json` | 是 | 全量聚合（~49MB），GitHub Pages 直接读取 |
+| `data/allfund/allfund.json` | 是 | 全量聚合（~73MB），GitHub Pages 直接读取，也是 KV 上传的数据源 |
 | `data/allfund/search-index.json` | 是 | 搜索索引 |
+| `data/allfund/list-index.json` | 是 | 列表页索引（含跟踪标的、基金公司等完整字段） |
 | `data/allfund/feeder-index.json` | 是 | 联接基金索引 |
 | `data/allfund/fund-stats.json` | 是 | 统计数据 |
+| `data/allfund/fund-stats-detail.json` | 是 | 统计详情 |
+| `data/allfund/funds/*.json` | 否 | 分片文件（由 build-allfund.js 生成，不入库） |
 | `data/funds/*.json` | 否 | 单只基金缓存（26000+ 文件，仅本地/服务器使用） |
+| `data/smpp/*.json` | 是 | 排排网代码映射（构建时自动取最新文件） |
 | `node_modules/` | 否 | 依赖目录 |
+| `dist/` | 否 | Workers 构建产物（由 build:workers 生成） |
 
 `data/funds/` 不入库，同步方式：
 
@@ -256,17 +385,18 @@ npm run build-all
 
 ---
 
-## 六、环境配置说明
+## 七、环境配置说明
 
 ### js/config.js
 
 全局配置文件，控制 API 基地址。大多数情况下**无需修改**（自动检测）。
 
 ```javascript
-// 三种环境自动适配：
-// - localhost      → http://localhost:3457/api/fund
-// - *.github.io    → 读取静态文件（不走 API）
-// - 其他域名       → /api/fund（Nginx 反代）
+// 四种环境自动适配：
+// - localhost        → http://localhost:3457/api/fund
+// - *.github.io      → 读取静态文件（不走 API）
+// - *.workers.dev    → /api/fund（同源 Worker 处理）
+// - 其他域名         → /api/fund（Nginx 反代或 Worker）
 
 // 手动覆盖（可选）：
 // window.FUND_FEE_API_BASE = 'http://你的服务器IP/api/fund';
@@ -282,7 +412,7 @@ Nginx 配置模板，包含静态服务、API 反代、CORS、安全规则。部
 
 ---
 
-## 七、故障排查
+## 八、故障排查
 
 | 现象 | 可能原因 | 处理 |
 |------|---------|------|
@@ -296,18 +426,29 @@ Nginx 配置模板，包含静态服务、API 反代、CORS、安全规则。部
 
 ---
 
-## 八、命令速查
+## 九、命令速查
 
 | 场景 | 命令 |
 |------|------|
-| 本地一键启动 | `start.bat` / `start.sh` / `npm run dev` |
+| **本地开发** | |
+| 一键启动 | `start.bat` / `start.sh` / `npm run dev` |
 | 仅启动 API | `npm run api` |
 | 仅启动静态服务 | `npm run serve` |
-| 构建所有索引 | `npm run build-all` |
+| **数据构建** | |
 | 爬取全量基金 | `node scripts/crawl-all-fund-fee.js` |
 | 聚合数据 | `node scripts/build-allfund.js` |
+| 构建所有索引 | `npm run build-all` |
+| **Cloudflare Workers** | |
+| 登录 Wrangler | `npx wrangler login` |
+| 上传全部数据到 KV | `npm run upload-kv` |
+| 仅上传索引到 KV | `npm run upload-kv -- --meta-only` |
+| 仅上传基金到 KV | `npm run upload-kv -- --funds-only` |
+| 部署 Worker + 静态资源 | `npm run deploy:workers` |
+| 本地调试 Worker | `npm run dev:workers` |
+| **阿里云 ECS** | |
 | 服务器首次部署 | `bash scripts/deploy.sh --init` |
 | 服务器更新 | `bash scripts/deploy.sh` |
 | 查看 API 日志 | `pm2 logs fund-api` |
 | 重启 API | `pm2 restart fund-api` |
+| **Git** | |
 | 推送更新 | `git add -A && git commit -m "..." && git push` |

@@ -1,6 +1,6 @@
 {
   "description": "Feeder (联接) and master (母基金) index. feederByMasterKey: lookup by master name; codeToFeeder: lookup by fund code.",
-  "updatedAt": "2026-04-18T05:34:33.764Z",
+  "updatedAt": "2026-04-18T13:53:53.916Z",
   "feederByMasterKey": {
     "嘉实中证500ETF": {
       "masterCode": null,
