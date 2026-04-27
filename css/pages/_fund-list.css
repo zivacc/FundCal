@@ -104,10 +104,13 @@
 .cached-funds-search-icon-img {
   width: 1.1rem;
   height: 1.1rem;
-  border-radius: var(--radius-sm);
-  object-fit: cover;
+  object-fit: contain;
   display: block;
 }
+
+.cached-funds-search-icon-img.logo-dark { display: none; }
+[data-theme="dark"] .cached-funds-search-icon-img.logo-light { display: none; }
+[data-theme="dark"] .cached-funds-search-icon-img.logo-dark { display: block; }
 
 .cached-funds-search-clear {
   position: absolute;

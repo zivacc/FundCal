@@ -33,31 +33,24 @@
 }
 
 .top-rail-logo {
-  width: 22px;
-  height: 22px;
-  border-radius: 5px;
-  background: var(--text-primary);
-  color: var(--bg-base);
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: -0.5px;
-  font-family: var(--font-serif);
-  overflow: hidden;
+  overflow: visible;
+  background: transparent;
 }
 
 .top-rail-logo img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  filter: grayscale(1) brightness(1.1);
+  object-fit: contain;
 }
 
-[data-theme="dark"] .top-rail-logo img {
-  filter: grayscale(1) brightness(0.3) invert(1);
-}
+.top-rail-logo .logo-dark { display: none; }
+[data-theme="dark"] .top-rail-logo .logo-light { display: none; }
+[data-theme="dark"] .top-rail-logo .logo-dark { display: block; }
 
 .top-rail-name {
   font-size: 14px;
