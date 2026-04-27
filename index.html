@@ -8,24 +8,53 @@
   <link rel="stylesheet" href="css/main.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Source+Serif+4:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css" rel="stylesheet">
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('fundcal-theme');
+        if (t === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+      } catch (e) {}
+    })();
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
 </head>
 <body>
-  <div class="container">
-    <header class="page-header">
-      <div>
-        <h1>基金费率计算器</h1>
-        <p class="subtitle">对比多只基金在不同持有期限下的累计费率，并标注交点</p>
+  <!-- 顶部导航条 -->
+  <nav class="top-rail" aria-label="主导航">
+    <div class="top-rail-left">
+      <a class="top-rail-brand" href="#/calc">
+        <span class="top-rail-logo"><img src="pics/klogo.png" alt=""></span>
+        <span class="top-rail-name">FundCal</span>
+      </a>
+      <div class="top-rail-tabs" role="tablist">
+        <a href="#/calc" class="top-rail-tab" data-route="calc" role="tab">计算器</a>
+        <a href="#/list" class="top-rail-tab" data-route="list" role="tab">基金列表</a>
+        <a href="#/index" class="top-rail-tab" data-route="index" role="tab">指数选基</a>
+        <a href="#/stats" class="top-rail-tab" data-route="stats" role="tab">统计</a>
       </div>
-      <div class="page-header-right">
-        <a href="index-picker.html" class="page-header-link" id="open-index-page" title="按指数批量比较基金">指数页-&gt;</a>
-        <a href="cached-funds.html" class="page-header-link" id="open-cached-funds" title="查看所有已缓存基金，并进行搜索和排序">基金列表-&gt;</a>
-        <a href="cached-fund-stats.html" class="page-header-link" id="open-cached-fund-stats" title="查看缓存基金统计">统计-&gt;</a>
-      </div>
-    </header>
+    </div>
+    <div class="top-rail-right">
+      <button type="button" class="theme-toggle" id="theme-toggle" title="切换浅色 / 深色" aria-label="切换主题">
+        <span class="theme-toggle-icon" aria-hidden="true">◐</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ═════════════════════════════════════════════════════════════
+       页面 1：费率计算器
+       ═════════════════════════════════════════════════════════════ -->
+  <section class="page page-calc" data-route="calc">
+    <div class="container">
+      <header class="page-header">
+        <div>
+          <span class="page-header-kicker">CALCULATOR</span>
+          <h1>基金费率计算器</h1>
+          <p class="subtitle">对比多只基金在不同持有期限下的累计费率，并标注交点</p>
+        </div>
+      </header>
 
       <div class="actions actions-above-cards">
         <div class="fund-search-wrap">
@@ -44,110 +73,462 @@
           <button type="button" class="btn btn-secondary" id="clear-storage" title="清除所有基金卡片并清除本地暂存">清除所有</button>
         </div>
       </div>
-    <div class="fund-cards" id="fund-cards"></div>
+      <div class="fund-cards" id="fund-cards"></div>
 
-    <div class="actions">
-      <div class="form-row calc-days-row">
-        <label for="calc-days-min">显示天数</label>
-        <input type="number" id="calc-days-min" value="" min="0" placeholder="起始" title="起始天数，空则与结束二选一或自动">
-        <span class="calc-days-sep">–</span>
-        <input type="number" id="calc-days-max" value="" min="0" placeholder="结束" title="结束天数">
-        <button type="button" class="btn btn-sm btn-secondary calc-days-quick-btn" id="calc-days-60" title="结束天数设为 60">60</button>
-        <button type="button" class="btn btn-sm btn-secondary calc-days-quick-btn" id="calc-days-365" title="结束天数设为 365">365</button>
-        <button type="button" class="btn btn-sm btn-secondary calc-days-quick-btn" id="calc-days-max-btn" title="结束天数设为最大（7300）">MAX</button>
-        <div class="calc-days-actions-right">
-          <div class="calc-discount-wrap" title="按折扣系数调整所有基金买入费率，仅影响计算，不改动输入框数值">
-            <span class="calc-discount-label">买入</span>
-            <select id="buy-fee-discount" class="toggle-select" aria-label="买入费率折扣">
-              <option value="0.1">一折</option>
-              <option value="1">原价</option>
-              <option value="0.01">0.1折</option>
-              <option value="0">免申购</option>
+      <div class="actions">
+        <div class="form-row calc-days-row">
+          <label for="calc-days-min">显示天数</label>
+          <input type="number" id="calc-days-min" value="" min="0" placeholder="起始" title="起始天数，空则与结束二选一或自动">
+          <span class="calc-days-sep">–</span>
+          <input type="number" id="calc-days-max" value="" min="0" placeholder="结束" title="结束天数">
+          <button type="button" class="btn btn-sm btn-secondary calc-days-quick-btn" id="calc-days-60" title="结束天数设为 60">60</button>
+          <button type="button" class="btn btn-sm btn-secondary calc-days-quick-btn" id="calc-days-365" title="结束天数设为 365">365</button>
+          <button type="button" class="btn btn-sm btn-secondary calc-days-quick-btn" id="calc-days-max-btn" title="结束天数设为最大（7300）">MAX</button>
+          <div class="calc-days-actions-right">
+            <div class="calc-discount-wrap" title="按折扣系数调整所有基金买入费率，仅影响计算，不改动输入框数值">
+              <span class="calc-discount-label">买入</span>
+              <select id="buy-fee-discount" class="toggle-select" aria-label="买入费率折扣">
+                <option value="0.1">一折</option>
+                <option value="1">原价</option>
+                <option value="0.01">0.1折</option>
+                <option value="0">免申购</option>
+              </select>
+            </div>
+            <button type="button" class="btn btn-sm btn-secondary" id="clear-calc-days" title="清空显示区间">清除</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-container">
+        <div class="chart-main">
+          <div class="chart-main-left">
+            <div class="chart-wrapper">
+              <canvas id="chart-canvas"></canvas>
+            </div>
+            <div class="optimal-band" id="optimal-band" aria-hidden="true"></div>
+          </div>
+          <aside class="chart-main-right" id="chart-main-right" aria-label="参与图表计算的基金列表">
+            <button type="button" class="chart-fund-list-toggle" id="chart-fund-list-toggle" title="收起/展开列表"><span class="chart-fund-list-toggle-arrow">›</span></button>
+            <div class="chart-fund-list-body">
+              <div class="chart-fund-list-header">
+                <span>显示基金</span>
+                <span id="chart-fund-list-hint" class="chart-fund-list-hint"></span>
+                <button type="button" class="btn btn-sm btn-secondary chart-fund-list-show-all" id="chart-fund-list-show-all">全部显示</button>
+                <button type="button" class="btn btn-sm btn-secondary chart-fund-list-hide-all" id="chart-fund-list-hide-all">全部隐藏</button>
+              </div>
+              <div class="chart-fund-list" id="chart-fund-list"></div>
+            </div>
+          </aside>
+        </div>
+        <div class="chart-footer">
+          <div class="chart-footer-left">
+            <div class="crossover-legend" id="crossover-legend">
+              <p class="none">请添加基金并填写费率</p>
+            </div>
+          </div>
+          <div class="chart-footer-right">
+            <div class="chart-options">
+              <label class="toggle-btn" for="skip-first-7" title="显示 7 天至结束（自动时 7–自动最大值），弱化前 6 天高费率影响">
+                <input type="checkbox" id="skip-first-7" class="toggle-btn-input" aria-hidden="true">
+                <span class="toggle-btn-text">忽略惩罚期</span>
+              </label>
+              <label class="toggle-btn" for="show-tooltip" title="鼠标悬停在图表曲线上时显示详细费率信息">
+                <input type="checkbox" id="show-tooltip" class="toggle-btn-input" checked aria-hidden="true">
+                <span class="toggle-btn-text">数据悬浮窗</span>
+              </label>
+              <label class="toggle-btn toggle-btn-inline hide-penetrate-linked" title="联接基金年化费率穿透：联接年化 + 母基金年化，买入/卖出费率不变" aria-hidden="true">
+                <input type="checkbox" id="penetrate-linked" class="toggle-btn-input" aria-hidden="true">
+                <span class="toggle-btn-text">联接基金穿透</span>
+              </label>
+              <button type="button" class="btn btn-secondary btn-random-bottom" id="random-data-bottom" title="从已缓存中随机 3–8 只">随机数据</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stage-return-chart-container" id="stage-return-chart-container" hidden>
+        <div class="stage-return-chart-header">
+          <div class="stage-return-chart-title">
+            <h3>业绩比较</h3>
+            <span class="stage-return-chart-subtitle">点击时间节点切换基准；鼠标悬停查看各基金表现</span>
+          </div>
+          <div class="stage-return-chart-actions">
+            <button type="button" class="btn btn-sm btn-secondary" id="stage-return-reset" title="重置基准至默认">重置基准</button>
+          </div>
+        </div>
+        <div class="stage-return-chart-wrapper">
+          <canvas id="stage-return-canvas"></canvas>
+        </div>
+        <div class="stage-return-chart-footer">
+          <span class="stage-return-chart-baseline-hint" id="stage-return-baseline-hint"></span>
+          <span class="stage-return-chart-note">点击任意节点（含 <b>今天 / 成立来</b>）可切换基准；★ 为默认基准。注：<b>成立来</b> 各基金起点不同，切为基准后各曲线将从自身 0% 起分叉。</span>
+        </div>
+      </div>
+
+      <div class="fund-detail-table-wrap" id="fund-detail-table-wrap">
+        <table class="fund-detail-table" id="fund-detail-table">
+          <tbody id="fund-detail-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═════════════════════════════════════════════════════════════
+       页面 2：数据库基金列表
+       ═════════════════════════════════════════════════════════════ -->
+  <section class="page page-list" data-route="list">
+    <div class="cf-layout">
+      <!-- 左侧筛选栏 -->
+      <aside class="cf-sidebar" id="cf-filter-panel">
+        <div class="cf-sidebar-kicker">
+          FILTERS
+          <span class="cf-filter-active-count" id="cf-filter-active-count"></span>
+        </div>
+
+        <div class="cf-sidebar-scroll">
+        <div class="cf-filter-group">
+          <div class="cf-filter-label">基金类型</div>
+          <div class="cf-filter-options cf-filter-options-vertical cf-filter-options-scroll" id="cf-filter-fundType"></div>
+        </div>
+
+        <div class="cf-filter-group">
+          <div class="cf-filter-label">基金公司</div>
+          <div class="cf-filter-options cf-filter-options-vertical cf-filter-options-scroll" id="cf-filter-fundManager"></div>
+        </div>
+
+        <div class="cf-filter-group">
+          <div class="cf-filter-label">申购状态</div>
+          <div class="cf-filter-options cf-filter-options-vertical" id="cf-filter-subscribe"></div>
+        </div>
+
+        <div class="cf-filter-group">
+          <div class="cf-filter-label">赎回状态</div>
+          <div class="cf-filter-options cf-filter-options-vertical" id="cf-filter-redeem"></div>
+        </div>
+
+        <div class="cf-filter-group">
+          <div class="cf-filter-label">浮动费率</div>
+          <div class="cf-filter-options cf-filter-options-vertical" id="cf-filter-floatingFee"></div>
+        </div>
+
+        <div class="cf-filter-group">
+          <div class="cf-filter-label">买入费率 (%)</div>
+          <div class="cf-filter-range">
+            <input type="number" step="0.01" min="0" id="cf-filter-buyFee-min" class="cf-filter-input" placeholder="最低">
+            <span class="cf-filter-range-sep">—</span>
+            <input type="number" step="0.01" min="0" id="cf-filter-buyFee-max" class="cf-filter-input" placeholder="最高">
+          </div>
+        </div>
+
+        <div class="cf-filter-group">
+          <div class="cf-filter-label">年化费率 (%)</div>
+          <div class="cf-filter-range">
+            <input type="number" step="0.01" min="0" id="cf-filter-annualFee-min" class="cf-filter-input" placeholder="最低">
+            <span class="cf-filter-range-sep">—</span>
+            <input type="number" step="0.01" min="0" id="cf-filter-annualFee-max" class="cf-filter-input" placeholder="最高">
+          </div>
+        </div>
+
+        <div class="cf-filter-group">
+          <div class="cf-filter-label">跟踪标的</div>
+          <input type="text" id="cf-filter-trackingTarget" class="cf-filter-input cf-filter-input-wide" placeholder="关键字（沪深300…）">
+        </div>
+        </div><!-- /.cf-sidebar-scroll -->
+
+        <div class="cf-sidebar-footer">
+          <div class="cf-filter-actions">
+            <button type="button" class="btn btn-sm btn-primary" id="cf-filter-apply">应用筛选</button>
+            <button type="button" class="btn btn-sm btn-secondary" id="cf-filter-reset">重置</button>
+          </div>
+          <div class="cf-filter-result-hint" id="cf-filter-result-hint"></div>
+        </div>
+      </aside>
+
+      <!-- 右侧主内容 -->
+      <div class="cf-main">
+        <header class="page-header">
+          <div class="page-header-left">
+            <span class="page-header-kicker">DATABASE</span>
+            <h1>数据库基金列表</h1>
+            <p class="subtitle" id="cached-funds-status">正在加载数据库基金列表...（数据托管在 github，需一点时间）</p>
+          </div>
+          <div class="page-header-right cached-funds-toolbar">
+            <div class="cached-funds-search-wrap">
+              <span class="cached-funds-search-icon" aria-hidden="true">
+                <img src="pics/klogo.png" alt="" class="cached-funds-search-icon-img">
+              </span>
+              <input
+                type="text"
+                id="cached-funds-search"
+                class="cached-funds-search-input"
+                placeholder="搜索代码 / 名称 / 拼音首字母"
+                autocomplete="off">
+              <button
+                type="button"
+                id="cached-funds-search-clear"
+                class="cached-funds-search-clear"
+                title="清空搜索"
+                aria-label="清空搜索">×</button>
+            </div>
+            <select id="cached-funds-sort" class="cached-funds-sort-select" title="排序方式">
+              <option value="code-asc">代码 ↑</option>
+              <option value="code-desc">代码 ↓</option>
+              <option value="name-asc">名称 ↑</option>
+              <option value="name-desc">名称 ↓</option>
+              <option value="annual-desc">年化费率 ↓</option>
+              <option value="annual-asc">年化费率 ↑</option>
+              <option value="buy-desc">买入费率 ↓</option>
+              <option value="buy-asc">买入费率 ↑</option>
             </select>
           </div>
-          <button type="button" class="btn btn-sm btn-secondary" id="clear-calc-days" title="清空显示区间">清除</button>
+        </header>
+
+        <div class="cached-funds-progress">
+          <div class="cached-funds-progress-bar" id="cached-funds-progress-bar"></div>
+        </div>
+
+        <div class="cached-funds-table-wrap">
+          <table class="cached-funds-table">
+            <thead>
+              <tr>
+                <th>原始数据</th>
+                <th data-sort-key="code">代码</th>
+                <th data-sort-key="name">名称</th>
+                <th data-sort-key="fundType">基金类型</th>
+                <th data-sort-key="establishmentDate">成立日期</th>
+                <th data-sort-key="buyFee">买入费率</th>
+                <th data-sort-key="annualFee">年化费率</th>
+                <th data-sort-key="sellFee">卖出费率分段</th>
+                <th data-sort-key="trackingTarget">跟踪标的</th>
+                <th data-sort-key="performanceBenchmark">业绩基准</th>
+                <th data-sort-key="fundManager">基金公司</th>
+                <th data-sort-key="subscribe">申购状态</th>
+                <th data-sort-key="redeem">赎回状态</th>
+                <th data-sort-key="updatedAt">更新时间</th>
+              </tr>
+            </thead>
+            <tbody id="cached-funds-tbody"></tbody>
+          </table>
+        </div>
+
+        <div class="cached-funds-pagination">
+          <div class="cached-funds-pagination-left">
+            <span id="cached-funds-count"></span>
+          </div>
+          <div class="cached-funds-pagination-right">
+            <button type="button" class="btn btn-sm" id="cached-funds-prev">上一页</button>
+            <span id="cached-funds-page-info" class="cached-funds-page-info"></span>
+            <button type="button" class="btn btn-sm" id="cached-funds-next">下一页</button>
+            <input
+              type="number"
+              id="cached-funds-page-input"
+              class="cached-funds-page-input"
+              min="1"
+              placeholder="页码"
+              title="输入页码后回车或失焦跳转">
+            <button type="button" class="btn btn-sm" id="cached-funds-last" title="跳到最后一页">尾页</button>
+            <select id="cached-funds-page-size" class="cached-funds-page-size" title="每页条数">
+              <option value="50">每页 50 条</option>
+              <option value="100" selected>每页 100 条</option>
+              <option value="200">每页 200 条</option>
+              <option value="500">每页 500 条</option>
+              <option value="1000">每页 1000 条</option>
+            </select>
+          </div>
         </div>
       </div>
     </div>
 
-    <div class="chart-container">
-      <div class="chart-main">
-        <div class="chart-main-left">
-          <div class="chart-wrapper">
-            <canvas id="chart-canvas"></canvas>
+    <div id="cached-funds-compare-fab" class="cached-funds-compare-fab" hidden>
+      <button type="button" id="cached-funds-compare-btn" class="cached-funds-compare-btn">去比较</button>
+      <button type="button" id="cached-funds-jiuquan-btn" class="cached-funds-compare-btn cached-funds-jiuquan-btn">去韭圈儿</button>
+    </div>
+  </section>
+
+  <!-- ═════════════════════════════════════════════════════════════
+       页面 3：指数选基
+       ═════════════════════════════════════════════════════════════ -->
+  <section class="page page-index index-page" data-route="index">
+    <div class="ix-hero">
+      <div class="ix-hero-glow ix-hero-glow-a"></div>
+      <div class="ix-hero-glow ix-hero-glow-b"></div>
+
+      <div class="ix-hero-kicker">INDEX · TRACKER · COMPARE</div>
+      <h1 class="ix-hero-title">按<span class="ix-hero-title-accent">指数</span>选基金</h1>
+      <p class="ix-hero-sub">输入你关心的跟踪标的，比较所有挂钩该指数的基金的费率、规模与业绩</p>
+
+      <div class="ix-hero-search-wrap">
+        <div class="ix-hero-search">
+          <svg class="ix-hero-search-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="M21 21l-4.35-4.35"></path>
+          </svg>
+          <input
+            id="index-page-search-input"
+            class="ix-hero-search-input"
+            type="text"
+            placeholder="沪深300 · hs300 · 黄金9999 · 科创50 · hstec …"
+            autocomplete="off"
+            aria-autocomplete="list"
+            aria-controls="index-page-search-dropdown">
+          <div class="ix-hero-cat-tags" id="index-page-cat-tags">
+            <button type="button" class="ix-hero-cat-tag" data-cat="宽基">宽基</button>
+            <button type="button" class="ix-hero-cat-tag" data-cat="行业">行业</button>
+            <button type="button" class="ix-hero-cat-tag" data-cat="商品">商品</button>
+            <button type="button" class="ix-hero-cat-tag" data-cat="海外">海外</button>
           </div>
-          <div class="optimal-band" id="optimal-band" aria-hidden="true"></div>
+          <div class="ix-hero-search-divider"></div>
+          <span class="ix-hero-search-kbd">⌘ K</span>
+          <ul id="index-page-search-dropdown" class="fund-search-dropdown ix-hero-search-dropdown" role="listbox" aria-hidden="true"></ul>
         </div>
-        <aside class="chart-main-right" id="chart-main-right" aria-label="参与图表计算的基金列表">
-          <button type="button" class="chart-fund-list-toggle" id="chart-fund-list-toggle" title="收起/展开列表"><span class="chart-fund-list-toggle-arrow">›</span></button>
-          <div class="chart-fund-list-body">
-            <div class="chart-fund-list-header">
-              <span>显示基金</span>
-              <span id="chart-fund-list-hint" class="chart-fund-list-hint"></span>
-              <button type="button" class="btn btn-sm btn-secondary chart-fund-list-show-all" id="chart-fund-list-show-all">全部显示</button>
-              <button type="button" class="btn btn-sm btn-secondary chart-fund-list-hide-all" id="chart-fund-list-hide-all">全部隐藏</button>
+
+        <div class="ix-hero-meta">
+          <span id="index-page-search-hint" class="cached-funds-status">正在加载指数数据...</span>
+        </div>
+        <div class="index-page-suggestions ix-hero-suggestions" id="index-page-suggestions"></div>
+        <div class="index-page-selected-chips ix-hero-chips" id="index-page-selected-chips"></div>
+      </div>
+    </div>
+
+    <div class="ix-results-wrap">
+      <section class="index-page-main index-page-main-hidden" id="index-page-main">
+        <div class="index-page-toolbar">
+          <div class="index-page-toolbar-left">
+            <label class="index-page-toolbar-label" for="index-page-sort-select">排序规则</label>
+            <select id="index-page-sort-select" class="cached-funds-sort-select">
+              <option value="annualFee_asc" selected>年化费率低优先</option>
+              <option value="buyFee_asc">申购费率低优先</option>
+              <option value="scale_desc">规模大优先</option>
+              <option value="return_desc">收益高优先</option>
+            </select>
+            <div class="index-page-period-wrap" id="index-page-period-wrap" aria-label="收益周期切换">
+              <button type="button" class="btn btn-sm btn-secondary index-page-period-btn" data-period="近6月">近6月</button>
+              <button type="button" class="btn btn-sm btn-secondary index-page-period-btn index-page-period-btn-active" data-period="近1年">近1年</button>
+              <button type="button" class="btn btn-sm btn-secondary index-page-period-btn" data-period="近3年">近3年</button>
             </div>
-            <div class="chart-fund-list" id="chart-fund-list">
-              <!-- 由 js/app.js 动态渲染 -->
-            </div>
           </div>
-        </aside>
-      </div>
-      <div class="chart-footer">
-        <div class="chart-footer-left">
-          <div class="crossover-legend" id="crossover-legend">
-            <p class="none">请添加基金并填写费率</p>
+          <div class="index-page-toolbar-right">
+            <span id="index-page-loading-status" class="cached-funds-status"></span>
           </div>
         </div>
-        <div class="chart-footer-right">
-          <div class="chart-options">
-            <label class="toggle-btn" for="skip-first-7" title="显示 7 天至结束（自动时 7–自动最大值），弱化前 6 天高费率影响">
-              <input type="checkbox" id="skip-first-7" class="toggle-btn-input" aria-hidden="true">
-              <span class="toggle-btn-text">忽略惩罚期</span>
-            </label>
-            <label class="toggle-btn" for="show-tooltip" title="鼠标悬停在图表曲线上时显示详细费率信息">
-              <input type="checkbox" id="show-tooltip" class="toggle-btn-input" checked aria-hidden="true">
-              <span class="toggle-btn-text">数据悬浮窗</span>
-            </label>
-            <label class="toggle-btn toggle-btn-inline hide-penetrate-linked" title="联接基金年化费率穿透：联接年化 + 母基金年化，买入/卖出费率不变" aria-hidden="true">
-              <input type="checkbox" id="penetrate-linked" class="toggle-btn-input" aria-hidden="true">
-              <span class="toggle-btn-text">联接基金穿透</span>
-            </label>
-            <button type="button" class="btn btn-secondary btn-random-bottom" id="random-data-bottom" title="从已缓存中随机 3–8 只">随机数据</button>
+
+        <div class="index-page-summary" id="index-page-summary"></div>
+
+        <div class="index-page-content">
+          <div class="index-page-left">
+            <section class="index-page-panel">
+              <h2 class="index-page-panel-title">基金比较</h2>
+              <div class="cached-funds-table-wrap index-page-table-wrap">
+                <table class="cached-funds-table index-page-table">
+                  <thead>
+                    <tr>
+                      <th>基金</th>
+                      <th>代码</th>
+                      <th id="index-page-col-scale">规模</th>
+                      <th id="index-page-col-annual">年化费率</th>
+                      <th id="index-page-col-buy">申购费率</th>
+                      <th id="index-page-col-return">收益</th>
+                      <th>跟踪指数</th>
+                    </tr>
+                  </thead>
+                  <tbody id="index-page-table-body">
+                    <tr><td class="cached-funds-empty" colspan="7">从上方搜索并选择指数开始。</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+          <div class="index-page-right">
+            <section class="index-page-panel">
+              <h2 class="index-page-panel-title">Top10 排序图</h2>
+              <div class="index-page-chart-wrap">
+                <canvas id="index-page-bar-chart"></canvas>
+              </div>
+            </section>
+            <section class="index-page-panel">
+              <h2 class="index-page-panel-title">费率 vs 收益</h2>
+              <div class="index-page-chart-wrap">
+                <canvas id="index-page-scatter-chart"></canvas>
+              </div>
+            </section>
           </div>
         </div>
-      </div>
-    </div>
 
-    <!-- 业绩比较图表（基于各基金阶段收益数据） -->
-    <div class="stage-return-chart-container" id="stage-return-chart-container" hidden>
-      <div class="stage-return-chart-header">
-        <div class="stage-return-chart-title">
-          <h3>业绩比较</h3>
-          <span class="stage-return-chart-subtitle">点击时间节点切换基准；鼠标悬停查看各基金表现</span>
+        <div class="fund-detail-table-wrap" id="index-page-detail-table-wrap" style="display:none">
+          <table class="fund-detail-table" id="index-page-detail-table">
+            <tbody id="index-page-detail-tbody"></tbody>
+          </table>
         </div>
-        <div class="stage-return-chart-actions">
-          <button type="button" class="btn btn-sm btn-secondary" id="stage-return-reset" title="重置基准至默认">重置基准</button>
+      </section>
+    </div>
+  </section>
+
+  <!-- ═════════════════════════════════════════════════════════════
+       页面 4：统计
+       ═════════════════════════════════════════════════════════════ -->
+  <section class="page page-stats" data-route="stats">
+    <div class="container">
+      <header class="page-header">
+        <div class="page-header-left">
+          <span class="page-header-kicker">STATISTICS</span>
+          <h1>基金数据库统计</h1>
+          <p class="subtitle">基于数据库的全部基金，按跟踪标的、基金公司、业绩基准进行聚合统计</p>
         </div>
-      </div>
-      <div class="stage-return-chart-wrapper">
-        <canvas id="stage-return-canvas"></canvas>
-      </div>
-      <div class="stage-return-chart-footer">
-        <span class="stage-return-chart-baseline-hint" id="stage-return-baseline-hint"></span>
-        <span class="stage-return-chart-note">点击任意节点（含 <b>今天 / 成立来</b>）可切换基准；★ 为默认基准。注：<b>成立来</b> 各基金起点不同，切为基准后各曲线将从自身 0% 起分叉。</span>
-      </div>
-    </div>
+      </header>
 
-    <!-- 基金费率详情纵向表格（按图表中显示的基金动态渲染） -->
-    <div class="fund-detail-table-wrap" id="fund-detail-table-wrap">
-      <table class="fund-detail-table" id="fund-detail-table">
-        <tbody id="fund-detail-tbody"></tbody>
-      </table>
-    </div>
-  </div>
+      <div id="fund-stats-status" class="cached-funds-status">正在加载数据库基金统计...</div>
+      <div class="cached-funds-progress">
+        <div class="cached-funds-progress-bar" id="fund-stats-progress-bar"></div>
+      </div>
 
-  <!-- 导入弹窗：支持文本粘贴 / 拖入 / 选择文件 -->
+      <section class="fund-stats-summary" id="fund-stats-summary"></section>
+
+      <section class="fund-stats-section">
+        <div class="actions actions-above-cards" style="margin-bottom: 0.75rem;">
+          <div class="fund-search-wrap">
+            <input
+              type="text"
+              id="fund-stats-search-input"
+              class="fund-search-input"
+              placeholder="搜索跟踪指数名称 / 拼音首字母"
+              autocomplete="off">
+          </div>
+        </div>
+        <div class="fund-stats-toggle" role="tablist" aria-label="数据库基金统计维度切换">
+          <button type="button" class="fund-stats-toggle-btn fund-stats-toggle-btn-active" data-key="tracking" data-index="0" role="tab" aria-selected="true">
+            按跟踪标的统计
+          </button>
+          <button type="button" class="fund-stats-toggle-btn" data-key="manager" data-index="1" role="tab" aria-selected="false">
+            按基金公司统计
+          </button>
+          <button type="button" class="fund-stats-toggle-btn" data-key="benchmark" data-index="2" role="tab" aria-selected="false">
+            按业绩基准统计
+          </button>
+          <button type="button" class="fund-stats-toggle-btn" data-key="fundType" data-index="3" role="tab" aria-selected="false">
+            按基金类型统计
+          </button>
+          <div class="fund-stats-toggle-slider" aria-hidden="true"></div>
+        </div>
+        <div class="fund-stats-toggle-subtitle" id="fund-stats-toggle-subtitle"></div>
+        <div class="fund-stats-main">
+          <div class="fund-stats-main-left">
+            <div class="fund-stats-grid" id="fund-stats-grid"></div>
+          </div>
+          <aside class="fund-stats-main-right" aria-label="统计维度对应基金列表">
+            <section class="fund-stats-detail-section" id="fund-stats-detail-section">
+              <div id="fund-stats-detail"></div>
+            </section>
+          </aside>
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <!-- ═════════════════════════════════════════════════════════════
+       全局弹窗
+       ═════════════════════════════════════════════════════════════ -->
+
+  <!-- 导入弹窗 -->
   <div class="modal-backdrop" id="fund-import-modal" aria-hidden="true">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="fund-import-modal-title">
       <div class="modal-header">
@@ -192,9 +573,7 @@
       </div>
       <div class="modal-body">
         <p class="modal-intro">已识别出以下基金，可以在这里删除不需要或识别错误的条目：</p>
-        <div class="fund-import-result-list" id="fund-import-result-list">
-          <!-- 识别结果列表 -->
-        </div>
+        <div class="fund-import-result-list" id="fund-import-result-list"></div>
         <p class="modal-empty-hint" id="fund-import-empty-hint" hidden>当前没有可导入的基金，请返回重新选择。</p>
       </div>
       <div class="modal-footer">
@@ -229,9 +608,7 @@
                 autocomplete="off">
             </div>
           </div>
-          <div class="index-picker-index-list" id="index-picker-index-list">
-            <!-- 跟踪指数卡片列表 -->
-          </div>
+          <div class="index-picker-index-list" id="index-picker-index-list"></div>
         </div>
         <div class="index-picker-divider"></div>
         <div class="index-picker-bottom">
@@ -247,9 +624,7 @@
               <button type="button" class="btn btn-sm btn-secondary" id="index-picker-invert-selection">反选</button>
             </div>
           </div>
-          <div class="index-picker-fund-list" id="index-picker-fund-list">
-            <!-- 指数对应基金列表 -->
-          </div>
+          <div class="index-picker-fund-list" id="index-picker-fund-list"></div>
         </div>
       </div>
       <div class="modal-footer">
@@ -264,9 +639,32 @@
     </div>
   </div>
 
-  <!-- Excel 解析库（用于读取 .xls/.xlsx） -->
+  <!-- 查看 allfund 原始数据弹窗 -->
+  <div class="modal-backdrop" id="fund-json-modal" aria-hidden="true">
+    <div class="modal modal-json" role="dialog" aria-modal="true" aria-labelledby="fund-json-modal-title">
+      <div class="modal-header">
+        <h2 id="fund-json-modal-title">allfund 原始数据</h2>
+        <button type="button" class="modal-close-btn" id="fund-json-close" aria-label="关闭原始数据窗口">×</button>
+      </div>
+      <div class="modal-body">
+        <pre id="fund-json-content" class="modal-json-pre"></pre>
+        <div id="fund-json-table" class="modal-json-table" hidden></div>
+      </div>
+      <div class="modal-footer">
+        <div class="modal-footer-right">
+          <button type="button" class="btn btn-secondary" id="fund-json-to-table">转为表格</button>
+          <button type="button" class="btn btn-secondary" id="fund-json-cancel">关闭</button>
+          <button type="button" class="btn btn-secondary" id="fund-json-open-em">天天基金费率页</button>
+          <button type="button" class="btn btn-secondary" id="fund-json-open-sohu">搜狐费率页</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 第三方库 -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="js/config.js"></script>
-  <script type="module" src="js/app.js"></script>
+  <script src="js/theme-toggle.js"></script>
+  <script type="module" src="js/router.js"></script>
 </body>
 </html>

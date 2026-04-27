@@ -3,41 +3,43 @@
    ══════════════════════════════════════════════════════════════ */
 
 .table-container {
-  border: 1px solid var(--border);
-  border-radius: 0;
-  background: var(--bg-surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  background: var(--bg-raised);
   overflow: hidden;
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
+  font-size: 12.5px;
 }
 
 .table thead {
-  background: var(--bg-muted);
+  background: var(--bg-sunk);
 }
 
 .table th {
-  padding: 0.7rem 1rem;
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
+  padding: 10px 14px;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  text-transform: none;
+  letter-spacing: 1.2px;
   text-align: left;
-  border-bottom: var(--ledger-line);
+  border-bottom: 1px solid var(--rule);
   position: sticky;
   top: 0;
   z-index: 1;
-  background: var(--bg-muted);
+  background: var(--bg-sunk);
+  font-family: var(--font-mono);
 }
 
 .table td {
-  padding: 0.75rem 1rem;
-  font-size: 0.875rem;
+  padding: 12px 14px;
+  font-size: 12.5px;
   color: var(--text-primary);
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--rule);
 }
 
 .table tbody tr {
@@ -48,15 +50,13 @@
   background: var(--bg-hover);
 }
 
-/* 选中行 */
 .table tbody tr.selected {
-  background: var(--accent-subtle);
-  box-shadow: inset 3px 0 0 var(--accent);
+  background: var(--accent-bg);
+  box-shadow: inset 2px 0 0 var(--accent);
 }
 
-/* 交替行：暖调灰 */
 .table-striped tbody tr:nth-child(even) {
-  background: rgba(20, 16, 14, 0.55);
+  background: var(--bg-sunk);
 }
 
 /* 排序指示器 */
@@ -105,22 +105,23 @@
   margin-top: 1.25rem;
   margin-bottom: 1.75rem;
   overflow-x: auto;
-  border: 1px solid rgba(184, 140, 115, 0.7);
-  border-radius: 0;
-  background: var(--bg-elevated);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  background: var(--bg-raised);
+  box-shadow: var(--shadow-sm);
 }
 
 .fund-detail-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.82rem;
+  font-size: 12px;
 }
 
 .fund-detail-table th,
 .fund-detail-table td {
-  padding: 0.45rem 0.7rem;
-  border-bottom: 1px solid rgba(184, 140, 115, 0.6);
-  border-right: 1px solid rgba(184, 140, 115, 0.6);
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--rule);
+  border-right: 1px solid var(--rule);
   text-align: left;
   white-space: nowrap;
 }
@@ -136,14 +137,17 @@
 }
 
 .fund-detail-table th.fund-detail-row-label {
+  font-family: var(--font-mono);
   font-weight: 500;
-  color: var(--text-secondary);
-  background: var(--bg-muted);
+  color: var(--text-tertiary);
+  background: var(--bg-sunk);
   min-width: 7rem;
   white-space: nowrap;
   position: sticky;
   left: 0;
   z-index: 1;
+  letter-spacing: 0.5px;
+  font-size: 10.5px;
 }
 
 .fund-detail-table td {
@@ -157,8 +161,19 @@
 }
 
 .fund-detail-table td.fund-detail-fund-cell-selected {
-  background: color-mix(in srgb, var(--accent) 20%, var(--bg-subtle)) !important;
-  box-shadow: inset 0 -2px 0 0 var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-raised)) !important;
+  border-left: 2px solid var(--accent);
+  border-right: 2px solid var(--accent);
+}
+
+/* 列首/列尾闭合：选中列顶部 / 底部边框也用 accent，
+   组合形成完整外框；中间行底部仍为 rule，不显横向 accent 线 */
+.fund-detail-table tr:first-child td.fund-detail-fund-cell-selected {
+  border-top: 2px solid var(--accent);
+}
+
+.fund-detail-table tr:last-child td.fund-detail-fund-cell-selected {
+  border-bottom: 2px solid var(--accent);
 }
 
 .fund-detail-table tr:first-child td {
@@ -169,10 +184,10 @@
   display: inline-block;
   width: 8px;
   height: 8px;
-  border-radius: 0;
+  border-radius: 50%;
   margin-right: 0.4rem;
   vertical-align: middle;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
+  box-shadow: none;
 }
 
 /* 收益显示行 */
@@ -186,9 +201,10 @@
 }
 
 .fund-detail-return-best {
-  background: var(--accent-subtle);
+  background: var(--accent-bg);
   color: var(--accent);
   font-weight: 600;
+  border-radius: var(--radius-sm);
 }
 
 .fund-detail-return-period {
@@ -221,22 +237,22 @@
 }
 
 .fund-detail-select-btn {
-  background: transparent;
-  border: 1px solid var(--border);
+  background: var(--bg-raised);
+  border: 1px solid var(--rule);
   color: var(--text-secondary);
   min-width: 3.6em;
   transition: all 0.15s ease;
 }
 
 .fund-detail-select-btn:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-subtle);
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+  background: var(--bg-hover);
 }
 
 .fund-detail-select-btn.active {
   border-color: var(--accent);
-  color: #fff;
+  color: var(--bg-base);
   background: var(--accent);
 }
 

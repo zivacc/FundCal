@@ -3,30 +3,18 @@
    ══════════════════════════════════════════════════════════════ */
 
 .chart-container {
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-top: var(--ledger-line);
-  border-radius: 0;
-  padding: 1.25rem;
+  background: var(--bg-raised);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
   margin-bottom: 1rem;
   position: relative;
   min-height: 680px;
   height: calc(100vh - 10rem);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-}
-
-.chart-container::before {
-  content: '';
-  position: absolute;
-  top: 3px;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: rgba(255, 200, 180, 0.06);
-  pointer-events: none;
 }
 
 .chart-main {
@@ -45,12 +33,12 @@
 }
 
 .chart-main-right {
-  flex: 0 0 340px;
-  max-width: 380px;
-  min-width: 220px;
+  flex: 0 0 260px;
+  max-width: 280px;
+  min-width: 200px;
   display: flex;
   flex-direction: row;
-  border-left: 1px solid var(--border-subtle);
+  border-left: 1px solid var(--rule);
   transition: flex-basis 0.25s, min-width 0.25s, padding 0.25s;
 }
 
@@ -69,7 +57,7 @@
   gap: 1rem;
   margin-top: 0.75rem;
   padding-top: 0.75rem;
-  border-top: 1px solid var(--border-subtle);
+  border-top: 1px solid var(--rule);
 }
 
 .chart-footer-left {
@@ -95,19 +83,19 @@
 .chart-hover-tooltip {
   position: absolute;
   max-width: min(280px, calc(100% - 24px));
-  font-size: 0.75rem;
+  font-size: 11.5px;
   font-family: var(--font-mono);
   color: var(--text-primary);
   background: var(--bg-glass);
-  padding: 0.45rem 0.7rem;
-  border-radius: 0;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
   border-left: 2px solid var(--accent);
-  border-top: 1px solid var(--border-hover);
-  border-right: 1px solid var(--border-hover);
-  border-bottom: 1px solid var(--border-hover);
+  border-top: 1px solid var(--rule);
+  border-right: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
   box-shadow: var(--shadow-md);
   line-height: 1.55;
-  backdrop-filter: blur(6px);
+  backdrop-filter: blur(8px);
   pointer-events: none;
   opacity: 0;
   transform: translateY(2px);
@@ -145,9 +133,9 @@
 .optimal-band-strip {
   display: flex;
   height: 28px;
-  border-radius: 0;
+  border-radius: var(--radius-sm);
   overflow: hidden;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.5);
+  box-shadow: inset 0 0 0 1px var(--rule);
 }
 
 .optimal-band-segment {
@@ -268,9 +256,9 @@
 .chart-collapsed-dot {
   width: 10px;
   height: 10px;
-  border-radius: 0;
+  border-radius: 50%;
   flex-shrink: 0;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 0 1px var(--rule);
   opacity: 0.35;
 }
 
@@ -296,7 +284,7 @@
 .chart-fund-list-hide-all {
   font-size: 0.75rem;
   padding: 0.15rem 0.4rem;
-  border-radius: 0;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
@@ -307,7 +295,7 @@
 
 .chart-fund-list-show-all-active {
   background: var(--accent);
-  color: #fff;
+  color: var(--bg-base);
   border-color: var(--accent);
 }
 
@@ -326,12 +314,15 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.4rem;
-  padding: 0.25rem 0.35rem;
-  border-radius: 0;
+  gap: 0.5rem;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
   border: 1px solid transparent;
   cursor: pointer;
-  font-size: 0.8rem;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  opacity: 0.4;
   transition: all var(--transition-fast);
 }
 
@@ -340,8 +331,10 @@
 }
 
 .chart-fund-list-item-active {
-  border-color: var(--accent);
+  opacity: 1;
+  color: var(--text-primary);
   background: transparent;
+  border-color: transparent;
 }
 
 .chart-fund-list-item-active:hover {
@@ -356,11 +349,11 @@
 }
 
 .chart-fund-list-color {
-  width: 10px;
-  height: 10px;
-  border-radius: 0;
+  width: 11px;
+  height: 11px;
+  border-radius: 2.5px;
   flex-shrink: 0;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
+  box-shadow: none;
 }
 
 .chart-fund-list-name {
@@ -392,20 +385,22 @@
 .crossover-legend-item {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  margin-right: 1rem;
-  margin-bottom: 0.35rem;
-  padding: 0.25rem 0.5rem;
-  background: var(--bg-muted);
-  border-radius: 0;
+  gap: 6px;
+  margin-right: 10px;
+  margin-bottom: 6px;
+  padding: 4px 10px;
+  background: var(--bg-sunk);
+  border-radius: var(--radius-sm);
   border-left: 2px solid var(--accent);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
 }
 
 .crossover-legend-color {
   width: 8px;
   height: 8px;
-  border-radius: 0;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
+  border-radius: 50%;
+  box-shadow: none;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -441,7 +436,8 @@
   top: 0;
   bottom: 0;
   width: 1px;
-  background: rgba(185, 28, 28, 0.55);
+  background: var(--accent);
+  opacity: 0.45;
   transform: translateX(-50%);
   z-index: 1;
 }
@@ -451,7 +447,8 @@
   left: 0;
   right: 0;
   height: 1px;
-  background: rgba(185, 28, 28, 0.55);
+  background: var(--accent);
+  opacity: 0.45;
   transform: translateY(-50%);
   z-index: 1;
 }
@@ -460,13 +457,13 @@
   position: absolute;
   bottom: 4px;
   transform: translate(-50%, 0);
-  font-size: 0.7rem;
+  font-size: 11px;
   font-family: var(--font-mono);
   color: var(--text-primary);
   background: var(--bg-raised);
-  padding: 0.15rem 0.5rem;
-  border-radius: 0;
-  border: 1px solid var(--border-hover);
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--rule);
   box-shadow: var(--shadow-sm);
   z-index: 10;
 }
@@ -475,13 +472,13 @@
   position: absolute;
   left: 4px;
   transform: translate(0, -50%);
-  font-size: 0.7rem;
+  font-size: 11px;
   font-family: var(--font-mono);
   color: var(--text-primary);
   background: var(--bg-raised);
-  padding: 0.15rem 0.5rem;
-  border-radius: 0;
-  border: 1px solid var(--border-hover);
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--rule);
   box-shadow: var(--shadow-sm);
   z-index: 10;
 }
@@ -493,11 +490,12 @@
   max-width: min(260px, calc(50% - 16px));
   background: var(--bg-glass);
   backdrop-filter: blur(6px);
-  border: 1px solid var(--border-hover);
+  border: 1px solid var(--rule);
   border-left: 2px solid var(--accent);
-  border-radius: 0;
+  border-radius: var(--radius-md);
   padding: 0.5rem 0.75rem;
   font-size: 0.75rem;
+  font-family: var(--font-mono);
   box-shadow: var(--shadow-md);
   z-index: 10;
   word-break: break-all;
@@ -508,12 +506,12 @@
    ═══════════════════════════════════════════════════════════════ */
 
 .stage-return-chart-container {
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-top: var(--ledger-line);
+  background: var(--bg-raised);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
   padding: 1rem 1.25rem 0.9rem;
   margin-bottom: 1rem;
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-sm);
   position: relative;
 }
 
@@ -540,8 +538,10 @@
 
 .stage-return-chart-title h3 {
   margin: 0;
-  font-size: 1rem;
-  letter-spacing: 0.04em;
+  font-family: var(--font-serif);
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   color: var(--text-primary);
 }
 
@@ -573,7 +573,7 @@
   gap: 1rem;
   margin-top: 0.5rem;
   padding-top: 0.5rem;
-  border-top: 1px solid var(--border-subtle);
+  border-top: 1px solid var(--rule);
   font-size: 0.72rem;
   color: var(--text-tertiary);
   flex-wrap: wrap;
@@ -585,7 +585,7 @@
 }
 
 .stage-return-chart-baseline-hint b {
-  color: var(--accent-hover);
+  color: var(--accent);
   font-weight: 600;
 }
 

@@ -1,5 +1,6 @@
 /**
  * 本地基金费率 API：读取 data/funds/*.json 提供 GET /api/fund/:code/fee
+ * 同时提供基金净值查询 API：GET /api/nav/:code 等
  * 需先运行 crawl-fund-fee.js 拉取数据。与前端同源时可直接被 fetchFundFeeFromAPI 调用。
  * 使用：node scripts/serve-fund-api.js [端口，默认 3457]
  */
@@ -8,6 +9,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import http from 'http';
+import { createNavRouter } from './nav/nav-api.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, '..', 'data', 'funds');
@@ -139,6 +141,8 @@ function serveAllCodes(res) {
   req.setTimeout(15000, () => { req.destroy(); });
 }
 
+const navRouter = createNavRouter();
+
 const server = http.createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   if (req.method !== 'GET') {
@@ -217,31 +221,39 @@ const server = http.createServer((req, res) => {
     }
     return;
   }
-  const match = req.url && req.url.match(/^\/api\/fund\/(\d{6})\/fee\/?$/);
-  if (!match) {
-    res.writeHead(404);
-    res.end(JSON.stringify({ error: 'Not Found' }));
+  const feeMatch = req.url && req.url.match(/^\/api\/fund\/(\d{6})\/fee\/?$/);
+  if (feeMatch) {
+    const code = feeMatch[1];
+    const all = loadAllFunds();
+    const data = all.funds[code];
+    if (!data) {
+      res.writeHead(404);
+      res.end(JSON.stringify({ error: '基金未缓存', code }));
+      return;
+    }
+    try {
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.writeHead(200);
+      res.end(JSON.stringify(data));
+    } catch (e) {
+      res.writeHead(500);
+      res.end(JSON.stringify({ error: '读取失败' }));
+    }
     return;
   }
-  const code = match[1];
-  const all = loadAllFunds();
-  const data = all.funds[code];
-  if (!data) {
-    res.writeHead(404);
-    res.end(JSON.stringify({ error: '基金未缓存', code }));
+
+  // --- NAV (净值) routes ---
+  if (req.url && req.url.startsWith('/api/nav')) {
+    navRouter(req, res);
     return;
   }
-  try {
-    res.setHeader('Content-Type', 'application/json; charset=utf-8');
-    res.writeHead(200);
-    res.end(JSON.stringify(data));
-  } catch (e) {
-    res.writeHead(500);
-    res.end(JSON.stringify({ error: '读取失败' }));
-  }
+
+  res.writeHead(404);
+  res.end(JSON.stringify({ error: 'Not Found' }));
 });
 
 server.listen(PORT, () => {
   console.log(`基金费率 API: http://localhost:${PORT}/api/fund/:code/fee`);
+  console.log(`基金净值 API: http://localhost:${PORT}/api/nav/:code`);
   console.log(`数据目录: ${DATA_DIR}`);
 });

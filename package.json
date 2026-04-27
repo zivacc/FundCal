@@ -20,6 +20,12 @@
     "upload-kv": "node scripts/upload-kv.js",
     "upload-kv:preview": "node scripts/upload-kv.js --preview",
     "dev:workers": "npm run build:workers && npx wrangler dev",
-    "deploy:workers": "npm run build:workers && npx wrangler deploy"
+    "deploy:workers": "npm run build:workers && npx wrangler deploy",
+    "sync:fund-basic": "node scripts/nav/sync-fund-basic.js",
+    "sync:fund-nav": "node scripts/nav/sync-fund-nav.js",
+    "query:nav": "node scripts/nav/query-nav.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.9.0"
   }
 }

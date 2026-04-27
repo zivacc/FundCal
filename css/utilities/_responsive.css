@@ -118,7 +118,7 @@
     flex: 0 0 auto;
     max-width: none;
     border-left: none;
-    border-top: 1px solid var(--border-subtle);
+    border-top: 1px solid var(--rule);
     padding-top: 0.75rem;
   }
 
@@ -189,15 +189,22 @@
     padding: 0.75rem;
   }
 
-  /* 基金卡片全宽 */
+  /* 基金卡片：窄屏保持单行横向滑动 */
   .fund-cards {
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: nowrap;
     align-items: stretch;
-    width: auto;
+    width: 100%;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 0.5rem;
   }
 
   .fund-card {
-    width: 100%;
+    width: 86vw;
+    max-width: 360px;
+    flex: 0 0 auto;
+    scroll-snap-align: start;
   }
 
   /* 图表容器 */

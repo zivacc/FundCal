@@ -1,6 +1,6 @@
 {
   "summary": {
-    "totalFunds": 26415,
+    "totalFunds": 26740,
     "missingFields": 0,
     "emptyValues": 0,
     "abnormalRates": 152,
@@ -12,1064 +12,912 @@
     {
       "code": "000227",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "000300",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "000301",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "000330",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "000366",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "000380",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "000381",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "000397",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "000539",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "000540",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "000599",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "000600",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "000602",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "000638",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "000699",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "000710",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "000764",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "000862",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "000863",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "000980",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "001211",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "001234",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "001246",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "001369",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "001369",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "001401",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "001529",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "001619",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "001619",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "001621",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "001893",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "001937",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "001981",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "001982",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "001994",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "002143",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "002143",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "002195",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "002918",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "004122",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "004123",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "004242",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "004242",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "004503",
       "type": "sellFee",
-      "days": 7,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "004773",
       "type": "sellFee",
-      "days": 7,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "004849",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "004938",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "004939",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "005375",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "005375",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "005432",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "005432",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "005594",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "005594",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "005595",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "005595",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "005637",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "005766",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "005884",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "007535",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "008322",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "008323",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "008366",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "008366",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "008535",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "008536",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "009091",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "009091",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "009105",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "009105",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "009237",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "009237",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "009238",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "009238",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "009533",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "009533",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "009577",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "009577",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "009583",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "009583",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "009586",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "009588",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "009589",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "009895",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "009895",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "010983",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "010983",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "011200",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "011413",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "013002",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "013003",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "013146",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "013146",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "016002",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "016096",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "016412",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "016413",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "016565",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "017062",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "017203",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "017629",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "017871",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "017872",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "017945",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "018228",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "018320",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "018614",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "018649",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "018659",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "018770",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "018792",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "018793",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "019099",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "020468",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "020826",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "020827",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "020971",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "023011",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "023850",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "023867",
       "type": "sellFee",
-      "days": 7,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "023867",
       "type": "sellFee",
-      "days": 7,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "024006",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "024006",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "024007",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "024007",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "024177",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "026138",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "026342",
       "type": "sellFee",
-      "days": 730,
       "value": 0.07,
       "percent": "7.0000%"
     },
     {
       "code": "100025",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "100028",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "159005",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "159006",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "163802",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "163820",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "350004",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "511900",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "511980",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "511990",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "519501",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "519507",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "519508",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "519511",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "519512",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "519513",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "519588",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "519589",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "519888",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "519889",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "550010",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "550011",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "620010",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     },
     {
       "code": "620011",
       "type": "sellFee",
-      "days": 730,
       "value": 0.1,
       "percent": "10.0000%"
     }

@@ -26,6 +26,11 @@ npm-debug.log*
 .env
 .env.local
 
+# SQLite 数据库
+data/fundcal.db
+data/fundcal.db-wal
+data/fundcal.db-shm
+
 # Cloudflare Workers
 dist/
 .wrangler/

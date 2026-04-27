@@ -1,14 +1,67 @@
 /* ══════════════════════════════════════════════════════════════
-   基金列表页
+   基金列表页 - 左侧筛选栏 + 右侧表格布局
    ══════════════════════════════════════════════════════════════ */
 
-/* 工具栏 */
+.cf-layout {
+  display: flex;
+  align-items: stretch;
+  min-height: calc(100vh - 52px);
+}
+
+.cf-sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--rule);
+  background: var(--bg-base);
+  position: sticky;
+  top: 52px;
+  align-self: flex-start;
+  height: calc(100vh - 52px);
+  display: flex;
+  flex-direction: column;
+}
+
+.cf-sidebar-kicker {
+  flex-shrink: 0;
+  padding: 24px 22px 12px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 1.5px;
+  color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cf-sidebar-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px 18px 16px 22px;
+}
+
+.cf-sidebar-footer {
+  flex-shrink: 0;
+  padding: 12px 18px 16px 22px;
+  background: var(--bg-base);
+  border-top: 1px solid var(--rule);
+  box-shadow: 0 -6px 14px -10px color-mix(in srgb, var(--text-primary) 18%, transparent);
+}
+
+.cf-main {
+  flex: 1;
+  min-width: 0;
+  padding: 28px 28px 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 工具栏（顶部右侧搜索 + 排序）*/
 .cached-funds-toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: 0.5rem;
   align-items: center;
-  margin-bottom: 1rem;
 }
 
 /* 搜索框 */
@@ -20,13 +73,13 @@
 
 .cached-funds-search-input {
   width: 100%;
-  padding: 0.45rem 2rem 0.45rem 2rem;
-  border-radius: 0;
-  border: 1px solid var(--border-subtle);
+  padding: 9px 32px 9px 32px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--rule);
   background: var(--bg-input);
   color: var(--text-primary);
   font-family: inherit;
-  font-size: 0.875rem;
+  font-size: 13px;
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
 }
 
@@ -36,7 +89,7 @@
 
 .cached-funds-search-wrap.focused .cached-funds-search-input {
   border-color: var(--accent);
-  box-shadow: inset 0 0 0 1px var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
   background: var(--bg-input);
 }
 
@@ -49,9 +102,9 @@
 }
 
 .cached-funds-search-icon-img {
-  width: 1.25rem;
-  height: 1.25rem;
-  border-radius: 0;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: var(--radius-sm);
   object-fit: cover;
   display: block;
 }
@@ -63,7 +116,7 @@
   transform: translateY(-50%);
   width: 1.35rem;
   height: 1.35rem;
-  border-radius: 0;
+  border-radius: var(--radius-sm);
   border: none;
   padding: 0;
   display: none;
@@ -97,76 +150,32 @@
   font-size: 0.85rem;
 }
 
-/* 筛选模块 */
-.cf-filter-bar {
-  margin-bottom: 0.75rem;
-}
-
-.cf-filter-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 0.3rem 0.7rem;
-  font-family: inherit;
-  font-size: 0.82rem;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: border-color var(--transition-fast), color var(--transition-fast);
-}
-
-.cf-filter-toggle:hover {
-  border-color: var(--border-hover);
-  color: var(--text-primary);
-}
-
-.cf-filter-toggle-icon {
-  font-size: 0.65rem;
-  transition: transform 0.2s ease;
-}
-
-.cf-filter-bar.cf-filter-open .cf-filter-toggle-icon {
-  transform: rotate(90deg);
-}
-
+/* 筛选模块 - 侧栏样式 */
 .cf-filter-active-count {
   font-size: 0.72rem;
   color: var(--accent);
   font-weight: 600;
+  letter-spacing: 0;
 }
 
 .cf-filter-active-count:empty {
   display: none;
 }
 
-.cf-filter-panel {
-  margin-top: 0.5rem;
-  padding: 0.75rem 0.85rem;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  background: var(--bg-elevated);
-}
-
-.cf-filter-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 0.65rem 1.25rem;
-}
-
 .cf-filter-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
+  margin-bottom: 18px;
 }
 
 .cf-filter-label {
-  font-size: 0.78rem;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.8px;
+  color: var(--text-tertiary);
+  margin-bottom: 6px;
   font-weight: 500;
-  color: var(--text-secondary);
 }
 
+/* 默认（横向 pill 布局，保留旧弹窗等场景使用）*/
 .cf-filter-options {
   display: flex;
   flex-wrap: wrap;
@@ -174,17 +183,25 @@
 }
 
 .cf-filter-options-scroll {
-  max-height: 11rem;
+  max-height: 12rem;
   overflow-y: auto;
-  padding-right: 0.15rem;
+  padding-right: 4px;
+}
+
+/* 纵向行布局（侧栏）*/
+.cf-filter-options-vertical {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex-wrap: nowrap;
 }
 
 .cf-filter-tag {
   display: inline-flex;
   align-items: center;
-  padding: 0.15rem 0.5rem;
-  border-radius: 0;
-  border: 1px solid var(--border);
+  padding: 0.18rem 0.55rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--rule);
   background: transparent;
   color: var(--text-secondary);
   font-size: 0.75rem;
@@ -200,57 +217,209 @@
 }
 
 .cf-filter-tag.cf-filter-tag-active {
-  background: var(--accent-subtle);
+  background: var(--accent-bg);
   border-color: var(--accent);
   color: var(--accent);
+}
+
+/* 在纵向容器内：tag 变为整行可点击行（无边框）*/
+.cf-filter-options-vertical .cf-filter-tag {
+  display: block;
+  width: 100%;
+  padding: 5px 8px;
+  font-size: 12px;
+  border: none;
+  border-radius: 5px;
+  color: var(--text-secondary);
+  background: transparent;
+  text-align: left;
+  white-space: normal;
+  line-height: 1.35;
+}
+
+.cf-filter-options-vertical .cf-filter-tag:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.cf-filter-options-vertical .cf-filter-tag.cf-filter-tag-active {
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-weight: 500;
+  border: none;
+  box-shadow: inset 2px 0 0 0 var(--accent);
 }
 
 .cf-filter-range {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 6px;
 }
 
 .cf-filter-input {
-  width: 5.5rem;
-  padding: 0.28rem 0.45rem;
+  width: 100%;
+  min-width: 0;
+  padding: 6px 8px;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
+  border: 1px solid var(--rule);
   background: var(--bg-input);
   color: var(--text-primary);
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: 12px;
 }
 
 .cf-filter-input:focus {
   outline: none;
-  border-color: var(--border-focus);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
 }
 
 .cf-filter-input-wide {
   width: 100%;
-  max-width: 16rem;
   font-family: inherit;
 }
 
 .cf-filter-range-sep {
   color: var(--text-tertiary);
-  font-size: 0.8rem;
+  font-size: 12px;
 }
 
 .cf-filter-actions {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-top: 0.65rem;
-  padding-top: 0.5rem;
-  border-top: 1px solid var(--border-subtle);
+  gap: 6px;
+}
+
+.cf-filter-actions .btn {
+  flex: 1;
 }
 
 .cf-filter-result-hint {
-  font-size: 0.78rem;
+  font-size: 11px;
   color: var(--text-muted);
-  margin-left: 0.5rem;
+  margin-top: 8px;
+  font-family: var(--font-mono);
+}
+
+.cf-filter-result-hint:empty {
+  display: none;
+}
+
+/* ── 窄屏筛选 FAB + 底部抽屉 ── */
+.cf-filter-toggle {
+  display: none;
+}
+
+.cf-sidebar-backdrop {
+  display: none;
+}
+
+.cf-sidebar-handle {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .cf-layout {
+    display: block;
+    min-height: auto;
+  }
+
+  .cf-main {
+    padding: 16px;
+  }
+
+  /* 侧栏改为底部抽屉 */
+  .cf-sidebar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    width: 100%;
+    height: 80vh;
+    max-height: 80vh;
+    border-right: none;
+    border-top: 1px solid var(--rule);
+    border-top-left-radius: 18px;
+    border-top-right-radius: 18px;
+    background: var(--bg-raised);
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.18);
+    transform: translateY(100%);
+    transition: transform 0.28s cubic-bezier(0.2, 0.7, 0.3, 1);
+    z-index: 95;
+  }
+
+  .cf-sidebar.cf-sidebar-open {
+    transform: translateY(0);
+  }
+
+  .cf-sidebar-handle {
+    display: block;
+    width: 38px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--rule-strong);
+    margin: 8px auto 4px;
+    flex-shrink: 0;
+  }
+
+  .cf-sidebar-kicker {
+    padding: 8px 22px 10px;
+  }
+
+  /* 半透明遮罩 */
+  .cf-sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.22s ease-out;
+    z-index: 94;
+  }
+
+  .cf-sidebar-backdrop.cf-sidebar-backdrop-open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* FAB 触发按钮 */
+  .cf-filter-toggle {
+    position: fixed;
+    right: 16px;
+    bottom: 18px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    border-radius: 999px;
+    background: var(--accent);
+    color: var(--text-inverse);
+    border: none;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: var(--font-cjk);
+    cursor: pointer;
+    box-shadow: var(--shadow-lg);
+    z-index: 90;
+  }
+
+  .cf-filter-toggle:hover {
+    background: var(--accent-hover);
+  }
+
+  .cf-filter-toggle-count {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: rgba(255, 255, 255, 0.22);
+    padding: 1px 6px;
+    border-radius: 999px;
+  }
+
+  .cf-filter-toggle-count:empty {
+    display: none;
+  }
 }
 
 /* 状态和进度 */
@@ -269,7 +438,7 @@
   width: 100%;
   height: 4px;
   background: var(--bg-subtle);
-  border-radius: 0;
+  border-radius: 2px;
   overflow: hidden;
   margin-bottom: 0.5rem;
 }
@@ -287,33 +456,41 @@
 
 /* 表格包装 */
 .cached-funds-table-wrap {
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--rule);
   border-radius: var(--radius-lg);
-  background: var(--bg-elevated);
+  background: var(--bg-raised);
   overflow: auto;
+  box-shadow: var(--shadow-sm);
 }
 
 .cached-funds-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.85rem;
+  font-size: 12.5px;
 }
 
 .cached-funds-table thead {
-  background: var(--bg-muted);
+  background: var(--bg-sunk);
 }
 
 .cached-funds-table th,
 .cached-funds-table td {
-  padding: 0.4rem 0.6rem;
-  border-bottom: 1px solid var(--border-subtle);
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--rule);
   text-align: left;
   white-space: nowrap;
 }
 
 .cached-funds-table th {
+  font-family: var(--font-mono);
   font-weight: 500;
-  color: var(--text-secondary);
+  font-size: 10.5px;
+  letter-spacing: 1.2px;
+  color: var(--text-tertiary);
+  position: sticky;
+  top: 0;
+  background: var(--bg-sunk);
+  z-index: 1;
 }
 
 .cached-funds-table tbody tr:hover {

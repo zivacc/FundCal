@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FundCal · Quiet Light</title>
+  <link rel="icon" type="image/png" href="pics/klogo.png">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:wght@400;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    html, body { margin: 0; padding: 0; background: #f0eee9; overflow: hidden; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+    #root { width: 100vw; height: 100vh; }
+  </style>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="shared-data.js"></script>
+  <script type="text/babel" src="design-canvas.jsx"></script>
+  <script type="text/babel" src="components/theme.jsx"></script>
+  <script type="text/babel" src="components/chart.jsx"></script>
+  <script type="text/babel" src="components/top-rail.jsx"></script>
+  <script type="text/babel" src="components/fund-list-panel.jsx"></script>
+  <script type="text/babel" src="components/fullscreen-chart.jsx"></script>
+  <script type="text/babel" src="components/page-calculator.jsx"></script>
+  <script type="text/babel" src="components/page-fundlist.jsx"></script>
+  <script type="text/babel" src="components/page-index.jsx"></script>
+  <script type="text/babel" src="components/page-stats.jsx"></script>
+  <script type="text/babel" src="components/app.jsx"></script>
+
+  <script type="text/babel">
+    function App() {
+      return (
+        <DesignCanvas>
+          <DCSection id="light" title="Quiet Light · 浅色模式" subtitle="主题统一应用到 4 个页面 — 点 tab 切换">
+            <DCArtboard id="calc-light"  label="01 · 计算器"   width={1440} height={900}><FundCalApp initialPage="calc"  initialDark={false} /></DCArtboard>
+            <DCArtboard id="list-light"  label="02 · 基金列表" width={1440} height={900}><FundCalApp initialPage="list"  initialDark={false} /></DCArtboard>
+            <DCArtboard id="index-light" label="03 · 指数页"   width={1440} height={900}><FundCalApp initialPage="index" initialDark={false} /></DCArtboard>
+            <DCArtboard id="stats-light" label="04 · 统计"     width={1440} height={900}><FundCalApp initialPage="stats" initialDark={false} /></DCArtboard>
+          </DCSection>
+
+          <DCSection id="dark" title="Quiet Dark · 深色模式" subtitle="同一套组件,同一套 tokens,切换 dark theme">
+            <DCArtboard id="calc-dark"  label="01 · 计算器"   width={1440} height={900}><FundCalApp initialPage="calc"  initialDark={true} /></DCArtboard>
+            <DCArtboard id="list-dark"  label="02 · 基金列表" width={1440} height={900}><FundCalApp initialPage="list"  initialDark={true} /></DCArtboard>
+            <DCArtboard id="index-dark" label="03 · 指数页"   width={1440} height={900}><FundCalApp initialPage="index" initialDark={true} /></DCArtboard>
+            <DCArtboard id="stats-dark" label="04 · 统计"     width={1440} height={900}><FundCalApp initialPage="stats" initialDark={true} /></DCArtboard>
+          </DCSection>
+
+          <DCPostIt top={40} left={40} rotate={-3} width={240}>
+            <b>Ziva 反馈已应用:</b><br/>
+            · 统一 Quiet Light 主题 · 4 页<br/>
+            · 右上角 Light/Dark 切换<br/>
+            · 「显示基金」已独立组件<br/>
+            · 图表「全屏」按钮 (ESC 退出)<br/>
+            · 指数页去掉了斜体
+          </DCPostIt>
+        </DesignCanvas>
+      );
+    }
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

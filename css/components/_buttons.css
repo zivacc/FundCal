@@ -1,24 +1,26 @@
 /* ══════════════════════════════════════════════════════════════
-   按钮系统 - 铁账主题
+   按钮系统 - Quiet Light
    ══════════════════════════════════════════════════════════════ */
 
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1.1rem;
-  border-radius: 0;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: var(--radius-md);
   font-family: var(--font-body);
-  font-size: 0.85rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: 0;
   cursor: pointer;
-  border: 1px solid var(--border);
-  background: var(--bg-surface);
+  border: 1px solid var(--rule);
+  background: var(--bg-raised);
   color: var(--text-primary);
-  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
-  position: relative;
+  transition: background var(--transition-fast),
+              border-color var(--transition-fast),
+              color var(--transition-fast),
+              box-shadow var(--transition-fast);
   user-select: none;
   white-space: nowrap;
 }
@@ -29,46 +31,48 @@
 }
 
 .btn:active {
-  background: var(--bg-raised);
+  background: var(--bg-sunk);
 }
 
-/* 主要按钮 - 朱砂红纯色 */
+/* 主要按钮 - 墨黑底白字 */
 .btn-primary {
-  background: var(--accent);
-  border: 1px solid var(--accent-active);
-  color: #fff8f5;
-  font-weight: 700;
-  box-shadow: var(--shadow-sm);
+  background: var(--text-primary);
+  border: 1px solid var(--text-primary);
+  color: var(--bg-base);
+  font-weight: 500;
 }
 
 .btn-primary:hover {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
-  box-shadow: var(--shadow-md);
+  background: #000;
+  border-color: #000;
+}
+
+[data-theme="dark"] .btn-primary:hover {
+  background: #fff;
+  border-color: #fff;
 }
 
 .btn-primary:active {
-  background: var(--accent-active);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+  opacity: 0.88;
 }
 
 /* 次要按钮 - 轮廓 */
 .btn-secondary {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
+  background: var(--bg-raised);
+  border: 1px solid var(--rule);
+  color: var(--text-primary);
 }
 
 .btn-secondary:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-subtle);
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+  background: var(--bg-hover);
 }
 
-/* 卡片按钮 */
+/* 卡片按钮（与 secondary 等效，但略重）*/
 .btn-card {
-  background: var(--bg-surface);
-  border-color: var(--border);
+  background: var(--bg-raised);
+  border-color: var(--rule);
   color: var(--text-primary);
 }
 
@@ -80,13 +84,13 @@
 /* 危险按钮 */
 .btn-danger {
   background: transparent;
-  border: 1px solid var(--border);
+  border: 1px solid var(--rule);
   color: var(--text-secondary);
 }
 
 .btn-danger:hover {
   border-color: var(--danger);
-  color: var(--text-primary);
+  color: var(--danger);
   background: var(--danger-subtle);
 }
 
@@ -94,12 +98,11 @@
 .btn-success {
   background: var(--success);
   border: 1px solid var(--success);
-  color: #fff8f5;
+  color: #fff;
 }
 
 .btn-success:hover {
-  background: #5fa57e;
-  border-color: #5fa57e;
+  filter: brightness(1.05);
 }
 
 /* 幽灵按钮 */
@@ -107,54 +110,79 @@
   background: transparent;
   border: none;
   color: var(--text-secondary);
-  padding: 0.5rem 0.75rem;
+  padding: 7px 10px;
 }
 
 .btn-ghost:hover {
-  color: var(--accent);
-  background: var(--accent-subtle);
+  color: var(--text-primary);
+  background: var(--bg-hover);
 }
 
 /* 尺寸变体 */
 .btn-sm {
-  padding: 0.25rem 0.6rem;
-  font-size: 0.76rem;
-  letter-spacing: 0.05em;
-  border-radius: 0;
+  padding: 4px 10px;
+  font-size: 11.5px;
+  letter-spacing: 0;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
 }
 
 .btn-lg {
-  padding: 0.85rem 1.75rem;
-  font-size: 1rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  border-radius: 0;
+  padding: 10px 22px;
+  font-size: 13px;
+  letter-spacing: 0;
+  text-transform: none;
+  border-radius: var(--radius-md);
+  font-weight: 600;
 }
 
 /* 图标按钮 */
 .btn-icon {
-  padding: 0.55rem;
+  padding: 6px;
   aspect-ratio: 1;
 }
 
 .btn-icon.btn-sm {
-  padding: 0.4rem;
+  padding: 4px;
 }
 
-/* 禁用状态 */
+/* 禁用 */
 .btn:disabled {
-  opacity: 0.4;
+  opacity: 0.45;
   cursor: not-allowed;
   box-shadow: none;
 }
 
 .btn:disabled:hover {
   box-shadow: none;
-  background: var(--bg-surface);
-  border-color: var(--border);
+  background: var(--bg-raised);
+  border-color: var(--rule);
 }
 
-/* 随机数据按钮 */
+/* Chip 样式 mono 按钮（快捷切换）*/
+.btn-chip {
+  padding: 4px 10px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  border: 1px solid var(--rule);
+  background: var(--bg-raised);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-chip:hover {
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+.btn-chip.active {
+  border-color: var(--text-primary);
+  background: var(--text-primary);
+  color: var(--bg-base);
+}
+
 .btn-random-bottom {
   margin-left: auto;
 }

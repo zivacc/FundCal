@@ -6,7 +6,7 @@ import { fetchFundFeeFromAPI, fetchFundCodesFromAPI, fetchSearchIndexFromAPI, fe
 import {
   getColorForIndex, DEMO_FUND_CODES, QUICK_SEGMENT_DAYS,
   defaultSegments, parseRate, formatRate, escapeHtml, shuffle, parseDaysInput,
-  openModal, closeModal
+  openModal, closeModal, getChartTheme
 } from './utils.js';
 import { SEARCH_DEBOUNCE_MS, filterSearchIndex } from './search-utils.js';
 import {
@@ -54,31 +54,18 @@ function readFundFromCard(card) {
   const buyFee = rawBuyFee * buyFeeDiscountFactor;
   const _rawBuyFee = rawBuyFee;
   const annualFee = parseRate(card.querySelector('.input-annual-fee')?.value);
-  const unboundedRate = parseRate(card.querySelector('.input-unbounded-rate')?.value);
   const segments = [];
   card.querySelectorAll('.segment-row').forEach(row => {
-    let days, rate;
+    const rate = parseRate(row.querySelector('.input-rate')?.value);
     if (row.dataset.unbounded === 'true') {
-      days = parseInt(row.dataset.days, 10);
-      rate = unboundedRate;
-      if (!isNaN(days) && days > 0) segments.push({ days, rate, unbounded: true });
+      segments.push({ to: null, rate });
     } else {
-      const daysInput = row.querySelector('.input-days');
-      const rateInput = row.querySelector('.input-rate');
-      days = parseInt(daysInput?.value, 10);
-      rate = parseRate(rateInput?.value);
-      if (!isNaN(days) && days > 0) segments.push({ days, rate });
+      const days = parseInt(row.querySelector('.input-days')?.value, 10);
+      if (!isNaN(days) && days > 0) segments.push({ to: days, rate });
     }
   });
-  segments.sort((a, b) => a.days - b.days || (a.unbounded ? 1 : 0) - (b.unbounded ? 1 : 0));
-  // 若没有无上限行但用户设置了无上限段费率，则从最后一段的天数起应用该费率（便于手动填写的卡片也生效）
-  const hasUnbounded = segments.some(s => s.unbounded);
-  if (!hasUnbounded && segments.length > 0 && (unboundedRate > 0 || card.querySelector('.input-unbounded-rate')?.value?.trim() !== '')) {
-    const lastSeg = segments[segments.length - 1];
-    segments.push({ days: lastSeg.days, rate: unboundedRate, unbounded: true });
-    segments.sort((a, b) => a.days - b.days || (a.unbounded ? 1 : 0) - (b.unbounded ? 1 : 0));
-  }
-  const fund = { name, buyFee, _rawBuyFee, sellFeeSegments: segments, annualFee, unboundedSellFeeRate: unboundedRate };
+  segments.sort((a, b) => (a.to ?? Infinity) - (b.to ?? Infinity));
+  const fund = { name, buyFee, _rawBuyFee, sellFeeSegments: segments, annualFee };
   if (code) fund.code = code;
   return fund;
 }
@@ -97,25 +84,28 @@ function updateSegmentRowTitle(row) {
   }
 }
 
-/** 渲染分段表格行（含删除按钮），seg 为空则天数和费率都为空；seg.unbounded 时为无上限段，费率由下方「无上限段卖出费率」输入决定 */
-function renderSegmentRow(container, seg = { days: 7, rate: 0 }, onUpdate, onRowChange) {
+/** 渲染分段表格行（含删除按钮）。seg.to=null 表示永久段，days 列显示「永久」标签并锁定 */
+function renderSegmentRow(container, seg = { to: 7, rate: 0 }, onUpdate, onRowChange) {
+  // 兼容旧 ziva 快照里的 {days, unbounded} 格式
+  if (!('to' in seg) && (seg.days !== undefined || seg.unbounded)) {
+    seg = { to: seg.unbounded ? null : (seg.days ?? null), rate: seg.rate };
+  }
   const row = document.createElement('tr');
   row.className = 'segment-row';
-  const isUnbounded = !!seg.unbounded;
-  const daysVal = seg.days !== undefined && seg.days !== null && seg.days !== '' ? seg.days : '';
+  const isUnbounded = seg.to === null;
+  const daysVal = seg.to != null ? seg.to : '';
   const rateVal = seg.rate != null && seg.rate > 0 ? (seg.rate * 100).toFixed(2) : '';
   if (isUnbounded) {
     row.dataset.unbounded = 'true';
-    row.dataset.days = String(daysVal);
     row.innerHTML = `
-      <td class="unbounded-days-cell">≥${daysVal}天</td>
-      <td class="unbounded-rate-cell">永久费率</td>
+      <td class="unbounded-days-cell">永久</td>
+      <td><input type="text" class="input-rate" value="${rateVal}" placeholder="0.00"></td>
       <td class="segment-actions"><button type="button" class="segment-del-btn" title="删除该行" aria-label="删除该行">×</button></td>
     `;
   } else {
     row.innerHTML = `
       <td><input type="number" class="input-days" value="${daysVal}" min="1" placeholder="期限"></td>
-      <td><input type="text" class="input-rate" value="${rateVal}" placeholder="0.00 或 0.00%"></td>
+      <td><input type="text" class="input-rate" value="${rateVal}" placeholder="0.00"></td>
       <td class="segment-actions"><button type="button" class="segment-del-btn" title="删除该行" aria-label="删除该行">×</button></td>
     `;
   }
@@ -132,46 +122,50 @@ function renderSegmentRow(container, seg = { days: 7, rate: 0 }, onUpdate, onRow
     onRowChange?.();
     onUpdate?.();
   });
-  if (!isUnbounded) {
-    row.querySelector('.input-days').addEventListener('blur', () => {
+
+  const daysInput = row.querySelector('.input-days');
+  if (daysInput) {
+    daysInput.addEventListener('blur', () => {
       sortSegmentRows(container);
       onRowChange?.();
       onUpdate?.();
     });
-    row.querySelectorAll('input').forEach(inp => {
-      inp.addEventListener('input', () => {
-        updateSegmentRowTitle(row);
-        onUpdate?.();
-      });
-    });
   }
+  row.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('input', () => {
+      if (!isUnbounded) updateSegmentRowTitle(row);
+      onUpdate?.();
+    });
+  });
   return row;
 }
 
-/** 按持有天数从小到大重排卖出费率表格行；无上限段（同天数）排最后 */
+/** 按持有天数从小到大重排卖出费率表格行；永久段（to=null）排最后 */
 function sortSegmentRows(tbody) {
   const rows = Array.from(tbody.querySelectorAll('.segment-row'));
   const withDays = rows.map(row => {
-    const daysInput = row.querySelector('.input-days');
-    const days = daysInput ? parseInt(daysInput.value, 10) : parseInt(row.dataset.days, 10);
-    const unbounded = row.dataset.unbounded === 'true';
-    return { row, days: !isNaN(days) && days > 0 ? days : Infinity, unbounded };
+    if (row.dataset.unbounded === 'true') return { row, days: Infinity };
+    const days = parseInt(row.querySelector('.input-days')?.value, 10);
+    return { row, days: !isNaN(days) && days > 0 ? days : Infinity };
   });
-  withDays.sort((a, b) => a.days - b.days || (a.unbounded ? 1 : 0) - (b.unbounded ? 1 : 0));
+  withDays.sort((a, b) => a.days - b.days);
   withDays.forEach(({ row }) => tbody.appendChild(row));
 }
 
 /** 获取表格中已存在的持有天数列表 */
 function getExistingDays(tbody) {
   return Array.from(tbody.querySelectorAll('.segment-row'))
-    .map(r => {
-      const inp = r.querySelector('.input-days');
-      return inp ? parseInt(inp.value, 10) : (r.dataset.unbounded === 'true' ? parseInt(r.dataset.days, 10) : NaN);
-    })
+    .filter(r => r.dataset.unbounded !== 'true')
+    .map(r => parseInt(r.querySelector('.input-days')?.value, 10))
     .filter(d => !isNaN(d) && d > 0);
 }
 
-/** 刷新快捷按钮：仅显示表格中尚未存在的天数对应的按钮 */
+/** 是否已有永久段 */
+function hasUnboundedRow(tbody) {
+  return !!tbody.querySelector('.segment-row[data-unbounded="true"]');
+}
+
+/** 刷新快捷按钮：显示表格中尚未存在的天数 + 永久按钮（若尚无永久段） */
 function updateQuickButtons(tbody, quickContainer, onUpdate, onRowChange) {
   if (!quickContainer) return;
   const existing = getExistingDays(tbody);
@@ -188,13 +182,27 @@ function updateQuickButtons(tbody, quickContainer, onUpdate, onRowChange) {
     });
     quickContainer.appendChild(btn);
   });
+  if (!hasUnboundedRow(tbody)) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn btn-sm';
+    btn.textContent = '永久';
+    btn.title = '添加永久（无上限）段：(上一段, +∞)';
+    btn.addEventListener('click', () => {
+      renderSegmentRow(tbody, { to: null, rate: 0 }, onUpdate, onRowChange);
+      sortSegmentRows(tbody);
+      onRowChange?.();
+      onUpdate?.();
+    });
+    quickContainer.appendChild(btn);
+  }
 }
 
 /** 添加快捷分段，若该天数已存在则跳过；新行天数预填，费率为空 */
 function addQuickSegment(tbody, days, onUpdate, onRowChange) {
   const existing = getExistingDays(tbody);
   if (existing.includes(days)) return;
-  renderSegmentRow(tbody, { days, rate: '' }, onUpdate, onRowChange);
+  renderSegmentRow(tbody, { to: days, rate: '' }, onUpdate, onRowChange);
   sortSegmentRows(tbody);
   onRowChange?.();
   onUpdate?.();
@@ -338,26 +346,16 @@ function createFundCard(index, color, initialData) {
     </div>
     <p class="segment-section-label">卖出费率</p>
     <table class="segments-table">
-      <thead><tr><th>持有期限（天）</th><th>卖出费率（%）</th><th class="segment-actions"></th></tr></thead>
+      <thead><tr><th>天数</th><th>费率 %</th><th class="segment-actions"></th></tr></thead>
       <tbody></tbody>
     </table>
     <div class="segment-toolbar">
       <button type="button" class="btn btn-sm segment-add-row">+ 添加</button>
       <div class="segment-quick-buttons"></div>
     </div>
-    <div class="unbounded-rate-row">
-      <label class="unbounded-rate-label">永久卖出费率</label>
-      <input type="text" class="input-unbounded-rate" placeholder="0" value="" title="适用「≥N天」无上限区间的费率，默认 0">
-      <span class="unbounded-rate-unit">%</span>
-      <div class="unbounded-quick-btns">
-        <button type="button" class="btn btn-sm unbounded-rate-btn" data-action="clear">清除</button>
-        <button type="button" class="btn btn-sm unbounded-rate-btn" data-rate="0.5">0.5%</button>
-      </div>
-    </div>
   `;
   const tbody = card.querySelector('.segments-table tbody');
   const quickContainer = card.querySelector('.segment-quick-buttons');
-  const unboundedInput = card.querySelector('.input-unbounded-rate');
   const debounce = (fn, ms) => { let t; return () => { clearTimeout(t); t = setTimeout(fn, ms); }; };
   const update = debounce(() => { updateChart(); saveState(); }, 300);
   const refreshQuickButtons = () => updateQuickButtons(tbody, quickContainer, update, refreshQuickButtons);
@@ -484,33 +482,13 @@ function createFundCard(index, color, initialData) {
     const segs = initialData.sellFeeSegments?.length ? initialData.sellFeeSegments : defaultSegments();
     tbody.innerHTML = '';
     segs.forEach(seg => renderSegmentRow(tbody, seg, update, refreshQuickButtons));
-    const lastSeg = segs[segs.length - 1];
-    if (lastSeg?.unbounded && unboundedInput) {
-      const v = initialData.unboundedSellFeeRate != null ? (initialData.unboundedSellFeeRate * 100).toFixed(2) : (lastSeg.rate != null ? (lastSeg.rate * 100).toFixed(2) : '0');
-      unboundedInput.value = v;
-    }
   } else {
     defaultSegments().forEach(seg => renderSegmentRow(tbody, seg, update, refreshQuickButtons));
   }
   refreshQuickButtons();
 
-  if (unboundedInput) {
-    unboundedInput.addEventListener('input', update);
-    card.querySelectorAll('.unbounded-rate-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        if (btn.dataset.action === 'clear') {
-          unboundedInput.value = '';
-        } else {
-          const r = parseFloat(btn.dataset.rate);
-          unboundedInput.value = (r).toFixed(2);
-        }
-        update();
-      });
-    });
-  }
-
   card.querySelector('.segment-add-row').addEventListener('click', () => {
-    renderSegmentRow(tbody, { days: '', rate: '' }, update, refreshQuickButtons);
+    renderSegmentRow(tbody, { to: '', rate: '' }, update, refreshQuickButtons);
     sortSegmentRows(tbody);
     refreshQuickButtons();
     update();
@@ -835,12 +813,13 @@ async function applyFeederPenetration(funds) {
   return funds;
 }
 
-/** 未指定显示区间时，在 [1, CALC_EXTENDED_DAYS] 内算交叉点，显示结束 = max(365, dynamic)，dynamic = max(表格最大天数+100, 最后交叉点+50)；表格最大天数取各分段 days 的最大值（含无上限段的起算天数，如 730、1000） */
+/** 未指定显示区间时，在 [1, CALC_EXTENDED_DAYS] 内算交叉点，显示结束 = max(365, dynamic)，dynamic = max(表格最大天数+100, 最后交叉点+50)；永久段不影响最大天数 */
 const CALC_EXTENDED_DAYS = 7300;
 function getEffectiveMaxDays(funds) {
   const maxSegmentDays = funds.reduce((acc, f) => {
     const segs = f.sellFeeSegments ?? [];
-    const m = segs.length ? Math.max(...segs.map(s => s.days)) : 0;
+    const finite = segs.filter(s => s.to != null).map(s => s.to);
+    const m = finite.length ? Math.max(...finite) : 0;
     return Math.max(acc, m);
   }, 0);
   const crossovers = findAllCrossovers(funds, CALC_EXTENDED_DAYS);
@@ -1206,9 +1185,10 @@ async function updateChart() {
   if (chartInstance) chartInstance.destroy();
 
   const Chart = window.Chart;
-  const gridColor = 'rgba(185, 28, 28, 0.14)';
-  const tickColor = '#ffffff';
-  const titleColor = '#ffffff';
+  const theme = getChartTheme();
+  const gridColor = theme.grid;
+  const tickColor = theme.textSecondary;
+  const titleColor = theme.textPrimary;
   const chartFont = { family: "'LXGW WenKai', 'Noto Serif SC', 'Songti SC', 'PingFang SC', 'Microsoft YaHei', serif" };
 
   chartInstance = new Chart(canvas, {
@@ -1945,4 +1925,7 @@ function init() {
   })();
 }
 
-init();
+export function pageInit() {
+  init();
+  window.addEventListener('fundcal-theme-change', () => { updateChart(); });
+}

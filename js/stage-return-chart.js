@@ -8,7 +8,7 @@
  * - 默认基准 = 所有当前基金都有数据的最早节点（不含成立来 / 今天）
  */
 
-import { getColorForIndex, escapeHtml } from './utils.js';
+import { getColorForIndex, escapeHtml, getChartTheme } from './utils.js';
 
 const TODAY_LABEL = '今天';
 
@@ -110,7 +110,8 @@ function getBaselineReturn(rMap, baseline) {
   return v == null ? null : v;
 }
 
-function buildDatasets(funds, returnMaps, labels, baseline) {
+function buildDatasets(funds, returnMaps, labels, baseline, theme) {
+  const hoverBorder = theme?.bgBase || '#ffffff';
   return funds.map((fund, i) => {
     const name = fund.name || (fund.code ? `基金${fund.code}` : '未命名基金');
     const color = fund.color || getColorForIndex(i);
@@ -136,7 +137,7 @@ function buildDatasets(funds, returnMaps, labels, baseline) {
       pointHoverRadius: 6,
       pointHoverBorderWidth: 2,
       pointHoverBackgroundColor: color,
-      pointHoverBorderColor: '#f5f0eb',
+      pointHoverBorderColor: hoverBorder,
       pointHitRadius: 16,
       spanGaps: true,
       fill: false,
@@ -221,37 +222,40 @@ export function renderStageReturnChart(funds, metas) {
   const isDefault = currentBaseline === defaultBaseline;
   updateBaselineHint(currentBaseline, isDefault, defaultBaseline);
 
-  const datasets = buildDatasets(funds, returnMaps, labels, currentBaseline);
+  const theme = getChartTheme();
+  const datasets = buildDatasets(funds, returnMaps, labels, currentBaseline, theme);
 
   destroyChart();
 
   const Chart = window.Chart;
   if (!Chart) return;
 
-  const textPrimary = '#f5f0eb';
-  const textSecondary = '#c7b8a8';
-  const gridColor = 'rgba(185, 28, 28, 0.14)';
+  const textPrimary = theme.textPrimary;
+  const textSecondary = theme.textSecondary;
+  const gridColor = theme.grid;
+  const axisBorder = theme.ruleStrong;
+  const onColorText = theme.bgBase;
   const chartFont = { family: "'LXGW WenKai', 'Noto Serif SC', 'Songti SC', 'PingFang SC', 'Microsoft YaHei', serif" };
 
   const baselineIdx = labels.indexOf(currentBaseline);
   const defaultIdx = defaultBaseline ? labels.indexOf(defaultBaseline) : -1;
 
   const annotations = {};
-  // 默认基准标记（仅在与当前基准不同时显示，用铜金色区分）
+  // 默认基准标记（仅在与当前基准不同时显示，用暖色区分）
   if (defaultIdx >= 0 && defaultIdx !== baselineIdx) {
     annotations.defaultBaselineLine = {
       type: 'line',
       xMin: defaultIdx,
       xMax: defaultIdx,
-      borderColor: 'rgba(184, 115, 51, 0.55)',
+      borderColor: theme.warm,
       borderWidth: 1,
       borderDash: [2, 3],
       label: {
         display: true,
         content: `默认 ${defaultBaseline}`,
         position: 'end',
-        backgroundColor: 'rgba(184, 115, 51, 0.85)',
-        color: '#fff',
+        backgroundColor: theme.warm,
+        color: onColorText,
         font: { ...chartFont, size: 11, weight: '600' },
         padding: { x: 6, y: 3 },
         yAdjust: 4,
@@ -263,15 +267,15 @@ export function renderStageReturnChart(funds, metas) {
       type: 'line',
       xMin: baselineIdx,
       xMax: baselineIdx,
-      borderColor: 'rgba(220, 38, 38, 0.65)',
+      borderColor: theme.accent,
       borderWidth: 1.5,
       borderDash: [4, 4],
       label: {
         display: true,
         content: `基准 ${currentBaseline}`,
         position: 'start',
-        backgroundColor: 'rgba(185, 28, 28, 0.9)',
-        color: '#fff',
+        backgroundColor: theme.accent,
+        color: onColorText,
         font: { ...chartFont, size: 12, weight: '700' },
         padding: { x: 6, y: 3 },
         yAdjust: -4,
@@ -282,7 +286,7 @@ export function renderStageReturnChart(funds, metas) {
     type: 'line',
     yMin: 0,
     yMax: 0,
-    borderColor: 'rgba(199, 184, 168, 0.35)',
+    borderColor: axisBorder,
     borderWidth: 1,
     borderDash: [2, 4],
   };
@@ -300,12 +304,12 @@ export function renderStageReturnChart(funds, metas) {
         x: {
           type: 'category',
           grid: { color: gridColor, drawTicks: true },
-          border: { color: 'rgba(185, 28, 28, 0.3)' },
+          border: { color: axisBorder },
           ticks: {
             color: (ctx) => {
               const label = ctx?.tick?.label;
-              if (label === currentBaseline) return '#fff';
-              if (label === defaultBaseline) return '#e8c79a';
+              if (label === currentBaseline) return theme.accent;
+              if (label === defaultBaseline) return theme.warm;
               return textPrimary;
             },
             font: (ctx) => {
@@ -330,7 +334,7 @@ export function renderStageReturnChart(funds, metas) {
         },
         y: {
           grid: { color: gridColor },
-          border: { color: 'rgba(185, 28, 28, 0.3)' },
+          border: { color: axisBorder },
           ticks: {
             color: textPrimary,
             font: { ...chartFont, size: 13 },
@@ -357,11 +361,11 @@ export function renderStageReturnChart(funds, metas) {
           }
         },
         tooltip: {
-          backgroundColor: 'rgba(20, 16, 14, 0.95)',
-          borderColor: 'rgba(185, 28, 28, 0.55)',
+          backgroundColor: textPrimary,
+          borderColor: theme.accent,
           borderWidth: 1,
-          titleColor: textPrimary,
-          bodyColor: textPrimary,
+          titleColor: onColorText,
+          bodyColor: onColorText,
           titleFont: { ...chartFont, size: 13, weight: '600' },
           bodyFont: { ...chartFont, size: 13 },
           padding: 10,

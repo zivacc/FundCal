@@ -152,15 +152,14 @@
 }
 
 .toggle-btn:has(.toggle-btn-input:checked) {
-  background: var(--accent-subtle);
+  background: var(--accent-bg);
   border-color: var(--accent);
   color: var(--accent);
-  box-shadow: inset 0 0 0 1px var(--accent);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .toggle-btn:has(.toggle-btn-input:checked):hover {
-  background: rgba(185, 28, 28, 0.22);
+  background: var(--accent-subtle);
   border-color: var(--accent-hover);
 }
 
@@ -197,13 +196,14 @@
 
 .segments-table th {
   color: var(--text-tertiary);
-  font-weight: 600;
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 10.5px;
+  text-transform: none;
+  letter-spacing: 1.2px;
   padding: 0.5rem 0.5rem;
   text-align: left;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--rule);
 }
 
 .segments-table td {

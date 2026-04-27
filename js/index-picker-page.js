@@ -1,5 +1,5 @@
 import { fetchFundStatsFromAPI, fetchFundFeeFromAPI } from './api-adapter.js';
-import { escapeHtml, getColorForIndex } from './utils.js';
+import { escapeHtml, getColorForIndex, getChartTheme } from './utils.js';
 import { renderFundDetailTable } from './fund-detail-table.js';
 
 const MAX_DROPDOWN_ITEMS = 30;
@@ -440,9 +440,10 @@ function renderCharts() {
   if (typeof Chart === 'undefined' || !els.barCanvas || !els.scatterCanvas) return;
   destroyCharts();
 
-  const chartGridColor = 'rgba(185, 28, 28, 0.08)';
-  const chartTickColor = '#8a7a6b';
-  const chartTitleColor = '#c7b8a8';
+  const theme = getChartTheme();
+  const chartGridColor = theme.grid;
+  const chartTickColor = theme.textSecondary;
+  const chartTitleColor = theme.textPrimary;
   const chartFont = { family: "'LXGW WenKai', 'Noto Serif SC', 'Songti SC', 'PingFang SC', 'Microsoft YaHei', serif", size: 11 };
 
   const topRows = state.sortedRows.filter(r => Number.isFinite(getBarNumber(r))).slice(0, 10);
@@ -605,6 +606,27 @@ function bindEvents() {
       rerender();
     });
   });
+
+  const catTags = document.querySelectorAll('#index-page-cat-tags .ix-hero-cat-tag');
+  catTags.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const cat = btn.dataset.cat || '';
+      const same = els.searchInput && els.searchInput.value.trim() === cat;
+      const next = same ? '' : cat;
+      if (els.searchInput) {
+        els.searchInput.value = next;
+        els.searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+        if (next) els.searchInput.focus();
+      }
+      catTags.forEach(b => b.classList.toggle('ix-hero-cat-tag-active', !same && b === btn));
+    });
+  });
+
+  els.searchInput?.addEventListener('input', () => {
+    if (!catTags.length) return;
+    const v = els.searchInput.value.trim();
+    catTags.forEach(b => b.classList.toggle('ix-hero-cat-tag-active', v && b.dataset.cat === v));
+  });
 }
 
 /* ── init ── */
@@ -632,4 +654,9 @@ async function init() {
   }
 }
 
-init();
+export function pageInit() {
+  init();
+  window.addEventListener('fundcal-theme-change', () => {
+    if (state.sortedRows && state.sortedRows.length) renderCharts();
+  });
+}

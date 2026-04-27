@@ -4,30 +4,17 @@
 
 .card {
   position: relative;
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-top: var(--ledger-line);
-  border-radius: 0;
-  padding: 1.25rem;
+  background: var(--bg-raised);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
   transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
   overflow: hidden;
   box-shadow: var(--shadow-sm);
 }
 
-.card::before {
-  content: '';
-  position: absolute;
-  top: 3px;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: rgba(255, 200, 180, 0.08);
-  pointer-events: none;
-}
-
 .card:hover {
   border-color: var(--border-hover);
-  border-top-color: var(--accent-hover);
   box-shadow: var(--shadow-md);
 }
 
@@ -98,34 +85,21 @@
 
 .fund-card {
   flex: 0 0 auto;
-  width: 360px;
+  width: 340px;
   min-height: 0;
   scroll-snap-align: start;
   scroll-snap-stop: normal;
   position: relative;
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-top: 3px solid var(--card-accent-color, var(--accent));
-  border-radius: 0;
-  padding: 1.25rem;
+  background: var(--bg-raised);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
   box-shadow: var(--shadow-sm);
   transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
 }
 
-.fund-card::after {
-  content: '';
-  position: absolute;
-  top: 3px;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: rgba(255, 200, 180, 0.08);
-  pointer-events: none;
-}
-
 .fund-card:hover {
   border-color: var(--border-hover);
-  border-top-color: var(--card-accent-color, var(--accent-hover));
   box-shadow: var(--shadow-md);
 }
 
@@ -142,20 +116,19 @@
 
 .fund-card-color {
   display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
   flex-shrink: 0;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
+  box-shadow: none;
 }
 
-/* 颜色方块（card header 中） */
 .fund-card .color-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
   flex-shrink: 0;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
+  box-shadow: none;
 }
 
 /* 名称区域 */
@@ -175,7 +148,7 @@
   border-radius: var(--radius-sm);
   padding: 0.3rem 0.5rem;
   font-size: 0.85rem;
-  font-family: var(--font-body);
+  font-family: var(--font-cjk);
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
@@ -364,6 +337,227 @@
 .unbounded-quick-btns .btn-sm {
   padding: 0.15rem 0.35rem;
   font-size: 0.7rem;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   基金卡片 - spec-sheet 风格优化
+   （参考 design：mono 段标 + 暖色顶部渐变 + 紧凑分隔线）
+   ═══════════════════════════════════════════════════════════════ */
+
+.fund-card {
+  padding: 14px 16px 12px;
+  background-image: linear-gradient(180deg, var(--accent-subtle) 0%, transparent 56px);
+  background-color: var(--bg-raised);
+}
+
+/* 段标 - 主题字体加粗，主色 */
+.fund-card .segment-section-label {
+  font-family: var(--font-cjk);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text-primary);
+  margin: 10px 0 5px;
+}
+
+/* 段表头同款 mono 大写 */
+.fund-card .segments-table th {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  font-weight: 500;
+  padding: 4px 0.35rem;
+}
+
+/* 顶部 fund-name 输入更轻量 */
+.fund-card .fund-name {
+  background: transparent;
+  border-color: transparent;
+  font-size: 0.92rem;
+  font-weight: 600;
+  padding: 0.25rem 0.4rem;
+}
+
+.fund-card .fund-name:hover {
+  border-color: var(--rule);
+}
+
+.fund-card .fund-name:focus {
+  background: var(--bg-input);
+  border-color: var(--border-focus);
+}
+
+/* 代码：mono 小字 */
+.fund-card .fund-code {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.6px;
+  color: var(--text-tertiary);
+  margin-top: 0;
+  padding-left: 0.4rem;
+}
+
+.fund-card .fund-code:empty {
+  display: none;
+}
+
+/* 关闭按钮：贴合 spec-sheet，弱化默认状态 */
+.fund-card .remove-btn {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--radius-sm);
+  font-size: 1rem;
+  opacity: 0;
+  transition: opacity var(--transition-fast), background var(--transition-fast),
+              color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.fund-card:hover .remove-btn,
+.fund-card .remove-btn:focus-visible {
+  opacity: 1;
+}
+
+/* ── 买入/年化行：spec-sheet 风格（标签左 + 数值右 + 顶部分隔线） ── */
+.fund-card .form-row-fee {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 6px 4px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.fund-card .form-row-fee .segment-section-label {
+  flex: 1;
+  margin: 0;
+  font-family: var(--font-cjk);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text-primary);
+}
+
+.fund-card .form-row-fee .input-buy-fee,
+.fund-card .form-row-fee .input-annual-fee {
+  flex: 0 0 auto;
+  width: 5rem;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  font-weight: 500;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  color: var(--text-primary);
+  transition: background var(--transition-fast), border-color var(--transition-fast),
+              box-shadow var(--transition-fast);
+}
+
+.fund-card .form-row-fee .input-buy-fee:hover,
+.fund-card .form-row-fee .input-annual-fee:hover {
+  border-color: var(--rule);
+}
+
+.fund-card .form-row-fee .input-buy-fee:focus,
+.fund-card .form-row-fee .input-annual-fee:focus {
+  outline: none;
+  background: var(--bg-input);
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 2px var(--accent-subtle);
+}
+
+.fund-card .form-row-fee .input-unit {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-tertiary);
+  width: 14px;
+  text-align: left;
+  margin: 0;
+}
+
+/* ── 卖出费率段标：与 form-row-fee 风格一致（无下边距空行） ── */
+.fund-card > .segment-section-label {
+  margin: 12px 0 4px;
+  padding: 0 4px;
+}
+
+/* ── 分段表 ── */
+.fund-card .segments-table {
+  margin-top: 2px;
+  border-collapse: collapse;
+}
+
+.fund-card .segments-table th {
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.fund-card .segments-table td {
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.fund-card .segments-table tr:last-child td {
+  border-bottom: none;
+}
+
+.fund-card .segments-table input {
+  width: 100%;
+  max-width: 100%;
+  background: transparent;
+  border: 1px solid transparent;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  padding: 3px 6px;
+  text-align: right;
+  color: var(--text-primary);
+}
+
+.fund-card .segments-table input:hover {
+  border-color: var(--rule);
+}
+
+.fund-card .segments-table input:focus {
+  outline: none;
+  background: var(--bg-input);
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 2px var(--accent-subtle);
+}
+
+/* ── 永久段单元格：表格中以「永久」文字代替天数输入 ── */
+.fund-card .segments-table td.unbounded-days-cell {
+  font-family: var(--font-cjk);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+  padding: 4px 6px;
+}
+
+/* ── 分段工具栏：紧凑 ── */
+.fund-card .segment-toolbar {
+  margin-top: 6px;
+  padding: 6px 4px 0;
+  border-top: 1px solid var(--border-subtle);
+  gap: 4px;
+}
+
+.fund-card .segment-toolbar .btn-sm {
+  padding: 2px 8px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+}
+
+.fund-card .segment-quick-buttons {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
 }
 
 /* ═══════════════════════════════════════════════════════════════

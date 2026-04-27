@@ -46,10 +46,10 @@ function isUnboundedPeriod(text) {
 }
 
 /**
- * 解析无上限区间的起始天数（仅当 isUnboundedPeriod 为 true 时语义正确）
- * "大于等于7天" -> 7；"大于等于8年" -> 2920
+ * (已弃用) 旧 schema 中无上限段需要起算天数；新 schema 用 to=null，无需此函数。
+ * 暂保留实现以备旧调用回退。
  */
-function parseDaysStartUnbounded(text) {
+function _parseDaysStartUnbounded_legacy(text) {
   if (!text || typeof text !== 'string') return 0;
   const t = text.trim();
   const dayMatch = t.match(/(\d+)\s*天/);
@@ -436,24 +436,22 @@ async function fetchOverseasFundFee(code) {
       const rateMatch = rowText.match(/([\d.]+)%/);
       if (!rateMatch) continue;
       const rate = parseFloat(rateMatch[1]) / 100;
-      // 默认第二列为“持有期限”
       const periodRaw = row[1] || row[0] || '---';
       const periodText = periodRaw.trim();
       const unbounded = isUnboundedPeriod(periodText);
-      const days = unbounded ? parseDaysStartUnbounded(periodText) : parseDaysUpperBound(periodText);
+      const to = unbounded ? null : parseDaysUpperBound(periodText);
       redeemSegments.push({
         periodCondition: periodText,
-        days,
+        to,
         rate,
-        ...(unbounded && { unbounded: true })
       });
     }
-    redeemSegments.sort((a, b) => (a.days || 0) - (b.days || 0));
+    redeemSegments.sort((a, b) => (a.to ?? Infinity) - (b.to ?? Infinity));
   }
 
   const sellFeeSegments = redeemSegments.length > 0
-    ? redeemSegments.map(s => ({ days: s.days, rate: s.rate, ...(s.unbounded && { unbounded: true }) }))
-    : [{ days: 730, rate: 0 }];
+    ? redeemSegments.map(s => ({ to: s.to, rate: s.rate }))
+    : [{ to: null, rate: 0 }];
 
   return {
     code,
@@ -643,15 +641,14 @@ async function fetchFundFee(code) {
       const periodCondition = row.find(c => /[天年月]|小于|大于/.test(c)) || row[0] || '---';
       const periodText = /\d+\s*[天年月]/.test(periodCondition) ? periodCondition : (row[0] || row[1] || '---');
       const unbounded = isUnboundedPeriod(periodText);
-      const days = unbounded ? parseDaysStartUnbounded(periodText) : parseDaysUpperBound(periodText);
+      const to = unbounded ? null : parseDaysUpperBound(periodText);
       purchaseBackSegments.push({
         periodCondition: periodText,
-        days,
+        to,
         rate: parseRatePercent(rateStr),
-        ...(unbounded && { unbounded: true })
       });
     }
-    purchaseBackSegments.sort((a, b) => (a.days || 0) - (b.days || 0));
+    purchaseBackSegments.sort((a, b) => (a.to ?? Infinity) - (b.to ?? Infinity));
   }
 
   const redeemSegments = [];
@@ -664,19 +661,18 @@ async function fetchFundFee(code) {
       if (!rateStr) continue;
       const periodText = /\d+\s*[天年月]/.test(row[1]) ? row[1] : (/\d+\s*[天年月]/.test(row[0]) ? row[0] : row[0] || row[1]);
       const unbounded = isUnboundedPeriod(periodText);
-      const days = unbounded ? parseDaysStartUnbounded(periodText) : parseDaysUpperBound(periodText);
+      const to = unbounded ? null : parseDaysUpperBound(periodText);
       redeemSegments.push({
         periodCondition: periodText,
-        days,
+        to,
         rate: parseRatePercent(rateStr),
-        ...(unbounded && { unbounded: true })
       });
     }
-    redeemSegments.sort((a, b) => a.days - b.days);
+    redeemSegments.sort((a, b) => (a.to ?? Infinity) - (b.to ?? Infinity));
   }
   const sellFeeSegments = redeemSegments.length > 0
-    ? redeemSegments.map(s => ({ days: s.days, rate: s.rate, ...(s.unbounded && { unbounded: true }) }))
-    : [{ days: 730, rate: 0 }];
+    ? redeemSegments.map(s => ({ to: s.to, rate: s.rate }))
+    : [{ to: null, rate: 0 }];
 
   // 买入费率：优先使用前端申购费率表中金额最小区间（首条记录）的原始费率；
   // 如无前端申购费率，则退回到后端申购费率表的首条记录。

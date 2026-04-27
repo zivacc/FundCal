@@ -86,7 +86,7 @@
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(185, 28, 28, 0.15),
+    var(--accent-subtle),
     transparent
   );
   animation: loading-wave 1.5s infinite;
@@ -100,63 +100,37 @@
   }
 }
 
-/* 发光边框效果 */
+/* 高亮边框（accent ring） */
 .glow-border {
   position: relative;
-  border: 1px solid var(--border);
+  border: 1px solid var(--rule);
   border-radius: var(--radius-lg);
-  background: var(--bg-surface);
+  background: var(--bg-raised);
   overflow: hidden;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
-.glow-border::before {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  padding: 1px;
-  background: var(--gradient-border);
-  -webkit-mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  opacity: 0;
-  transition: opacity var(--transition-glow);
+.glow-border:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
 }
 
-.glow-border:hover::before {
-  opacity: 1;
-}
-
-.glow-border-active::before {
-  opacity: 0.6;
-}
-
-.glow-border-active:hover::before {
-  opacity: 1;
+.glow-border-active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
 }
 
 /* 玻璃拟态面板 */
 .glass-panel {
   background: var(--bg-glass);
-  backdrop-filter: var(--glass-blur) var(--glass-saturate);
-  -webkit-backdrop-filter: var(--glass-blur) var(--glass-saturate);
-  border: 1px solid var(--border);
-  border-top: var(--ledger-line);
-  border-radius: 0;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 200, 180, 0.04),
-    var(--shadow-md);
+  backdrop-filter: blur(8px) saturate(1.1);
+  -webkit-backdrop-filter: blur(8px) saturate(1.1);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
 }
 
 .glass-panel:hover {
-  background: rgba(23, 19, 16, 0.92);
   border-color: var(--border-hover);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 200, 180, 0.06),
-    var(--shadow-lg);
+  box-shadow: var(--shadow-lg);
 }

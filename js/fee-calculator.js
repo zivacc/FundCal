@@ -12,26 +12,19 @@ export const MAX_CALC_DAYS = 1095;
 
 /**
  * 根据持有天数获取适用的卖出费率
- * 表格逻辑：持有天数 a-费率 x 表示「上一行天数（无则为 0）到 a」的费率为 x，即区间 (a_prev, a] 适用费率 x；
- * 若最后一段带 unbounded: true，则 days 为区间起始，该段为 [days, +∞)，费率为 rate；否则最后一段之后费率为 0。
+ * 段格式：{ to: number|null, rate: number }
+ *   - 含义：(prev.to ?? 0, to] 区间适用 rate
+ *   - to: null 代表 (prev.to, +∞) 永久段
  * @param {number} holdDays - 持有天数
- * @param {Array<{days: number, rate: number, unbounded?: boolean}>} segments - 分段费率
+ * @param {Array<{to: number|null, rate: number}>} segments
  * @returns {number} 费率（0-1）
  */
 export function getSellFeeRate(holdDays, segments) {
   if (!segments?.length || holdDays <= 0) return 0;
-  // 无上限段优先：若存在 unbounded 且持有天数 > 其起始天数，直接返回该段费率
-  const unboundedSeg = segments.find(s => s.unbounded);
-  if (unboundedSeg != null && holdDays > unboundedSeg.days) return unboundedSeg.rate;
-  const sorted = [...segments].sort((a, b) => a.days - b.days || (a.unbounded ? 1 : 0) - (b.unbounded ? 1 : 0));
-  const last = sorted[sorted.length - 1];
-  const lastDays = last.unbounded ? (sorted.length > 1 ? sorted[sorted.length - 2].days : 0) : last.days;
-  if (holdDays > lastDays && !last.unbounded) return 0;
-  for (let i = 0; i < sorted.length; i++) {
-    const seg = sorted[i];
-    if (seg.unbounded) continue;
-    const prevDays = i === 0 ? 0 : sorted[i - 1].days;
-    if (holdDays > prevDays && holdDays <= seg.days) return seg.rate;
+  const sorted = [...segments].sort((a, b) => (a.to ?? Infinity) - (b.to ?? Infinity));
+  for (const seg of sorted) {
+    if (seg.to === null || seg.to === undefined) return seg.rate;
+    if (holdDays <= seg.to) return seg.rate;
   }
   return 0;
 }

@@ -5,12 +5,26 @@
 .container {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 2rem 2rem 3rem;
+  padding: 28px 32px 40px;
 }
 
-/* 如果使用固定导航栏 */
+/* SPA 页面容器：取消 sticky 头占位（top-rail 自己 sticky）*/
 .container.with-nav {
-  padding-top: calc(56px + 2rem);
+  padding-top: 28px;
+}
+
+/* SPA 页切换 */
+.page {
+  display: none;
+  animation: pageFade .22s cubic-bezier(.2,.7,.3,1);
+}
+.page.active {
+  display: block;
+}
+
+@keyframes pageFade {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 /* 操作区 */
@@ -113,16 +127,16 @@
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
-  padding: 0.25rem 1.75rem 0.25rem 0.5rem;
-  border-radius: 0;
+  padding: 4px 26px 4px 10px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background-color: var(--bg-input);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a7a6b' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a867d' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 0.5rem center;
+  background-position: right 8px center;
   color: var(--text-primary);
-  font-family: var(--font-body);
-  font-size: 0.8rem;
+  font-family: var(--font-mono);
+  font-size: 12px;
   cursor: pointer;
 }
 
@@ -133,7 +147,7 @@
 .toggle-select:focus {
   outline: none;
   border-color: var(--accent);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23b91c1c' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  box-shadow: 0 0 0 3px var(--accent-subtle);
 }
 
 /* Toggle 按钮 */

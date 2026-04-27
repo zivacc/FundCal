@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════════════
-   Toast 提示 - 铁账主题
+   Toast 提示
    ══════════════════════════════════════════════════════════════ */
 
 .fund-floating-toast {
@@ -7,19 +7,20 @@
   left: 50%;
   bottom: 80px;
   transform: translateX(-50%) translateY(8px);
-  padding: 0.6rem 1.1rem;
-  border-radius: 0;
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
   background: var(--bg-raised);
   color: var(--text-primary);
-  font-size: 0.82rem;
-  letter-spacing: 0.04em;
-  border: 1px solid var(--border-hover);
+  font-size: 12.5px;
+  font-family: var(--font-body);
+  letter-spacing: 0.01em;
+  border: 1px solid var(--rule);
   border-left: 3px solid var(--accent);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-lg);
   z-index: 200;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.25s ease, transform 0.25s ease;
+  transition: opacity 0.22s ease, transform 0.22s ease;
 }
 
 .fund-floating-toast.visible {

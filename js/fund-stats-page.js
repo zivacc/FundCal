@@ -604,7 +604,7 @@ function bindCardInteractions() {
       } catch {
         return;
       }
-      window.location.href = 'index.html';
+      window.location.hash = '#/calc';
     });
   }
   const jiuquanBtn = document.getElementById('fund-stats-jiuquan-btn');
@@ -857,9 +857,9 @@ async function loadStats() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+export function pageInit() {
   loadStats();
   renderFundDetailPlaceholder();
   bindCardInteractions();
-});
+}
 

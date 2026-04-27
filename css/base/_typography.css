@@ -1,67 +1,99 @@
 /* ══════════════════════════════════════════════════════════════
-   字体排版 - 铁账主题
+   字体排版 - Quiet Light
+   大标题用 Source Serif 4 (西文) + 霞鹜文楷/思源宋体 (中文 fallback)
+   正文用 Inter (西文) + 霞鹜文楷 (中文 fallback)
+   数据用 JetBrains Mono
    ══════════════════════════════════════════════════════════════ */
 
 h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-cjk);
   font-weight: 600;
-  line-height: 1.35;
+  line-height: 1.25;
   color: var(--text-primary);
-  letter-spacing: 0.02em;
+  letter-spacing: -0.01em;
+  margin: 0;
 }
 
 h1 {
-  font-size: 1.65rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
   color: var(--text-primary);
-  padding-bottom: 0.3rem;
-  border-bottom: var(--ledger-line-thin);
-  display: inline-block;
+  display: block;
+  border-bottom: none;
+  padding-bottom: 0;
 }
 
 h2 {
   font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 h3 {
   font-size: 1rem;
+  font-weight: 600;
 }
 
-/* 标题工具类 - 铁账不用渐变 */
+/* 衬线大标题工具类 */
 .gradient-title {
-  color: var(--accent);
+  font-family: var(--font-serif);
+  color: var(--text-primary);
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: -0.02em;
 }
 
-/* 朱砂印章标题 */
 .neon-title {
-  color: var(--accent);
+  font-family: var(--font-serif);
+  color: var(--text-primary);
   font-weight: 700;
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.8);
-  letter-spacing: 0.06em;
+  text-shadow: none;
+  letter-spacing: -0.01em;
 }
 
 /* 副标题 */
 .subtitle {
   color: var(--text-secondary);
-  font-size: 0.85rem;
+  font-size: 0.84rem;
   font-weight: 400;
   line-height: 1.55;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
+  font-family: var(--font-body);
 }
 
 /* 等宽字体工具类 */
 .mono {
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   letter-spacing: 0;
 }
 
-/* 铁账标签：全大写小字 */
+/* 全大写标签（小字 caption）*/
 .ledger-label {
+  font-family: var(--font-mono);
   font-size: 0.7rem;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--text-tertiary);
-  font-weight: 600;
+  font-weight: 500;
+}
+
+/* 数据表格数字默认等宽 */
+table.mono-nums td,
+table.mono-nums th {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+}
+
+/* ── 主题字体（霞鹜文楷）应用于关键内容文本 ── */
+.top-rail-name,
+.top-rail-tab,
+.page-header h1,
+.fund-card .fund-name,
+.fund-card-row label,
+.fund-stats-detail-name,
+.fund-stats-detail-title,
+.fund-stats-card-title,
+.cached-funds-cell-name {
+  font-family: var(--font-cjk);
 }

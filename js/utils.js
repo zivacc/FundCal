@@ -2,6 +2,31 @@
  * 基金费率计算器 - 通用工具函数和常量
  */
 
+/** 读取文档根节点的 CSS 自定义属性，随 data-theme 实时切换 */
+export function cssVar(name) {
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name);
+  return v ? v.trim() : '';
+}
+
+/** 当前主题下 Chart.js 使用的通用颜色字典 */
+export function getChartTheme() {
+  return {
+    textPrimary: cssVar('--text-primary'),
+    textSecondary: cssVar('--text-secondary'),
+    textTertiary: cssVar('--text-tertiary'),
+    bgBase: cssVar('--bg-base'),
+    bgElevated: cssVar('--bg-elevated'),
+    grid: cssVar('--chart-grid'),
+    rule: cssVar('--rule'),
+    ruleStrong: cssVar('--rule-strong'),
+    accent: cssVar('--accent'),
+    accentHover: cssVar('--accent-hover'),
+    warm: cssVar('--warm'),
+    crossFill: cssVar('--chart-cross-fill'),
+    crossStroke: cssVar('--chart-cross-stroke'),
+  };
+}
+
 export const CHART_COLORS = [
   '#4e8ce6', '#34d399', '#fbbf24', '#f472b6',
   '#22d3ee', '#f4367c', '#c084fc', '#ffdeff', '#f87171'
@@ -15,11 +40,12 @@ export function getColorForIndex(index) {
 /** 示例数据使用的基金代码（004400, 004401, 023910） */
 export const DEMO_FUND_CODES = ['004400', '004401', '023910'];
 
-/** 默认分段：7/30/365，7 天默认 1.5% */
+/** 默认分段：7/30/365 + 永久（含义：(prev.to, to]，to=null 表 (prev.to,+∞)） */
 export const DEFAULT_SEGMENTS = [
-  { days: 7, rate: 0.015 },
-  { days: 30, rate: 0 },
-  { days: 365, rate: 0 }
+  { to: 7, rate: 0.015 },
+  { to: 30, rate: 0 },
+  { to: 365, rate: 0 },
+  { to: null, rate: 0 }
 ];
 
 /** 可选快捷分段天数：表格中不存在该天数时显示对应按钮 */

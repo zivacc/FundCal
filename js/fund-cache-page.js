@@ -1,4 +1,4 @@
-/** @typedef {{code:string,name:string,buyFee:number,annualFee:number,sellFeeSegments?:Array<{days:number,rate:number,unbounded?:boolean}>,trackingTarget?:string,fundManager?:string,performanceBenchmark?:string,tradingStatus?:{subscribe?:string,redeem?:string},initials?:string,fundType?:string,establishmentDate?:string,updatedAt?:string,raw?:any}} CachedFundRow */
+/** @typedef {{code:string,name:string,buyFee:number,annualFee:number,sellFeeSegments?:Array<{to:number|null,rate:number}>,trackingTarget?:string,fundManager?:string,performanceBenchmark?:string,tradingStatus?:{subscribe?:string,redeem?:string},initials?:string,fundType?:string,establishmentDate?:string,updatedAt?:string,raw?:any}} CachedFundRow */
 
 /** @type {CachedFundRow[]} */
 let allFunds = [];
@@ -93,9 +93,11 @@ function escapeHtml(text) {
 
 function formatSellFeeSegments(segs) {
   if (!Array.isArray(segs) || !segs.length) return '-';
-  const sorted = segs.slice().sort((a, b) => (a.days ?? 0) - (b.days ?? 0));
+  const sorted = segs.slice().sort((a, b) => (a.to ?? Infinity) - (b.to ?? Infinity));
+  let prev = 0;
   const parts = sorted.map(s => {
-    const label = s.unbounded ? `≥${s.days}天` : `${s.days}天`;
+    const label = s.to == null ? `>${prev}天` : (prev > 0 ? `${prev}~${s.to}天` : `${s.to}天`);
+    if (s.to != null) prev = s.to;
     const pct = formatPercent(s.rate ?? 0);
     return `${label}:${pct}`;
   });
@@ -852,7 +854,7 @@ function setupEvents() {
       } catch {
         return;
       }
-      window.location.href = 'index.html';
+      window.location.hash = '#/calc';
     });
   }
 
@@ -1028,9 +1030,82 @@ function setupEvents() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+function setupNarrowFilterDrawer() {
+  const sidebar = document.getElementById('cf-filter-panel');
+  if (!sidebar) return;
+  if (document.getElementById('cf-filter-toggle-btn')) return;
+
+  if (!sidebar.querySelector('.cf-sidebar-handle')) {
+    const handle = document.createElement('div');
+    handle.className = 'cf-sidebar-handle';
+    handle.setAttribute('aria-hidden', 'true');
+    sidebar.insertBefore(handle, sidebar.firstChild);
+  }
+
+  const backdrop = document.createElement('div');
+  backdrop.className = 'cf-sidebar-backdrop';
+  backdrop.id = 'cf-sidebar-backdrop';
+  document.body.appendChild(backdrop);
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.id = 'cf-filter-toggle-btn';
+  btn.className = 'cf-filter-toggle';
+  btn.setAttribute('aria-label', '打开筛选');
+  btn.innerHTML = '<span>筛选</span><span class="cf-filter-toggle-count" id="cf-filter-toggle-count"></span>';
+  document.body.appendChild(btn);
+
+  const list = document.querySelector('.page-list');
+  function isOnList() {
+    return list && list.classList.contains('active');
+  }
+  function setVisible(v) {
+    btn.style.display = v ? '' : 'none';
+  }
+  setVisible(isOnList());
+  window.addEventListener('hashchange', () => {
+    setVisible(isOnList());
+    if (!isOnList()) {
+      sidebar.classList.remove('cf-sidebar-open');
+      backdrop.classList.remove('cf-sidebar-backdrop-open');
+    }
+  });
+
+  function open() {
+    sidebar.classList.add('cf-sidebar-open');
+    backdrop.classList.add('cf-sidebar-backdrop-open');
+  }
+  function close() {
+    sidebar.classList.remove('cf-sidebar-open');
+    backdrop.classList.remove('cf-sidebar-backdrop-open');
+  }
+  btn.addEventListener('click', () => {
+    if (sidebar.classList.contains('cf-sidebar-open')) close();
+    else open();
+  });
+  backdrop.addEventListener('click', close);
+
+  const applyBtn = document.getElementById('cf-filter-apply');
+  const resetBtn = document.getElementById('cf-filter-reset');
+  if (applyBtn) applyBtn.addEventListener('click', close);
+  if (resetBtn) resetBtn.addEventListener('click', close);
+
+  const countEl = document.getElementById('cf-filter-toggle-count');
+  const sourceCountEl = document.getElementById('cf-filter-active-count');
+  if (countEl && sourceCountEl) {
+    const sync = () => {
+      const t = (sourceCountEl.textContent || '').trim();
+      countEl.textContent = t;
+    };
+    sync();
+    new MutationObserver(sync).observe(sourceCountEl, { childList: true, characterData: true, subtree: true });
+  }
+}
+
+export function pageInit() {
   setupEvents();
   setupFilterEvents();
+  setupNarrowFilterDrawer();
   loadCachedFunds();
-});
+}
 

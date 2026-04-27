@@ -31,9 +31,11 @@ export async function loadSmppMapping() {
 
 export function formatSellSegments(segs) {
   if (!Array.isArray(segs) || !segs.length) return '-';
-  const sorted = segs.slice().sort((a, b) => (a.days ?? 0) - (b.days ?? 0));
+  const sorted = segs.slice().sort((a, b) => (a.to ?? Infinity) - (b.to ?? Infinity));
+  let prev = 0;
   return sorted.map(s => {
-    const label = s.unbounded ? `≥${s.days}天` : `${s.days}天`;
+    const label = s.to == null ? `>${prev}天` : `${prev < s.to ? `${prev < 1 ? '' : `${prev}~`}${s.to}` : s.to}天`;
+    if (s.to != null) prev = s.to;
     const pct = s.rate != null ? (s.rate * 100).toFixed(2) + '%' : '-';
     return `<div>${escapeHtml(label)}: ${pct}</div>`;
   }).join('');

@@ -181,9 +181,8 @@ export function transformApiDataToFundConfig(apiData) {
     name: apiData.name ?? apiData.fundName ?? '未知基金',
     buyFee: typeof buy === 'number' ? buy : parseFloat(buy) / 100,
     sellFeeSegments: segsSource.map(s => ({
-      days: s.days ?? s.holdDays,
+      to: s.to !== undefined ? s.to : (s.unbounded ? null : (s.days ?? s.holdDays ?? null)),
       rate: typeof s.rate === 'number' ? s.rate : parseFloat(s.rate ?? 0) / 100,
-      ...(s.unbounded && { unbounded: true })
     })),
     annualFee,
     trackingTarget: apiData.trackingTarget ?? apiData.trackingIndex,
