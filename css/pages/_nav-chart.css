@@ -1,0 +1,265 @@
+/* ══════════════════════════════════════════════════════════════
+   净值比较页 (NAV Compare) - ECharts 容器 + 控件 + 统计表
+   ══════════════════════════════════════════════════════════════ */
+
+.page-nav .container {
+  padding: 24px 28px 32px;
+}
+
+/* 工具栏 */
+.nav-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.nav-toolbar-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.nav-search-wrap {
+  flex: 1 1 320px;
+  max-width: 480px;
+  position: relative;
+}
+
+.nav-selected-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 28px;
+  align-items: center;
+}
+
+.nav-chips-empty {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  letter-spacing: 0.6px;
+}
+
+.nav-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px 3px 6px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--bg-raised);
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+.nav-chip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--chip-color, var(--accent));
+  flex-shrink: 0;
+}
+
+.nav-chip-code {
+  font-family: var(--font-mono);
+  color: var(--text-tertiary);
+  font-size: 11px;
+}
+
+.nav-chip-name {
+  font-family: var(--font-cjk);
+}
+
+.nav-chip-remove {
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: 0 2px;
+  font-size: 14px;
+  line-height: 1;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.nav-chip-remove:hover {
+  background: var(--danger-subtle);
+  color: var(--danger);
+}
+
+/* 控件行 */
+.nav-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  padding: 10px 14px;
+  margin-bottom: 0.75rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+  background: var(--bg-sunk);
+  align-items: center;
+}
+
+.nav-control-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nav-control-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-tertiary);
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.nav-period-group {
+  gap: 2px;
+}
+
+.nav-period-btn {
+  padding: 4px 10px;
+  border: 1px solid var(--rule);
+  background: var(--bg-raised);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.nav-period-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.nav-period-btn-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-inverse);
+}
+
+/* 图表容器 */
+.nav-chart-wrap {
+  position: relative;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+  background: var(--bg-raised);
+  padding: 12px;
+  min-height: 480px;
+}
+
+.nav-chart-canvas {
+  width: 100%;
+  height: 540px;
+}
+
+.nav-chart-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  font-size: 14px;
+  pointer-events: none;
+}
+
+.nav-chart-empty p {
+  margin: 0;
+  font-family: var(--font-cjk);
+}
+
+/* 统计表 */
+.nav-stats-section {
+  margin-top: 1.5rem;
+}
+
+.nav-stats-title {
+  font-family: var(--font-cjk);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.6rem;
+}
+
+.nav-stats-table-wrap {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+  background: var(--bg-raised);
+  overflow: auto;
+}
+
+.nav-stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.nav-stats-table thead {
+  background: var(--bg-sunk);
+}
+
+.nav-stats-table th {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 10.5px;
+  letter-spacing: 1.2px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  padding: 9px 12px;
+  text-align: right;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--rule);
+}
+
+.nav-stats-table th:first-child,
+.nav-stats-table th:nth-child(2) {
+  text-align: left;
+}
+
+.nav-stats-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--rule);
+  text-align: right;
+  white-space: nowrap;
+  color: var(--text-primary);
+}
+
+.nav-stats-table td:first-child,
+.nav-stats-table td:nth-child(2) {
+  text-align: left;
+}
+
+.nav-stats-table td.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.nav-stats-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.nav-stats-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.nav-stats-pos { color: var(--success); }
+.nav-stats-neg { color: var(--danger); }
+
+/* 窄屏 */
+@media (max-width: 768px) {
+  .page-nav .container { padding: 16px; }
+  .nav-chart-canvas { height: 420px; }
+  .nav-controls { gap: 0.5rem; padding: 8px; }
+  .nav-stats-table { min-width: 720px; }
+}

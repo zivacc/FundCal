@@ -1,17 +1,19 @@
 /* ══════════════════════════════════════════════════════════════
-   基金列表页 - 左侧筛选栏 + 右侧表格布局
+   基金列表页 - 左侧主表格 + 右侧筛选栏（可收起贴边）
    ══════════════════════════════════════════════════════════════ */
 
 .cf-layout {
   display: flex;
   align-items: stretch;
   min-height: calc(100vh - 52px);
+  flex-direction: row-reverse; /* 主表格在左，sidebar 浮到右 */
 }
 
 .cf-sidebar {
   width: 240px;
   flex-shrink: 0;
-  border-right: 1px solid var(--rule);
+  border-left: 1px solid var(--rule);
+  border-right: none;
   background: var(--bg-base);
   position: sticky;
   top: 52px;
@@ -19,6 +21,50 @@
   height: calc(100vh - 52px);
   display: flex;
   flex-direction: column;
+  transition: width var(--transition-normal);
+}
+
+/* 折叠态：贴右侧只剩窄条 + 展开按钮 */
+.cf-sidebar.cf-sidebar-collapsed {
+  width: 36px;
+}
+
+.cf-sidebar.cf-sidebar-collapsed .cf-sidebar-kicker,
+.cf-sidebar.cf-sidebar-collapsed .cf-sidebar-scroll,
+.cf-sidebar.cf-sidebar-collapsed .cf-sidebar-footer {
+  display: none;
+}
+
+.cf-sidebar-toggle {
+  position: absolute;
+  top: 12px;
+  left: 4px;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--rule);
+  background: var(--bg-raised);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1;
+  z-index: 2;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.cf-sidebar-toggle:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.cf-sidebar:not(.cf-sidebar-collapsed) .cf-sidebar-toggle {
+  left: auto;
+  right: 8px;
+  top: 12px;
 }
 
 .cf-sidebar-kicker {
@@ -73,7 +119,7 @@
 
 .cached-funds-search-input {
   width: 100%;
-  padding: 9px 32px 9px 32px;
+  padding: 9px 32px 9px 36px;
   border-radius: var(--radius-md);
   border: 1px solid var(--rule);
   background: var(--bg-input);
@@ -95,10 +141,16 @@
 
 .cached-funds-search-icon {
   position: absolute;
-  left: 0.65rem;
+  left: 10px;
   top: 50%;
   transform: translateY(-50%);
   pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  line-height: 0;
 }
 
 .cached-funds-search-icon-img {
@@ -516,6 +568,80 @@
 .cached-funds-empty {
   text-align: center;
   color: var(--text-muted);
+}
+
+/* 待补全占位行：灰显 + 不可选 */
+.cached-funds-table tbody tr.cached-fund-row-placeholder {
+  background: var(--bg-sunk);
+  color: var(--text-tertiary);
+  cursor: default;
+}
+
+.cached-funds-table tbody tr.cached-fund-row-placeholder:hover {
+  background: var(--bg-hover);
+}
+
+.cached-funds-table tbody tr.cached-fund-row-placeholder td {
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+/* 状态徽标基样式 */
+.cached-fund-status-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.4px;
+  margin-right: 4px;
+  font-style: normal;
+  font-weight: 500;
+}
+
+.cached-fund-badge-pending {
+  background: var(--warning-subtle);
+  color: var(--warning);
+}
+
+.cached-fund-badge-issuing {
+  background: var(--accent-subtle);
+  color: var(--accent);
+}
+
+.cached-fund-badge-terminated {
+  background: var(--bg-hover);
+  color: var(--text-tertiary);
+}
+
+/* 已终止行进一步弱化 */
+.cached-funds-table tbody tr.cached-fund-row-terminated td {
+  color: var(--text-tertiary);
+  opacity: 0.65;
+}
+
+.cached-fund-action-disabled {
+  display: inline-block;
+  padding: 4px 10px;
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  user-select: none;
+}
+
+.cached-fund-crawl-btn {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-subtle);
+}
+
+.cached-fund-crawl-btn:hover:not(:disabled) {
+  background: var(--accent-bg);
+}
+
+.cached-fund-crawl-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* 分页 */

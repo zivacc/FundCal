@@ -26,7 +26,7 @@ const NAV_FIELDS = 'ts_code,ann_date,nav_date,unit_nav,accum_nav,accum_div,net_a
 
 function parseArgs() {
   const args = process.argv.slice(2);
-  const opts = { codes: [], file: null, type: null, all: false, full: false };
+  const opts = { codes: [], file: null, type: null, all: false, full: false, concurrency: 5 };
 
   for (let i = 0; i < args.length; i++) {
     switch (args[i]) {
@@ -42,8 +42,15 @@ function parseArgs() {
       case '--all':
         opts.all = true;
         break;
+      case '--include-dead':
+        opts.includeDead = true;
+        break;
       case '--full':
         opts.full = true;
+        break;
+      case '--concurrency':
+      case '-c':
+        opts.concurrency = Math.max(1, parseInt(args[++i], 10) || 5);
         break;
       default:
         if (/^\d{6}$/.test(args[i])) opts.codes.push(args[i]);
@@ -77,7 +84,10 @@ function resolveCodes(opts) {
       process.exit(1);
     }
   } else if (opts.all) {
-    const rows = db.prepare("SELECT code FROM fund_basic WHERE status = 'L'").all();
+    const sql = opts.includeDead
+      ? "SELECT code FROM fund_basic WHERE status IN ('L','D','I')"
+      : "SELECT code FROM fund_basic WHERE status = 'L'";
+    const rows = db.prepare(sql).all();
     codes = rows.map((r) => r.code);
     if (!codes.length) {
       console.error('❌ fund_basic 表为空，请先运行 sync-fund-basic.js');
@@ -189,9 +199,11 @@ async function syncOneFund(code, index, total, fullMode) {
 async function main() {
   const opts = parseArgs();
   const codes = resolveCodes(opts);
+  const concurrency = opts.concurrency;
 
   console.log(`🔄 开始同步基金净值 (fund_nav)`);
   console.log(`   基金数量: ${codes.length}`);
+  console.log(`   并发: ${concurrency}`);
   console.log(`   模式: ${opts.full ? '全量' : '增量'}`);
   console.log('');
 
@@ -200,15 +212,21 @@ async function main() {
   let errorCount = 0;
   const startTime = Date.now();
 
-  for (let i = 0; i < codes.length; i++) {
-    const n = await syncOneFund(codes[i], i, codes.length, opts.full);
-    if (n >= 0) {
-      totalRecords += n;
-      successCount++;
-    } else {
-      errorCount++;
+  let cursor = 0;
+  async function worker() {
+    while (cursor < codes.length) {
+      const i = cursor++;
+      try {
+        const n = await syncOneFund(codes[i], i, codes.length, opts.full);
+        totalRecords += n;
+        successCount++;
+      } catch (e) {
+        errorCount++;
+        console.error(`  worker error on ${codes[i]}: ${e.message}`);
+      }
     }
   }
+  await Promise.all(Array.from({ length: concurrency }, worker));
 
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
 

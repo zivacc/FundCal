@@ -1,4 +1,16 @@
-/** @typedef {{code:string,name:string,buyFee:number,annualFee:number,sellFeeSegments?:Array<{to:number|null,rate:number}>,trackingTarget?:string,fundManager?:string,performanceBenchmark?:string,tradingStatus?:{subscribe?:string,redeem?:string},initials?:string,fundType?:string,establishmentDate?:string,updatedAt?:string,raw?:any}} CachedFundRow */
+/** @typedef {{code:string,name:string,buyFee:number,annualFee:number,sellFeeSegments?:Array<{to:number|null,rate:number}>,trackingTarget?:string,fundManager?:string,performanceBenchmark?:string,tradingStatus?:{subscribe?:string,redeem?:string},initials?:string,fundType?:string,establishmentDate?:string,updatedAt?:string,source?:string,needsCrawl?:boolean,raw?:any}} CachedFundRow */
+
+/** 解析 fund API 基地址（与 api-adapter.getFeeApiBase 等价，避免跨模块引入） */
+function resolveFundApiBase() {
+  if (typeof window !== 'undefined' && window.FUND_FEE_API_BASE) return window.FUND_FEE_API_BASE;
+  if (typeof window !== 'undefined') {
+    const h = window.location.hostname;
+    if (h === 'localhost' || h === '127.0.0.1') return 'http://localhost:3457/api/fund';
+    if (h.endsWith('.github.io')) return null;
+    return '/api/fund';
+  }
+  return null;
+}
 
 /** @type {CachedFundRow[]} */
 let allFunds = [];
@@ -334,11 +346,56 @@ function renderTable() {
     const annualText = formatPercent(f.annualFee) + (f.raw && f.raw.isFloatingAnnualFee ? '（浮动）' : '');
     const isSel = selectedCompareCodes.has(f.code);
     const selClass = isSel ? ' cached-fund-row-selected' : '';
+    if (f.needsCrawl) {
+      // tushare-only 占位行：按 lifecycle 区分
+      //   terminated (D) → 灰红「已终止」无按钮
+      //   issuing    (I) → 蓝「募集中」可补全
+      //   normal     (L) → 橙「待补全」可补全
+      const lifecycle = f.lifecycle || 'normal';
+      let badgeLabel, badgeClass, actionCell;
+      if (lifecycle === 'terminated') {
+        badgeLabel = '已终止';
+        badgeClass = 'cached-fund-badge-terminated';
+        actionCell = `<span class="cached-fund-action-disabled" title="该基金已退市，无费率详情">—</span>`;
+      } else if (lifecycle === 'issuing') {
+        badgeLabel = '募集中';
+        badgeClass = 'cached-fund-badge-issuing';
+        actionCell = `<button type="button" class="btn btn-sm cached-fund-crawl-btn" data-code="${escapeHtml(f.code)}" title="抓取该基金费率与详情">补全</button>`;
+      } else {
+        badgeLabel = '待补全';
+        badgeClass = 'cached-fund-badge-pending';
+        actionCell = `<button type="button" class="btn btn-sm cached-fund-crawl-btn" data-code="${escapeHtml(f.code)}" title="抓取该基金费率与详情">补全</button>`;
+      }
+      return `
+    <tr class="cached-fund-row cached-fund-row-placeholder cached-fund-row-${lifecycle}" data-code="${escapeHtml(f.code)}" data-needs-crawl="true">
+      <td>${actionCell}</td>
+      <td>${escapeHtml(f.code)}</td>
+      <td><span class="cached-fund-status-badge ${badgeClass}">${badgeLabel}</span> ${escapeHtml(f.name)}</td>
+      <td>${escapeHtml(f.fundType || '-')}</td>
+      <td>${escapeHtml(f.establishmentDate || '-')}</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td>${escapeHtml(f.performanceBenchmark || '-')}</td>
+      <td>${escapeHtml(f.fundManager || '-')}</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+    </tr>
+  `;
+    }
+    // 已终止 + 有 crawler 数据：常规行 + 「已终止」徽标 + 灰显
+    const isTerminated = f.lifecycle === 'terminated';
+    const terminatedClass = isTerminated ? ' cached-fund-row-terminated' : '';
+    const namePrefix = isTerminated
+      ? '<span class="cached-fund-status-badge cached-fund-badge-terminated">已终止</span> '
+      : '';
     return `
-    <tr class="cached-fund-row${selClass}" data-code="${escapeHtml(f.code)}" tabindex="0" aria-selected="${isSel ? 'true' : 'false'}">
+    <tr class="cached-fund-row${selClass}${terminatedClass}" data-code="${escapeHtml(f.code)}" tabindex="0" aria-selected="${isSel ? 'true' : 'false'}">
       <td><button type="button" class="btn btn-sm cached-fund-json-btn" data-code="${escapeHtml(f.code)}">查看</button></td>
       <td>${escapeHtml(f.code)}</td>
-      <td>${escapeHtml(f.name)}</td>
+      <td>${namePrefix}${escapeHtml(f.name)}</td>
       <td>${escapeHtml(f.fundType || '-')}</td>
       <td>${escapeHtml(f.establishmentDate || '-')}</td>
       <td>${formatPercent(f.buyFee)}</td>
@@ -413,6 +470,10 @@ async function loadCachedFunds() {
           tradingStatus: row.tradingStatus || origin?.tradingStatus || null,
           updatedAt: row.updatedAt || origin?.updatedAt || '',
           initials: row.initials || '',
+          source: row.source || (origin ? 'crawler' : 'tushare'),
+          status: row.status || null,
+          lifecycle: row.lifecycle || 'normal',
+          needsCrawl: !!row.needsCrawl,
           raw: origin || row
         };
       });
@@ -827,8 +888,75 @@ function setupEvents() {
     };
     tbody.addEventListener('click', (e) => {
       if (e.target instanceof HTMLElement && e.target.closest('.cached-fund-json-btn')) return;
+      if (e.target instanceof HTMLElement && e.target.closest('.cached-fund-crawl-btn')) return;
       const tr = e.target instanceof HTMLElement ? e.target.closest('tr.cached-fund-row') : null;
-      if (tr) toggleRowSelect(tr);
+      if (!tr) return;
+      if (tr.dataset.needsCrawl === 'true') return; // 占位行不参与多选
+      toggleRowSelect(tr);
+    });
+
+    // 「补全」按钮：触发后端爬虫
+    tbody.addEventListener('click', async (e) => {
+      const btn = e.target instanceof HTMLElement ? e.target.closest('.cached-fund-crawl-btn') : null;
+      if (!btn) return;
+      const code = btn.getAttribute('data-code') || '';
+      if (!code) return;
+      const base = resolveFundApiBase();
+      if (!base) {
+        alert('当前部署模式不支持触发爬取（无后端 API）。请在本地或 VPS 部署运行。');
+        return;
+      }
+      const original = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = '抓取中...';
+      try {
+        const sep = base.endsWith('/') ? '' : '/';
+        const res = await fetch(`${base}${sep}${code}/crawl`, { method: 'POST' });
+        const j = await res.json().catch(() => ({}));
+        if (!res.ok || j.ok === false) {
+          alert(`抓取失败：${j.stderr || j.error || res.status}`);
+          btn.textContent = original;
+          btn.disabled = false;
+          return;
+        }
+        // 抓取并入 DB 已完成，直接拉新数据替换内存中该行
+        try {
+          const sep2 = base.endsWith('/') ? '' : '/';
+          const detailRes = await fetch(`${base}${sep2}${code}`);
+          if (detailRes.ok) {
+            const detail = await detailRes.json();
+            const idx = allFunds.findIndex(r => r.code === code);
+            if (idx !== -1) {
+              allFunds[idx] = {
+                code,
+                name: detail.name || code,
+                buyFee: detail.buyFee ?? 0,
+                annualFee: detail.annualFee ?? 0,
+                sellFeeSegments: detail.sellFeeSegments ?? [],
+                fundType: detail.fundType || '',
+                establishmentDate: detail.establishmentDate || '',
+                trackingTarget: detail.trackingTarget || '',
+                performanceBenchmark: detail.performanceBenchmark || '',
+                fundManager: detail.fundManager || '',
+                tradingStatus: detail.tradingStatus || null,
+                updatedAt: detail.updatedAt || '',
+                initials: allFunds[idx].initials || '',
+                source: detail.source || 'both',
+                needsCrawl: false,
+                raw: detail,
+              };
+              fundDetailMap[code] = detail;
+            }
+            renderTable();
+            return;
+          }
+        } catch {}
+        btn.textContent = '✓ 已抓取';
+      } catch (err) {
+        alert('抓取请求异常：' + (err && err.message || err));
+        btn.textContent = original;
+        btn.disabled = false;
+      }
     });
     tbody.addEventListener('keydown', (e) => {
       if (e.key !== 'Enter' && e.key !== ' ') return;
@@ -1102,10 +1230,41 @@ function setupNarrowFilterDrawer() {
   }
 }
 
+function setupSidebarToggle() {
+  const sidebar = document.getElementById('cf-filter-panel');
+  if (!sidebar) return;
+  if (sidebar.querySelector('.cf-sidebar-toggle')) return;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'cf-sidebar-toggle';
+  btn.title = '收起 / 展开筛选栏';
+  btn.setAttribute('aria-label', '收起 / 展开筛选栏');
+  const setLabel = () => {
+    btn.textContent = sidebar.classList.contains('cf-sidebar-collapsed') ? '‹' : '›';
+  };
+  // 持久化折叠态
+  try {
+    if (localStorage.getItem('fundcal-cf-sidebar-collapsed') === '1') {
+      sidebar.classList.add('cf-sidebar-collapsed');
+    }
+  } catch {}
+  setLabel();
+  btn.addEventListener('click', () => {
+    sidebar.classList.toggle('cf-sidebar-collapsed');
+    try {
+      localStorage.setItem('fundcal-cf-sidebar-collapsed',
+        sidebar.classList.contains('cf-sidebar-collapsed') ? '1' : '0');
+    } catch {}
+    setLabel();
+  });
+  sidebar.insertBefore(btn, sidebar.firstChild);
+}
+
 export function pageInit() {
   setupEvents();
   setupFilterEvents();
   setupNarrowFilterDrawer();
+  setupSidebarToggle();
   loadCachedFunds();
 }
 

@@ -20,6 +20,7 @@
   </script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
 </head>
 <body>
   <!-- 顶部导航条 -->
@@ -36,6 +37,7 @@
         <a href="#/calc" class="top-rail-tab" data-route="calc" role="tab">计算器</a>
         <a href="#/list" class="top-rail-tab" data-route="list" role="tab">基金列表</a>
         <a href="#/index" class="top-rail-tab" data-route="index" role="tab">指数选基</a>
+        <a href="#/nav" class="top-rail-tab" data-route="nav" role="tab">净值比较</a>
         <a href="#/stats" class="top-rail-tab" data-route="stats" role="tab">统计</a>
       </div>
     </div>
@@ -358,7 +360,7 @@
       <div class="ix-hero-glow ix-hero-glow-b"></div>
 
       <div class="ix-hero-kicker">INDEX · TRACKER · COMPARE</div>
-      <h1 class="ix-hero-title">按<span class="ix-hero-title-accent">指数</span>选基金</h1>
+      <h1 class="ix-hero-title">按<span class="ix-hero-title-accent ix-hero-title-highlight">指数</span>选基金</h1>
       <p class="ix-hero-sub">输入你关心的跟踪标的，比较所有挂钩该指数的基金的费率、规模与业绩</p>
 
       <div class="ix-hero-search-wrap">
@@ -375,14 +377,6 @@
             autocomplete="off"
             aria-autocomplete="list"
             aria-controls="index-page-search-dropdown">
-          <div class="ix-hero-cat-tags" id="index-page-cat-tags">
-            <button type="button" class="ix-hero-cat-tag" data-cat="宽基">宽基</button>
-            <button type="button" class="ix-hero-cat-tag" data-cat="行业">行业</button>
-            <button type="button" class="ix-hero-cat-tag" data-cat="商品">商品</button>
-            <button type="button" class="ix-hero-cat-tag" data-cat="海外">海外</button>
-          </div>
-          <div class="ix-hero-search-divider"></div>
-          <span class="ix-hero-search-kbd">⌘ K</span>
           <ul id="index-page-search-dropdown" class="fund-search-dropdown ix-hero-search-dropdown" role="listbox" aria-hidden="true"></ul>
         </div>
 
@@ -468,7 +462,99 @@
   </section>
 
   <!-- ═════════════════════════════════════════════════════════════
-       页面 4：统计
+       页面 4：净值比较 (NAV Compare)
+       ═════════════════════════════════════════════════════════════ -->
+  <section class="page page-nav" data-route="nav">
+    <div class="container">
+      <header class="page-header">
+        <div class="page-header-left">
+          <span class="page-header-kicker">NAV · COMPARE</span>
+          <h1>净值比较</h1>
+          <p class="subtitle">多基金历史净值曲线、累计收益、回撤与统计指标</p>
+        </div>
+      </header>
+
+      <div class="nav-toolbar">
+        <div class="nav-toolbar-row">
+          <div class="fund-search-wrap nav-search-wrap">
+            <input type="text" id="nav-fund-search" class="fund-search-input"
+              placeholder="添加基金（代码 / 名称 / 拼音首字母）" autocomplete="off">
+            <ul id="nav-fund-search-dropdown" class="fund-search-dropdown" role="listbox" aria-hidden="true"></ul>
+          </div>
+          <button type="button" class="btn btn-sm btn-secondary" id="nav-clear-funds">清空</button>
+        </div>
+        <div class="nav-selected-chips" id="nav-selected-chips"></div>
+      </div>
+
+      <div class="nav-controls">
+        <div class="nav-control-group nav-period-group" role="tablist" aria-label="时间周期">
+          <button type="button" class="nav-period-btn" data-period="1M">1M</button>
+          <button type="button" class="nav-period-btn" data-period="3M">3M</button>
+          <button type="button" class="nav-period-btn" data-period="6M">6M</button>
+          <button type="button" class="nav-period-btn nav-period-btn-active" data-period="1Y">1Y</button>
+          <button type="button" class="nav-period-btn" data-period="3Y">3Y</button>
+          <button type="button" class="nav-period-btn" data-period="5Y">5Y</button>
+          <button type="button" class="nav-period-btn" data-period="MAX">MAX</button>
+        </div>
+
+        <div class="nav-control-group">
+          <span class="nav-control-label">Y 轴</span>
+          <select id="nav-y-mode" class="toggle-select">
+            <option value="pct" selected>累计收益 %</option>
+            <option value="raw">原始净值</option>
+            <option value="log">对数净值</option>
+          </select>
+        </div>
+
+        <div class="nav-control-group nav-baseline-wrap" id="nav-baseline-wrap">
+          <span class="nav-control-label">基准日</span>
+          <input type="date" id="nav-baseline-date" class="cf-filter-input">
+          <button type="button" class="btn btn-sm btn-secondary" id="nav-baseline-reset">重置</button>
+        </div>
+
+        <div class="nav-control-group">
+          <span class="nav-control-label">指标</span>
+          <label class="toggle-btn toggle-btn-inline"><input type="checkbox" id="nav-ind-ma20" class="toggle-btn-input"><span class="toggle-btn-text">MA20</span></label>
+          <label class="toggle-btn toggle-btn-inline"><input type="checkbox" id="nav-ind-ma60" class="toggle-btn-input"><span class="toggle-btn-text">MA60</span></label>
+          <label class="toggle-btn toggle-btn-inline"><input type="checkbox" id="nav-ind-dd" class="toggle-btn-input" checked><span class="toggle-btn-text">回撤副图</span></label>
+        </div>
+      </div>
+
+      <div class="nav-chart-wrap" id="nav-chart-wrap">
+        <div class="nav-chart-empty" id="nav-chart-empty">
+          <p>添加基金代码以开始比较净值</p>
+        </div>
+        <div class="nav-chart-canvas" id="nav-chart-canvas"></div>
+      </div>
+
+      <section class="nav-stats-section">
+        <h2 class="nav-stats-title">范围统计</h2>
+        <div class="nav-stats-table-wrap">
+          <table class="nav-stats-table" id="nav-stats-table">
+            <thead>
+              <tr>
+                <th>基金</th>
+                <th>代码</th>
+                <th>起始净值</th>
+                <th>结束净值</th>
+                <th>累计收益</th>
+                <th>年化 (CAGR)</th>
+                <th>最大回撤</th>
+                <th>波动率</th>
+                <th>夏普 (rf=2%)</th>
+              </tr>
+            </thead>
+            <tbody id="nav-stats-tbody">
+              <tr><td colspan="9" class="cached-funds-empty">暂无数据</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <!-- ═════════════════════════════════════════════════════════════
+       页面 5：统计
        ═════════════════════════════════════════════════════════════ -->
   <section class="page page-stats" data-route="stats">
     <div class="container">

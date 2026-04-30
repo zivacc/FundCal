@@ -29,6 +29,7 @@
 @import 'pages/_fund-list.css';
 @import 'pages/_fund-stats.css';
 @import 'pages/_index-picker.css';
+@import 'pages/_nav-chart.css';
 
 /* Utilities - 工具类 */
 @import 'utilities/_animations.css';

@@ -1,9 +1,10 @@
 /**
- * 聚合 data/funds 目录下的单只基金文件，生成 data/allfund/allfund.json
- * 这是以前开发的遗产
+ * @deprecated 使用 scripts/build-allfund-from-db.js 替代
  *
- * 使用：
- *   node scripts/build-allfund.js
+ * 聚合 data/funds 目录下的单只基金文件，生成 data/allfund/allfund.json
+ * 旧版直接读 crawler JSON。新版从合并后 SQLite (含 Tushare 权威字段) 重建。
+ *
+ * 仅在 DB 不可用时作为应急后备保留。
  */
 
 import fs from 'fs';

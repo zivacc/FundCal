@@ -6,6 +6,7 @@ const ROUTES = {
   calc:  { module: './app.js',               selector: '[data-route="calc"]' },
   list:  { module: './fund-cache-page.js',   selector: '[data-route="list"]' },
   index: { module: './index-picker-page.js', selector: '[data-route="index"]' },
+  nav:   { module: './nav-chart-page.js',    selector: '[data-route="nav"]' },
   stats: { module: './fund-stats-page.js',   selector: '[data-route="stats"]' },
 };
 

@@ -70,6 +70,54 @@ function initSchema(db) {
       finished_at   TEXT,
       error_message TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS fund_meta (
+      ts_code               TEXT PRIMARY KEY REFERENCES fund_basic(ts_code) ON DELETE CASCADE,
+      code                  TEXT NOT NULL,
+      source                TEXT NOT NULL CHECK(source IN ('tushare','crawler','both')),
+      tracking_target       TEXT,
+      trading_subscribe     TEXT,
+      trading_redeem        TEXT,
+      buy_fee               REAL,
+      annual_fee            REAL,
+      is_floating_annual_fee INTEGER,
+      mgmt_fee              REAL,
+      custody_fee           REAL,
+      sales_service_fee     REAL,
+      operation_fee_total   REAL,
+      net_asset_text        TEXT,
+      net_asset_amount_text TEXT,
+      net_asset_as_of       TEXT,
+      stage_returns_as_of   TEXT,
+      crawler_updated_at    TEXT,
+      found_date_normalized TEXT,
+      name_crawler          TEXT,
+      fund_type_crawler     TEXT,
+      management_crawler    TEXT,
+      benchmark_crawler     TEXT,
+      found_date_crawler    TEXT,
+      updated_at            TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_fund_meta_code ON fund_meta(code);
+    CREATE INDEX IF NOT EXISTS idx_fund_meta_source ON fund_meta(source);
+
+    CREATE TABLE IF NOT EXISTS fund_fee_segments (
+      ts_code   TEXT NOT NULL REFERENCES fund_basic(ts_code) ON DELETE CASCADE,
+      kind      TEXT NOT NULL CHECK(kind IN
+                  ('subscribe_front','purchase_front','purchase_back','redeem','sell')),
+      seq       INTEGER NOT NULL,
+      to_days   INTEGER,
+      rate      REAL,
+      PRIMARY KEY (ts_code, kind, seq)
+    );
+
+    CREATE TABLE IF NOT EXISTS fund_stage_returns (
+      ts_code     TEXT NOT NULL REFERENCES fund_basic(ts_code) ON DELETE CASCADE,
+      period      TEXT NOT NULL,
+      return_pct  REAL,
+      return_text TEXT,
+      PRIMARY KEY (ts_code, period)
+    );
   `);
 }
 

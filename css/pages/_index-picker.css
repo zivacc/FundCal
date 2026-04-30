@@ -561,6 +561,40 @@
   margin: 0 6px;
 }
 
+/* 荧光笔记号：手绘斜抹效果，聚焦在文字下半部 */
+.ix-hero-title-highlight {
+  position: relative;
+  display: inline-block;
+  color: var(--accent);
+  padding: 0 8px;
+  z-index: 0;
+}
+
+.ix-hero-title-highlight::before {
+  content: '';
+  position: absolute;
+  left: -2px;
+  right: -2px;
+  bottom: 8%;
+  height: 52%;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    var(--accent-glow) 4%,
+    var(--accent-glow) 96%,
+    transparent 100%
+  );
+  transform: skewX(-6deg) rotate(-1.5deg);
+  border-radius: 3px 8px 4px 10px;
+  z-index: -1;
+  filter: blur(0.3px);
+  opacity: 0.85;
+}
+
+[data-theme="dark"] .ix-hero-title-highlight::before {
+  opacity: 0.55;
+}
+
 .ix-hero-sub {
   position: relative;
   z-index: 1;
