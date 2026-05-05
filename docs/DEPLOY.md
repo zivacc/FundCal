@@ -1,6 +1,14 @@
 # 部署与运维指南
 
-同一份代码支持四种部署方式：本地开发、GitHub Pages 纯静态托管、Cloudflare Workers（推荐）、阿里云 ECS 服务器。
+支持多种部署方式, **生产环境推荐: 阿里云 ECS + Cloudflare 反代** (见 [§ 五](#五阿里云-ecs--cloudflare-反代-推荐生产)).
+
+| 方式 | 适用场景 | 数据迁移 | 运维成本 |
+|---|---|---|---|
+| 本地开发 | 开发/调试 | 0 | 0 |
+| GitHub Pages | 静态展示 (无 API) | 仅 build-all 产物 | 0 |
+| Cloudflare Workers + KV | 旧版 (已弃) | KV 全量写超 Free 额度 | — |
+| Cloudflare D1 + R2 | Free tier 边缘部署 | 6-7 天分批写 D1 | 中 |
+| **阿里云 ECS + CF 反代** | **生产推荐** | **0 (sqlite 直接用)** | **低** |
 
 ---
 
@@ -65,9 +73,11 @@ GitHub Pages (zivacc.github.io/FundCal/)
 ### 更新数据
 
 ```bash
-# 本地爬取并构建
-node scripts/crawl-all-fund-fee.js
-node scripts/build-allfund.js
+# 同步 + 构建 (新流程, 详见 docs/data-flow.md)
+npm run sync:fund-basic
+npm run crawl:all -- --force
+npm run merge-rules
+npm run sync:fund-nav -- --all
 npm run build-all
 
 # 推送到 GitHub（自动触发部署）
@@ -142,7 +152,7 @@ preview_id = "你的_preview_namespace_id"
 
 ```bash
 # 确保已有 allfund.json（如没有，先爬取并构建）
-node scripts/build-allfund.js
+npm run build-allfund
 npm run build-all
 
 # 上传全部数据（索引 + 26000+ 只基金，约 2 分钟）
@@ -175,9 +185,11 @@ npm run deploy:workers
 ### 7. 更新数据
 
 ```bash
-# 爬取 + 构建
-node scripts/crawl-all-fund-fee.js
-node scripts/build-allfund.js
+# 同步 + 合并 + 构建 (详见 docs/data-flow.md)
+npm run sync:fund-basic
+npm run crawl:all -- --force
+npm run merge-rules
+npm run sync:fund-nav -- --all
 npm run build-all
 
 # 上传到 KV
@@ -189,6 +201,10 @@ npm run deploy:workers
 
 > 仅更新数据时只需 `upload-kv`，不需要重新 `deploy:workers`。
 > 前端代码变更（HTML/CSS/JS）才需要重新部署。
+>
+> **注意**: 当前 KV 上传的是静态分片 (allfund / search-index 等)。
+> 主数据库 `fundcal.db` 体积已达 ~3GB, 不能上 KV (单值 25MB 上限)。
+> 后续 D1 + R2 边缘存储方案见 [cloudflare-migration.md](cloudflare-migration.md)。
 
 ### 8. 本地调试
 
@@ -209,7 +225,9 @@ npm run dev:workers      # 本地启动 Wrangler 开发服务器（含 KV 模拟
 
 ---
 
-## 四、阿里云 ECS 服务器部署
+## 四、阿里云 ECS 服务器部署 (旧版手动流程)
+
+> **新生产部署请优先看 [§ 五](#五阿里云-ecs--cloudflare-反代-推荐生产)**, 这一节保留作灾备/手动覆盖。
 
 ### 1. 准备
 
@@ -301,7 +319,193 @@ pm2 stop fund-api        # 停止
 
 ---
 
-## 五、域名与 HTTPS（可选，仅阿里云 ECS）
+## 五、阿里云 ECS + Cloudflare 反代 (推荐生产)
+
+> **本节是当前主推生产部署方案**。
+> 域名: `fc.ziva.cc.cd`  ECS: `47.96.20.252` (Ubuntu 22.04, 2 vCPU / 2 GiB / 40 GiB)
+
+### 架构
+
+```
+用户 → fc.ziva.cc.cd (Cloudflare 代理 / 缓存 / HTTPS / DDoS)
+        ↓ 回源 HTTP
+   47.96.20.252:80 (Nginx)
+        ├─→ /                → /var/www/fundcal/index.html (Pages 静态)
+        ├─→ /data/allfund/*  → /var/www/fundcal/data/allfund/ (CF 长缓存)
+        ├─→ /api/fund/*      → 127.0.0.1:3457 (PM2: fund-api)
+        └─→ /healthz         → 200 OK
+                              ↓
+                         data/fundcal.db (3GB SQLite, 32M+ nav 行)
+```
+
+### 1. ECS 准备 (一次性)
+
+#### 1.1 安全组
+开通入方向规则:
+- 22 (SSH, 仅你的 IP)
+- 80 (HTTP, 0.0.0.0/0 — Cloudflare 回源)
+- 443 (HTTPS, 0.0.0.0/0, 可选)
+
+> 严格起见可只放行 [Cloudflare IP 段](https://www.cloudflare.com/ips/) 到 80/443, 防止源站直连。
+
+#### 1.2 时区
+```bash
+sudo timedatectl set-timezone Asia/Shanghai
+```
+
+#### 1.3 swap (2 GiB RAM 紧, 加 swap 防 OOM)
+```bash
+sudo fallocate -l 2G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+```
+
+### 2. 部署 (一键)
+
+```bash
+ssh root@47.96.20.252
+
+# clone 仓库
+sudo apt update && sudo apt install -y git
+sudo mkdir -p /var/www
+sudo chown $USER:$USER /var/www
+cd /var/www
+git clone https://github.com/zivacc/FundCal.git fundcal
+cd fundcal
+
+# 配 .env (必填)
+cat > .env <<'EOF'
+TUSHARE_TOKEN=xxx_你的_token_xxx
+TUSHARE_API_URL=http://api.tushare.pro
+TUSHARE_GAP_MS=200
+EOF
+
+# 一键部署 (装 node/nginx/pm2, 配 nginx, 启 pm2)
+sudo bash scripts/aliyun-deploy.sh init
+```
+
+### 3. 数据库导入
+
+#### 方式 A: 从本地传 (省时, 推荐)
+```bash
+# 本地 (Windows / git-bash):
+# 先 checkpoint WAL 防止文件不一致
+sqlite3 data/fundcal.db 'PRAGMA wal_checkpoint(TRUNCATE);'
+# 用 scp 传到服务器 (3GB, 视带宽 ~10-30 分钟)
+scp data/fundcal.db root@47.96.20.252:/var/www/fundcal/data/
+
+# 服务器侧:
+sudo bash scripts/aliyun-deploy.sh seed-db /var/www/fundcal/data/fundcal.db
+```
+
+#### 方式 B: 在服务器上重新拉
+```bash
+cd /var/www/fundcal
+npm run sync:fund-basic
+npm run sync:fund-nav -- --all       # 慢, 数小时, 带限流
+npm run crawl:all -- --force         # 几小时
+npm run merge-rules
+npm run build-all
+```
+
+### 4. Cloudflare 配置
+
+#### 4.1 DNS 记录
+登录 Cloudflare Dashboard → ziva.cc.cd → DNS → Records → Add:
+
+| Type | Name | Content | Proxy | TTL |
+|---|---|---|---|---|
+| A | fc | 47.96.20.252 | **Proxied (橙云)** | Auto |
+
+#### 4.2 SSL/TLS 模式
+SSL/TLS → Overview:
+- 推荐 **Flexible** (CF→源 HTTP, 简单, 浏览器→CF 仍 HTTPS)
+- 或 **Full** (源装自签证书, CF→源 HTTPS, 更安全)
+
+#### 4.3 缓存 (强烈建议)
+SSL/TLS → Edge Certificates → 启用 "Always Use HTTPS"。
+
+Caching → Configuration:
+- Browser Cache TTL: 1 day
+- Caching Level: Standard
+
+Page Rules (免费 3 条):
+| Match | Settings |
+|---|---|
+| `fc.ziva.cc.cd/data/allfund/*` | Cache Level: Cache Everything; Edge TTL: 1 day |
+| `fc.ziva.cc.cd/api/fund/*/fee` | Cache Level: Cache Everything; Edge TTL: 30 min |
+| `fc.ziva.cc.cd/*.js` | Cache Level: Cache Everything; Edge TTL: 7 days |
+
+### 5. 装定时任务
+
+```bash
+sudo bash scripts/aliyun-deploy.sh cron
+```
+
+定时计划 (服务器时区 Asia/Shanghai):
+- **每日**: 18:30 sync-fund-nav, 18:50 replay-failed, 19:30 eastmoney 兜底, 20:00 build-all, 20:30 health-check
+- **每周一**: 02:00 sync-fund-basic, 02:30 crawl-all, 05:00 apply-merge-rules, 05:30 parse-share-class, 06:00 sync-trade-cal, 06:30 fix-empty-status
+- **每周日 03:00**: SQLite VACUUM
+- **每月 1 号 04:00**: 删 90 天前 sync_log
+- **每天 00:00**: 删 14 天前日志
+
+完整定义见 [scripts/cron/fundcal-cron](../scripts/cron/fundcal-cron)。
+
+### 6. 验证
+
+```bash
+# 服务器侧
+curl http://localhost/healthz                # 应返回 ok
+curl http://localhost/api/fund/000001/fee    # 应返回 JSON
+
+# 公网侧
+curl http://47.96.20.252/healthz             # 直连
+curl https://fc.ziva.cc.cd/healthz           # CF 代理
+
+# 状态总览
+sudo bash scripts/aliyun-deploy.sh status
+```
+
+### 7. 日常维护
+
+| 操作 | 命令 |
+|---|---|
+| 拉新代码 + 重启 | `sudo bash scripts/aliyun-deploy.sh update` |
+| 查看 PM2 日志 | `pm2 logs fund-api --lines 100` |
+| 重启 API | `pm2 restart fund-api` |
+| 重载 Nginx | `sudo bash scripts/aliyun-deploy.sh nginx` |
+| 看体检报告 | `cat /var/www/fundcal/data/health-latest.md` |
+| 查近期同步日志 | `tail -100 /var/www/fundcal/logs/sync-nav.log` |
+| 手动跑一次同步 | `cd /var/www/fundcal && npm run sync:fund-nav -- --all` |
+
+### 8. 流量与成本估算
+
+| 项 | 估算 |
+|---|---|
+| ECS (闲置已购) | 0 |
+| 阿里云出口流量 (按使用) | < 5 元/月 (CF 边缘缓存命中后) |
+| Cloudflare Free 套餐 | 0 |
+| Tushare API | 已有 token |
+| **合计** | **~5 元/月** |
+
+> 关键: Cloudflare 缓存命中率必须 > 80%, 否则带宽费用上升。
+
+### 9. 风险与缓解
+
+| 风险 | 缓解 |
+|---|---|
+| 源服务器挂 = 站挂 (单点) | PM2 自动重启 + Cloudflare Always Online |
+| 内存 2 GiB 紧 | 已加 2GB swap, PM2 max_memory_restart=500M |
+| 国内访问绕境外 CF POP | 测速 `mtr fc.ziva.cc.cd`; 必要时关 CF 代理直连 |
+| 源 IP 暴露被 DDoS | 安全组只开 CF IP 段; SSH 限自己 IP |
+| 流量计费爆发 | 大文件强缓存 + 监控阿里云告警 |
+| DB 损坏 | 每周 VACUUM + 异地备份 (`scp data/fundcal.db` 回本地) |
+
+---
+
+## 六、域名与 HTTPS（可选，仅阿里云 ECS 直连）
 
 1. **域名解析**：在阿里云「域名解析」添加 A 记录，指向 ECS 公网 IP
 
@@ -323,7 +527,7 @@ certbot --nginx -d fund.yourdomain.com
 
 ---
 
-## 六、Git 同步工作流
+## 七、Git 同步工作流
 
 ### 架构
 
@@ -364,28 +568,41 @@ bash scripts/deploy.sh
 | `data/allfund/feeder-index.json` | 是 | 联接基金索引 |
 | `data/allfund/fund-stats.json` | 是 | 统计数据 |
 | `data/allfund/fund-stats-detail.json` | 是 | 统计详情 |
-| `data/allfund/funds/*.json` | 否 | 分片文件（由 build-allfund.js 生成，不入库） |
-| `data/funds/*.json` | 否 | 单只基金缓存（26000+ 文件，仅本地/服务器使用） |
+| `data/allfund/funds/*.json` | 否 | 分片文件（由 build-allfund-from-db.js 生成，不入库） |
+| `data/fundcal.db` | 是/否 | SQLite 主真相源（按部署需要决定是否入库） |
+| `data/funds/*.json` | 否 | [灾备] 旧 crawler JSON（已不再写入） |
 | `data/smpp/*.json` | 是 | 排排网代码映射（构建时自动取最新文件） |
 | `node_modules/` | 否 | 依赖目录 |
 | `dist/` | 否 | Workers 构建产物（由 build:workers 生成） |
 
-`data/funds/` 不入库，同步方式：
+### 数据同步策略 (新流程)
+
+`data/fundcal.db` 是主真相源。生产环境推荐**在服务器上直接同步**，避免传输 ~3GB 数据库:
 
 ```bash
-# SCP 上传
-scp -r data/funds root@你的公网IP:/var/www/fundcal/data/
-
-# 或在服务器上直接爬取
 cd /var/www/fundcal
-node scripts/crawl-all-fund-fee.js
-node scripts/build-allfund.js
-npm run build-all
+npm run sync:fund-basic              # Tushare 基金清单
+npm run crawl:all -- --force         # 爬虫全量 (直写 DB)
+npm run merge-rules                  # 字段裁决合并
+npm run sync:fund-nav -- --all       # 净值增量
+npm run replay-failed                # 重放失败任务
+npm run health-check                 # 体检
+npm run build-all                    # 出静态资源
 ```
+
+如需把本地 DB 推送到服务器:
+
+```bash
+# 注意: WAL 模式下需先 checkpoint
+sqlite3 data/fundcal.db 'PRAGMA wal_checkpoint(TRUNCATE);'
+scp data/fundcal.db root@你的公网IP:/var/www/fundcal/data/
+```
+
+> 旧 `data/funds/*.json` 已不再使用 (爬虫直写 DB), 仅作灾备。无需同步。
 
 ---
 
-## 七、环境配置说明
+## 八、环境配置说明
 
 ### js/config.js
 
@@ -412,7 +629,7 @@ Nginx 配置模板，包含静态服务、API 反代、CORS、安全规则。部
 
 ---
 
-## 八、故障排查
+## 九、故障排查
 
 | 现象 | 可能原因 | 处理 |
 |------|---------|------|
@@ -426,7 +643,7 @@ Nginx 配置模板，包含静态服务、API 反代、CORS、安全规则。部
 
 ---
 
-## 九、命令速查
+## 十、命令速查
 
 | 场景 | 命令 |
 |------|------|
@@ -435,8 +652,13 @@ Nginx 配置模板，包含静态服务、API 反代、CORS、安全规则。部
 | 仅启动 API | `npm run api` |
 | 仅启动静态服务 | `npm run serve` |
 | **数据构建** | |
-| 爬取全量基金 | `node scripts/crawl-all-fund-fee.js` |
-| 聚合数据 | `node scripts/build-allfund.js` |
+| 拉 Tushare 清单 | `npm run sync:fund-basic` |
+| 爬取全量基金 | `npm run crawl:all -- --force` |
+| 字段裁决合并 | `npm run merge-rules` |
+| 拉净值（增量） | `npm run sync:fund-nav -- --all` |
+| 重放失败任务 | `npm run replay-failed` |
+| 数据健康体检 | `npm run health-check` |
+| 聚合数据 | `npm run build-allfund` |
 | 构建所有索引 | `npm run build-all` |
 | **Cloudflare Workers** | |
 | 登录 Wrangler | `npx wrangler login` |

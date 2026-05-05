@@ -1,0 +1,59 @@
+# FundCal 定时任务
+# 部署:  sudo cp scripts/cron/fundcal-cron /etc/cron.d/fundcal && sudo systemctl restart cron
+#
+# 时区: 服务器跑啥用啥 (建议 timedatectl set-timezone Asia/Shanghai)
+# 日志: /var/www/fundcal/logs/<task>.log
+# 失败: 错误也写日志, 不退邮件 (避免 cron 默认邮件)
+#
+# 注: PATH 要包含 npm/node, 否则脚本找不到命令.
+
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+MAILTO=""
+DEPLOY_DIR=/var/www/fundcal
+
+# ─── 每日: 净值 + 静态资源 ───
+# 18:30 拉 tushare fund_nav 增量 (A 股收盘后, 主流基金已披露)
+30 18 * * *  root  cd $DEPLOY_DIR && /usr/bin/node scripts/nav/sync-fund-nav.js --all >> logs/sync-nav.log 2>&1
+
+# 18:50 重放近期失败 (限流补偿)
+50 18 * * *  root  cd $DEPLOY_DIR && /usr/bin/node scripts/nav/replay-failed-syncs.js --concurrency 3 >> logs/replay.log 2>&1
+
+# 19:30 eastmoney 兜底补 (LOF / 子类, tushare 给 0 行的)
+30 19 * * *  root  cd $DEPLOY_DIR && /usr/bin/node scripts/nav/crawl-eastmoney-nav.js --missing --concurrency 3 >> logs/eastmoney.log 2>&1
+
+# 20:00 重建静态资源 (DB → data/allfund/*)
+0 20 * * *   root  cd $DEPLOY_DIR && /usr/bin/npm run build-all >> logs/build.log 2>&1
+
+# 20:30 体检 (输出报告)
+30 20 * * *  root  cd $DEPLOY_DIR && /usr/bin/node scripts/nav/health-check.js --out data/health-latest.md >> logs/health.log 2>&1
+
+# ─── 每周: 基础信息 + 全量爬虫 + 字段裁决 + 交易日历 ───
+# 周一 02:00 拉 tushare 基金清单
+0 2 * * 1    root  cd $DEPLOY_DIR && /usr/bin/node scripts/nav/sync-fund-basic.js >> logs/sync-basic.log 2>&1
+
+# 周一 02:30 全量爬虫 (天天基金费率/规模/业绩, 直写 DB)
+30 2 * * 1   root  cd $DEPLOY_DIR && /usr/bin/node scripts/crawl-all-fund-fee.js --concurrency 5 >> logs/crawl.log 2>&1
+
+# 周一 05:00 应用字段裁决矩阵
+0 5 * * 1    root  cd $DEPLOY_DIR && /usr/bin/node scripts/nav/apply-merge-rules.js --audit data/merge-audit.json >> logs/merge.log 2>&1
+
+# 周一 05:30 解析份额类别
+30 5 * * 1   root  cd $DEPLOY_DIR && /usr/bin/node scripts/nav/parse-share-class.js >> logs/share-class.log 2>&1
+
+# 周一 06:00 拉交易日历
+0 6 * * 1    root  cd $DEPLOY_DIR && /usr/bin/node scripts/nav/sync-trade-calendar.js >> logs/trade-cal.log 2>&1
+
+# 周一 06:30 修空 status (启发式)
+30 6 * * 1   root  cd $DEPLOY_DIR && /usr/bin/node scripts/nav/fix-empty-status.js >> logs/fix-status.log 2>&1
+
+# ─── 日志保洁 ───
+# 每天凌晨清理 14 天前的日志
+0 0 * * *    root  find /var/www/fundcal/logs -name '*.log' -mtime +14 -delete
+
+# 每周日 03:00 SQLite VACUUM (压缩 DB, 回收空间)
+0 3 * * 0    root  cd $DEPLOY_DIR && /usr/bin/sqlite3 data/fundcal.db 'VACUUM;' >> logs/vacuum.log 2>&1
+
+# ─── sync_log 表保洁 (避免无限增长) ───
+# 每月 1 号删 90 天前的 sync_log
+0 4 1 * *    root  cd $DEPLOY_DIR && /usr/bin/sqlite3 data/fundcal.db "DELETE FROM sync_log WHERE finished_at < datetime('now','-90 days');" >> logs/sync-log-prune.log 2>&1

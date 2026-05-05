@@ -1,6 +1,9 @@
-import { fetchFundStatsFromAPI, fetchFundFeeFromAPI } from './api-adapter.js';
-import { escapeHtml, getColorForIndex, getChartTheme } from './utils.js';
-import { renderFundDetailTable } from './fund-detail-table.js';
+import { fetchFundStatsFromAPI, fetchFundFeeFromAPI } from '../../data/fund-api.js';
+import { escapeHtml } from '../../utils/format.js';
+import { getColorForIndex } from '../../utils/color.js';
+import { getChartTheme } from '../../core/theme.js';
+import { renderFundDetailTable } from '../../components/fund-detail-table.js';
+import { createTypeahead } from '../../components/typeahead.js';
 
 const MAX_DROPDOWN_ITEMS = 30;
 const MAX_FUNDS_LOAD = 220;
@@ -195,49 +198,10 @@ function renderSuggestions() {
 
 /* ── dropdown ── */
 
-let dropdownHighlight = -1;
-let lastDropdownItems = [];
-
-function showDropdown(items) {
-  if (!els.dropdown) return;
-  dropdownHighlight = -1;
-  els.dropdown.innerHTML = '';
-  if (!items || !items.length) {
-    lastDropdownItems = [];
-    els.dropdown.setAttribute('aria-hidden', 'true');
-    els.dropdown.classList.remove('fund-search-dropdown-visible');
-    return;
-  }
-  lastDropdownItems = items;
-  items.forEach((item, i) => {
-    const li = document.createElement('li');
-    li.setAttribute('role', 'option');
-    li.dataset.index = String(i);
-    li.innerHTML = `
-      <span class="fund-search-name">${escapeHtml(item.label || '')}</span>
-      <span class="fund-search-code">${item.count || 0} 只基金</span>
-    `;
-    li.addEventListener('click', () => selectDropdownItem(item));
-    els.dropdown.appendChild(li);
-  });
-  els.dropdown.setAttribute('aria-hidden', 'false');
-  els.dropdown.classList.add('fund-search-dropdown-visible');
-}
-
-function highlightDropdownItem(index) {
-  if (!els.dropdown) return;
-  const options = els.dropdown.querySelectorAll('[role="option"]');
-  options.forEach((el, i) => el.classList.toggle('fund-search-item-active', i === index));
-  dropdownHighlight = index;
-  if (index >= 0 && options[index]) options[index].scrollIntoView({ block: 'nearest' });
-}
-
 function selectDropdownItem(item) {
   if (!item) return;
   if (state.selectedIndexes.some(i => i.label === item.label)) return;
   state.selectedIndexes.push(item);
-  if (els.searchInput) els.searchInput.value = '';
-  showDropdown([]);
   triggerRefresh();
 }
 
@@ -567,31 +531,20 @@ async function triggerRefresh() {
 /* ── events ── */
 
 function bindEvents() {
-  let searchTimer;
-  els.searchInput?.addEventListener('input', () => {
-    clearTimeout(searchTimer);
-    searchTimer = setTimeout(() => {
-      const q = els.searchInput.value.trim();
-      showDropdown(searchTracking(q));
-    }, SEARCH_DEBOUNCE_MS);
-  });
-
-  els.searchInput?.addEventListener('keydown', (e) => {
-    const options = els.dropdown?.querySelectorAll('[role="option"]') || [];
-    if (e.key === 'ArrowDown') { e.preventDefault(); highlightDropdownItem(dropdownHighlight < options.length - 1 ? dropdownHighlight + 1 : 0); return; }
-    if (e.key === 'ArrowUp') { e.preventDefault(); highlightDropdownItem(dropdownHighlight <= 0 ? options.length - 1 : dropdownHighlight - 1); return; }
-    if (e.key === 'Enter') { e.preventDefault(); const idx = dropdownHighlight >= 0 ? dropdownHighlight : 0; if (lastDropdownItems[idx]) selectDropdownItem(lastDropdownItems[idx]); return; }
-    if (e.key === 'Escape') { showDropdown([]); els.searchInput.blur(); }
-  });
-
-  els.dropdown?.addEventListener('mousedown', (e) => e.preventDefault());
-
-  document.addEventListener('click', (e) => {
-    if (els.dropdown?.classList.contains('fund-search-dropdown-visible') &&
-        !els.searchInput?.contains(e.target) && !els.dropdown?.contains(e.target)) {
-      showDropdown([]);
-    }
-  });
+  if (els.searchInput && els.dropdown) {
+    createTypeahead({
+      inputEl: els.searchInput,
+      dropdownEl: els.dropdown,
+      debounceMs: SEARCH_DEBOUNCE_MS,
+      clearOnSelect: true,
+      search: (q) => searchTracking(q),
+      renderItem: (item) => `
+        <span class="fund-search-name">${escapeHtml(item.label || '')}</span>
+        <span class="fund-search-code">${item.count || 0} 只基金</span>
+      `,
+      onSelect: (item) => selectDropdownItem(item),
+    });
+  }
 
   els.sortSelect?.addEventListener('change', () => {
     state.sortMode = els.sortSelect.value;

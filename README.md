@@ -93,26 +93,42 @@ FundCal/
 │   └── style.css                  全局样式（深色主题）
 │
 ├── data/
-│   ├── allfund/
-│   │   ├── allfund.json           ★ 全量基金聚合（~49MB，已入库）
+│   ├── fundcal.db                 ★ SQLite 主真相源（fund_basic / fund_meta /
+│   │                                 fund_nav / fund_fee_segments /
+│   │                                 fund_stage_returns / sync_log）
+│   ├── allfund/                   静态构建产物（DB → JSON 分片，前端读取）
+│   │   ├── allfund.json           全量基金聚合（由 build-allfund-from-db.js 生成）
+│   │   ├── funds/{code}.json      单基金分片（按需加载）
 │   │   ├── search-index.json      搜索索引（code/name/拼音首字母）
 │   │   ├── feeder-index.json      联接基金/母基金索引
+│   │   ├── list-index.json        列表页 subset
 │   │   ├── fund-stats.json        统计数据（按标的/公司/基准聚合）
 │   │   ├── feeder-master-overrides.json  联接名覆盖配置
 │   │   └── overseas-codes.json    中港互认基金代码
-│   └── funds/                     ★ 单只基金缓存（26000+ 文件，不入库）
-│       ├── index.json             已缓存代码列表
-│       └── {code}.json            单只基金费率 JSON
+│   ├── funds/                     [灾备] 旧 crawler JSON（已不再写入，留作审计/灾备）
+│   ├── health-baseline.md         体检报告留档
+│   └── merge-audit.json           字段裁决审计
 │
 ├── scripts/
 │   ├── dev-server.js              本地开发启动器（静态 + API 并行）
 │   ├── serve-fund-api.js          API 服务（端口 3457）
-│   ├── crawl-fund-fee.js          爬虫：单只/多只基金费率
-│   ├── crawl-all-fund-fee.js      爬虫：全量基金费率
-│   ├── build-allfund.js           聚合 data/funds/ → allfund.json
+│   ├── crawl-fund-fee.js          爬虫：单只基金费率（直写 DB）
+│   ├── crawl-all-fund-fee.js      爬虫：全量基金费率（直写 DB）
+│   ├── build-allfund-from-db.js   DB → 静态分片（替代 build-allfund.js）
+│   ├── build-allfund.js           [已弃用] 旧版从 data/funds/ 聚合
 │   ├── build-search-index.js      生成 search-index.json
 │   ├── build-feeder-index.js      生成 feeder-index.json
 │   ├── build-fund-stats.js        生成 fund-stats.json
+│   ├── migrate-crawler-to-db.js   [灾备] 从历史 data/funds/*.json 重建 DB
+│   ├── nav/
+│   │   ├── db.js                  SQLite 连接 + schema + helper
+│   │   ├── tushare-client.js      Tushare API 客户端（含限流退避）
+│   │   ├── sync-fund-basic.js     拉 Tushare 基金清单
+│   │   ├── sync-fund-nav.js       拉 Tushare 净值（增量）
+│   │   ├── apply-merge-rules.js   字段裁决（crawler 优先矩阵）
+│   │   ├── health-check.js        10 项数据健康体检
+│   │   ├── replay-failed-syncs.js 重放 sync_log 中失败任务
+│   │   └── query-nav.js           净值查询工具
 │   └── deploy.sh                  服务器部署/更新脚本
 │
 ├── nginx/
@@ -133,51 +149,75 @@ FundCal/
 
 ---
 
-## 数据流：爬取 → 构建 → 使用
+## 数据流：双源 → 合并 → 使用
+
+详细文档请参阅 [docs/data-flow.md](docs/data-flow.md)。
 
 ```
-天天基金/东方财富网页
-        ↓ crawl-fund-fee.js / crawl-all-fund-fee.js
-  data/funds/{code}.json（单只基金费率）
-        ↓ build-allfund.js
-  data/allfund/allfund.json（全量聚合）
-        ↓ build-search-index / build-feeder-index / build-fund-stats
-  search-index.json / feeder-index.json / fund-stats.json（索引与统计）
-        ↓
-  前端页面 / API 服务 / GitHub Pages
+Tushare API ──→ sync-fund-basic / sync-fund-nav ──┐
+                                                   v
+                                          ┌────────────────┐
+天天基金 / 东财 ──→ crawl-fund-fee ──────→│ fundcal.db     │
+                  (直写 DB)                │ (主真相源)     │
+                                          └────────┬───────┘
+                                                   │
+                                          apply-merge-rules
+                                          (按裁决矩阵合并)
+                                                   │
+                                                   v
+                                          build-allfund-from-db
+                                                   │
+                                                   v
+                                       data/allfund/* 静态分片
+                                                   │
+                                                   v
+                                       前端 / API / Pages / Workers
 ```
 
-### 爬取数据
+### 字段裁决矩阵（摘要）
+
+| 字段 | 主源 | 兜底 |
+|---|---|---|
+| name / fund_type / management / benchmark / found_date | crawler | tushare |
+| status / market / custodian | tushare | — |
+| 费率 / 业绩 / 跟踪标的 / 规模 | crawler | — |
+| nav | tushare | — |
+
+完整矩阵和 schema 见 [docs/data-flow.md §3](docs/data-flow.md)。
+
+### 例行更新流程
 
 ```bash
-# 单只/多只
-node scripts/crawl-fund-fee.js 000001 110011
+# === 每周（基础信息 + 元数据 + 合并）===
+npm run sync:fund-basic              # ① Tushare 清单
+npm run crawl:all -- --force         # ② Crawler 元数据/费率/业绩（直写 DB）
+npm run merge-rules                  # ③ 字段裁决合并
+npm run health-check                 # ④ 体检
 
-# 全量（~26000只，默认 100 路并发）
-node scripts/crawl-all-fund-fee.js
-# 可选参数：--force --concurrency=15 --delay=50 --retry=2 --limit=N
+# === 每日（净值增量 + 静态资源）===
+npm run sync:fund-nav -- --all       # ⑤ 净值增量
+npm run replay-failed                # ⑥ 重放近期失败
+npm run build-all                    # ⑦ 重建静态资源
 ```
 
-每只基金的缓存文件包含：代码、名称、买入费率、分段卖出费率、年化运作费率、申赎状态、跟踪标的、基金公司、业绩基准等。
-
-### 构建索引
+### 单只爬取调试
 
 ```bash
-npm run build-all          # 一键构建所有索引
+node scripts/crawl-fund-fee.js 000001 110011                # 直写 DB
+node scripts/crawl-fund-fee.js 000001 --keep-json           # 同时保留旧 JSON
+```
 
-# 或分步执行：
-node scripts/build-allfund.js         # 聚合 → allfund.json
-npm run build-search-index            # 搜索索引
-npm run build-feeder-index            # 联接基金索引
-npm run build-fund-stats              # 统计数据
+### 体检与失败重放
+
+```bash
+npm run health-check -- --out data/health.md   # 输出 markdown 报告
+npm run replay-failed -- --dry --limit 100     # 干跑前 100 个失败任务
+npm run replay-failed                          # 实际重跑近 7 天失败
 ```
 
 ### 更新 GitHub Pages 数据
 
 ```bash
-# 爬取 + 构建 + 推送
-node scripts/crawl-all-fund-fee.js
-node scripts/build-allfund.js
 npm run build-all
 git add -A && git commit -m "更新基金数据" && git push
 ```
@@ -222,7 +262,14 @@ git add -A && git commit -m "更新基金数据" && git push
 | `npm run dev`                | 本地开发（静态 3456 + API 3457） |
 | `npm run serve`              | 仅静态文件服务                  |
 | `npm run api`                | 仅 API 服务                 |
-| `npm run build-all`          | 构建所有索引                   |
+| `npm run sync:fund-basic`    | 拉 Tushare 基金清单            |
+| `npm run sync:fund-nav`      | 拉 Tushare 净值（增量）          |
+| `npm run crawl:all`          | 爬虫全量（直写 DB）               |
+| `npm run merge-rules`        | 应用字段裁决矩阵                  |
+| `npm run health-check`       | 数据健康体检                    |
+| `npm run replay-failed`      | 重放失败的同步任务                 |
+| `npm run build-all`          | 构建所有索引（DB → 静态资源）         |
+| `npm run build-allfund`      | 构建主聚合 + 单基金分片             |
 | `npm run build-search-index` | 构建搜索索引                   |
 | `npm run build-feeder-index` | 构建联接基金索引                 |
 | `npm run build-fund-stats`   | 构建统计数据                   |
@@ -232,12 +279,16 @@ git add -A && git commit -m "更新基金数据" && git push
 
 ## 部署指南
 
-详见 [docs/DEPLOY.md](docs/DEPLOY.md)，涵盖：
+**生产推荐**: 阿里云 ECS + Cloudflare 反代, 域名 `fc.ziva.cc.cd`。一键部署:
+```bash
+sudo bash scripts/aliyun-deploy.sh init       # 装环境 + 配 nginx + 启 PM2
+sudo bash scripts/aliyun-deploy.sh seed-db /path/to/fundcal.db   # 导 DB
+sudo bash scripts/aliyun-deploy.sh cron       # 装定时任务
+```
 
-- 本地开发配置
-- 阿里云 ECS 部署（一键脚本 / 手动）
-- GitHub Pages 部署
-- Git 同步工作流
-- 域名 + HTTPS 配置
-- 故障排查
+详细文档:
+- [docs/DEPLOY.md § 五](docs/DEPLOY.md#五阿里云-ecs--cloudflare-反代-推荐生产) — **阿里云 + CF (主推)**
+- [docs/DEPLOY.md](docs/DEPLOY.md) — 全部部署方式 (本地 / GitHub Pages / Cloudflare Workers)
+- [docs/data-flow.md](docs/data-flow.md) — 数据流程、合并矩阵、定时同步
+- [docs/cloudflare-migration.md](docs/cloudflare-migration.md) — D1+R2 备选方案 (Free tier)
 

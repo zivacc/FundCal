@@ -483,33 +483,39 @@
           </div>
           <button type="button" class="btn btn-sm btn-secondary" id="nav-clear-funds">清空</button>
         </div>
-        <div class="nav-selected-chips" id="nav-selected-chips"></div>
       </div>
 
       <div class="nav-controls">
-        <div class="nav-control-group nav-period-group" role="tablist" aria-label="时间周期">
+        <div class="nav-control-group nav-period-group" role="tablist" aria-label="时间周期与区间">
+          <span class="nav-control-label">区间</span>
+          <button type="button" class="nav-period-btn nav-period-btn-active" data-period="COMMON">同区间</button>
           <button type="button" class="nav-period-btn" data-period="1M">1M</button>
           <button type="button" class="nav-period-btn" data-period="3M">3M</button>
           <button type="button" class="nav-period-btn" data-period="6M">6M</button>
-          <button type="button" class="nav-period-btn nav-period-btn-active" data-period="1Y">1Y</button>
+          <button type="button" class="nav-period-btn" data-period="1Y">1Y</button>
           <button type="button" class="nav-period-btn" data-period="3Y">3Y</button>
           <button type="button" class="nav-period-btn" data-period="5Y">5Y</button>
+          <button type="button" class="nav-period-btn" data-period="10Y">10Y</button>
           <button type="button" class="nav-period-btn" data-period="MAX">MAX</button>
+          <input type="date" id="nav-view-start" class="cf-filter-input nav-date-input" aria-label="显示起始日">
+          <span class="nav-range-sep">→</span>
+          <input type="date" id="nav-view-end" class="cf-filter-input nav-date-input" aria-label="显示结束日">
         </div>
 
         <div class="nav-control-group">
-          <span class="nav-control-label">Y 轴</span>
-          <select id="nav-y-mode" class="toggle-select">
-            <option value="pct" selected>累计收益 %</option>
-            <option value="raw">原始净值</option>
-            <option value="log">对数净值</option>
-          </select>
+          <span class="nav-control-label">数值</span>
+          <div class="nav-toggle-group" id="nav-value-mode" role="tablist" aria-label="Y 轴数值模式">
+            <button type="button" class="nav-toggle-btn nav-toggle-btn-active" data-value="pct">收益 %</button>
+            <button type="button" class="nav-toggle-btn" data-value="nav">原始净值</button>
+          </div>
         </div>
 
-        <div class="nav-control-group nav-baseline-wrap" id="nav-baseline-wrap">
-          <span class="nav-control-label">基准日</span>
-          <input type="date" id="nav-baseline-date" class="cf-filter-input">
-          <button type="button" class="btn btn-sm btn-secondary" id="nav-baseline-reset">重置</button>
+        <div class="nav-control-group">
+          <span class="nav-control-label">坐标</span>
+          <div class="nav-toggle-group" id="nav-axis-scale" role="tablist" aria-label="Y 轴刻度">
+            <button type="button" class="nav-toggle-btn nav-toggle-btn-active" data-value="linear">线性</button>
+            <button type="button" class="nav-toggle-btn" data-value="log">对数</button>
+          </div>
         </div>
 
         <div class="nav-control-group">
@@ -517,6 +523,43 @@
           <label class="toggle-btn toggle-btn-inline"><input type="checkbox" id="nav-ind-ma20" class="toggle-btn-input"><span class="toggle-btn-text">MA20</span></label>
           <label class="toggle-btn toggle-btn-inline"><input type="checkbox" id="nav-ind-ma60" class="toggle-btn-input"><span class="toggle-btn-text">MA60</span></label>
           <label class="toggle-btn toggle-btn-inline"><input type="checkbox" id="nav-ind-dd" class="toggle-btn-input" checked><span class="toggle-btn-text">回撤副图</span></label>
+        </div>
+      </div>
+
+      <!-- 图表 header：左侧 legend（基金净值/涨跌），右侧 toolbar（保存图片 / 重置缩放）。
+           独立于 nav-chart-wrap，避免 legend/toolbar 挡在 plot 上方和 markPoint 打架。 -->
+      <div class="nav-chart-header" id="nav-chart-header">
+        <div class="nav-chart-legend" id="nav-chart-legend"></div>
+        <div class="nav-chart-toolbar">
+          <button type="button" class="nav-chart-toolbar-btn" id="nav-chart-toolbar-save" title="保存图片" aria-label="保存图片">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+          </button>
+          <button type="button" class="nav-chart-toolbar-btn" id="nav-chart-toolbar-restore" title="重置缩放" aria-label="重置缩放">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <path d="M20.49 15A9 9 0 1 1 18.36 6.64"></path>
+            </svg>
+          </button>
+          <button type="button" class="nav-chart-toolbar-btn" id="nav-chart-toolbar-fullscreen" title="全屏" aria-label="全屏" aria-pressed="false">
+            <!-- 进入全屏：四个角的外扩箭头 -->
+            <svg class="icon-enter" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="4 9 4 4 9 4"></polyline>
+              <polyline points="20 9 20 4 15 4"></polyline>
+              <polyline points="4 15 4 20 9 20"></polyline>
+              <polyline points="20 15 20 20 15 20"></polyline>
+            </svg>
+            <!-- 退出全屏：四个角的内收箭头 -->
+            <svg class="icon-exit" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="9 4 9 9 4 9"></polyline>
+              <polyline points="15 4 15 9 20 9"></polyline>
+              <polyline points="9 20 9 15 4 15"></polyline>
+              <polyline points="15 20 15 15 20 15"></polyline>
+            </svg>
+          </button>
         </div>
       </div>
 
@@ -753,8 +796,8 @@
 
   <!-- 第三方库 -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="js/config.js"></script>
-  <script src="js/theme-toggle.js"></script>
-  <script type="module" src="js/router.js"></script>
+  <script src="js/core/config.js"></script>
+  <script src="js/core/theme-toggle.js"></script>
+  <script type="module" src="js/core/router.js"></script>
 </body>
 </html>

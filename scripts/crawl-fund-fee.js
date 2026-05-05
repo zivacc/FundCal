@@ -755,7 +755,30 @@ async function fetchFundFee(code) {
   };
 }
 
-/** 写入单只基金 JSON 并更新索引 */
+/**
+ * 保存爬虫数据 — 默认直写 DB; 如需保留 JSON 文件 (审计/灾备), 传 { keepJson: true }
+ *
+ * @param {object} data           fetchFundFee() 返回值
+ * @param {object} [opts]
+ * @param {boolean} [opts.toDb=true]   写入 SQLite
+ * @param {boolean} [opts.keepJson=false] 同时写 data/funds/<code>.json
+ */
+async function saveCrawlerData(data, opts = {}) {
+  const { toDb = true, keepJson = false } = opts;
+  if (!data || !data.code) return null;
+
+  let dbResult = null;
+  if (toDb) {
+    const { upsertCrawlerData } = await import('./nav/db.js');
+    dbResult = upsertCrawlerData(data);
+  }
+  if (keepJson) {
+    saveFund(data);
+  }
+  return dbResult;
+}
+
+/** [legacy] 写入单只基金 JSON 并更新索引 — 用于灾备/调试. 新流程请用 saveCrawlerData. */
 function saveFund(data) {
   if (!data || !data.code) return;
   const filePath = path.join(DATA_DIR, `${data.code}.json`);
@@ -866,10 +889,13 @@ function saveFund(data) {
 
 /** 主流程：按参数基金代码依次抓取并落盘 */
 async function main() {
-  const codes = process.argv.slice(2).filter(c => /^\d{6}$/.test(c));
+  const argv = process.argv.slice(2);
+  const codes = argv.filter(c => /^\d{6}$/.test(c));
+  const keepJson = argv.includes('--keep-json');
   if (codes.length === 0) {
-    console.log('用法: node scripts/crawl-fund-fee.js <基金代码1> [代码2] ...');
+    console.log('用法: node scripts/crawl-fund-fee.js <基金代码1> [代码2] ... [--keep-json]');
     console.log('示例: node scripts/crawl-fund-fee.js 000001 110011');
+    console.log('  --keep-json   同时写 data/funds/<code>.json (默认仅写 DB)');
     process.exit(1);
   }
   const total = codes.length;
@@ -892,7 +918,7 @@ async function main() {
     const data = await fetchFundFee(code);
     if (data) {
       okCount++;
-      saveFund(data);
+      await saveCrawlerData(data, { toDb: true, keepJson });
 
       const op = data.operationFees || {};
       const buyPct = (data.buyFee * 100).toFixed(2);
@@ -939,7 +965,7 @@ async function main() {
   }
 }
 
-export { fetchFundFee, saveFund, DATA_DIR, fetchFundBasicInfo, fetchFundStageReturnsInfo };
+export { fetchFundFee, saveFund, saveCrawlerData, DATA_DIR, fetchFundBasicInfo, fetchFundStageReturnsInfo };
 
 // 仅在被直接运行（带基金代码参数）时执行，被 import 时不执行
 if (process.argv[2] && /^\d{6}$/.test(String(process.argv[2]))) {

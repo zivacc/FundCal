@@ -3,7 +3,7 @@
  * 支持从文本、CSV、Excel 中解析基金代码/名称
  */
 
-import { buildSearchIndexMaps } from './search-utils.js';
+import { buildSearchIndexMaps } from '../../utils/search.js';
 
 export function normalizeImportText(text) {
   return String(text || '').replace(/\r\n/g, '\n');

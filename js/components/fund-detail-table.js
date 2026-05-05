@@ -2,7 +2,8 @@
  * 基金详情表格 - 共享模块
  * 供主页 (app.js) 和指数选基页 (index-picker-page.js) 共用
  */
-import { escapeHtml, getColorForIndex } from './utils.js';
+import { escapeHtml } from '../utils/format.js';
+import { getColorForIndex } from '../utils/color.js';
 
 /* ========== 排排网映射 ========== */
 

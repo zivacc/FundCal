@@ -84,9 +84,10 @@ function resolveCodes(opts) {
       process.exit(1);
     }
   } else if (opts.all) {
+    // 默认包含 L (上市) 和 I (募集); --include-dead 增加 D (终止)
     const sql = opts.includeDead
       ? "SELECT code FROM fund_basic WHERE status IN ('L','D','I')"
-      : "SELECT code FROM fund_basic WHERE status = 'L'";
+      : "SELECT code FROM fund_basic WHERE status IN ('L','I')";
     const rows = db.prepare(sql).all();
     codes = rows.map((r) => r.code);
     if (!codes.length) {

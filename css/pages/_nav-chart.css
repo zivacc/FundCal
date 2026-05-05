@@ -26,68 +26,6 @@
   position: relative;
 }
 
-.nav-selected-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  min-height: 28px;
-  align-items: center;
-}
-
-.nav-chips-empty {
-  font-size: 12px;
-  color: var(--text-tertiary);
-  font-family: var(--font-mono);
-  letter-spacing: 0.6px;
-}
-
-.nav-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 8px 3px 6px;
-  border: 1px solid var(--rule);
-  border-radius: 999px;
-  background: var(--bg-raised);
-  font-size: 12px;
-  color: var(--text-primary);
-}
-
-.nav-chip-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--chip-color, var(--accent));
-  flex-shrink: 0;
-}
-
-.nav-chip-code {
-  font-family: var(--font-mono);
-  color: var(--text-tertiary);
-  font-size: 11px;
-}
-
-.nav-chip-name {
-  font-family: var(--font-cjk);
-}
-
-.nav-chip-remove {
-  border: none;
-  background: transparent;
-  color: var(--text-tertiary);
-  cursor: pointer;
-  padding: 0 2px;
-  font-size: 14px;
-  line-height: 1;
-  border-radius: var(--radius-sm);
-  transition: background var(--transition-fast), color var(--transition-fast);
-}
-
-.nav-chip-remove:hover {
-  background: var(--danger-subtle);
-  color: var(--danger);
-}
-
 /* 控件行 */
 .nav-controls {
   display: flex;
@@ -109,7 +47,7 @@
 
 .nav-control-label {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-tertiary);
   letter-spacing: 0.8px;
   text-transform: uppercase;
@@ -120,12 +58,12 @@
 }
 
 .nav-period-btn {
-  padding: 4px 10px;
+  padding: 5px 12px;
   border: 1px solid var(--rule);
   background: var(--bg-raised);
   color: var(--text-secondary);
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 13px;
   letter-spacing: 0.5px;
   cursor: pointer;
   border-radius: var(--radius-sm);
@@ -143,6 +81,84 @@
   color: var(--text-inverse);
 }
 
+/* 二态分段控件 — 左|右 切换 */
+.nav-toggle-group {
+  display: inline-flex;
+  gap: 0;
+}
+
+.nav-toggle-btn {
+  padding: 4px 12px;
+  border: 1px solid var(--rule);
+  background: var(--bg-raised);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.nav-toggle-btn + .nav-toggle-btn {
+  border-left: none;
+}
+
+.nav-toggle-group .nav-toggle-btn:first-child {
+  border-top-left-radius: var(--radius-sm);
+  border-bottom-left-radius: var(--radius-sm);
+}
+
+.nav-toggle-group .nav-toggle-btn:last-child {
+  border-top-right-radius: var(--radius-sm);
+  border-bottom-right-radius: var(--radius-sm);
+}
+
+.nav-toggle-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.nav-toggle-btn-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-inverse);
+}
+
+.nav-toggle-btn-active + .nav-toggle-btn,
+.nav-toggle-btn + .nav-toggle-btn-active {
+  /* 让被选中按钮的边框压在相邻按钮上面 */
+  border-left: 1px solid var(--accent);
+}
+
+/* 区间选择：与周期按钮同行，整框可点击直接弹日历 */
+.nav-range-sep {
+  color: var(--text-tertiary);
+  font-size: 14px;
+  padding: 0 2px;
+  user-select: none;
+}
+
+.nav-date-input {
+  font-size: 13px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.nav-date-input:first-of-type {
+  margin-left: 8px; /* 跟 MAX 按钮拉开一点距离 */
+}
+
+/* 隐藏 Webkit/Blink 内置的日历小图标，整个输入框承担点击面 */
+.nav-date-input::-webkit-calendar-picker-indicator {
+  display: none;
+  -webkit-appearance: none;
+}
+
+/* Firefox 没有 picker indicator；空白处点击调用 showPicker() 由 JS 兜底 */
+.nav-date-input::-moz-calendar-picker-indicator {
+  display: none;
+}
+
 /* 图表容器 */
 .nav-chart-wrap {
   position: relative;
@@ -158,6 +174,304 @@
   height: 540px;
 }
 
+/* 图表 header：独立 card，承载 legend（左）+ toolbar（右）。
+ * 独立于 chart-wrap，不再浮在 plot 上方 —— 给 markPoint / 坐标标签腾出空间。 */
+.nav-chart-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  background: var(--bg-raised);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+  min-height: 36px;
+}
+
+/* legend：header 内部 flex 行，按需换行；颜色走 CSS 变量 → 暗色自动适配。 */
+.nav-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 16px;
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.nav-chart-legend:empty {
+  /* 无基金时占位，保持 header 基本高度不塌缩 */
+  min-height: 20px;
+}
+
+.nav-chart-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.4;
+  cursor: pointer;
+  user-select: none;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast), opacity var(--transition-fast);
+}
+
+.nav-chart-legend-item:hover {
+  background: var(--bg-subtle);
+}
+
+.nav-chart-legend-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* 隐藏态：整个 item 透明化 + 小圆点变空心 + 名称加删除线（与 ECharts 原版 legend 约定一致） */
+.nav-chart-legend-item.is-hidden {
+  opacity: 0.45;
+}
+
+.nav-chart-legend-item.is-hidden .nav-chart-legend-dot {
+  background: transparent !important;
+  box-shadow: 0 0 0 1.5px var(--text-tertiary);
+}
+
+.nav-chart-legend-item.is-hidden .nav-chart-legend-name,
+.nav-chart-legend-item.is-hidden .nav-chart-legend-code,
+.nav-chart-legend-item.is-hidden .nav-chart-legend-nav {
+  color: var(--text-tertiary);
+  text-decoration: line-through;
+}
+
+.nav-chart-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  /* 给一圈与背景等色的描边，在浅色/深色背景下都有一点"空气感" */
+  box-shadow: 0 0 0 1.5px var(--bg-raised);
+}
+
+.nav-chart-legend-code {
+  font-family: var(--font-mono);
+  color: var(--text-tertiary);
+  font-size: 12.5px;
+}
+
+.nav-chart-legend-name {
+  font-family: var(--font-cjk);
+  color: var(--text-secondary);
+}
+
+.nav-chart-legend-nav {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+  color: var(--text-primary);
+  min-width: 3.6em;
+  text-align: right;
+  letter-spacing: 0.2px;
+  margin-left: 2px;
+}
+
+.nav-chart-legend-nav:empty { display: none; }
+
+/* 当日涨跌幅：跟在 NAV 右侧；A 股惯例 红涨绿跌（pos 红 / neg 绿），与统计表配色一致 */
+.nav-chart-legend-chg {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 12.5px;
+  margin-left: 4px;
+  min-width: 4em;
+  text-align: right;
+}
+
+/* A 股惯例 红涨绿跌：pos→danger（红）、neg→success（绿） */
+.nav-chart-legend-chg.is-pos { color: var(--danger); }
+.nav-chart-legend-chg.is-neg { color: var(--success); }
+
+.nav-chart-legend-chg:empty { display: none; }
+
+/* legend 末尾 × 删除按钮：替代原上方 chips 区的删除入口。
+   hover 用 danger 色提示是"销毁"动作；click 由 onLegendToggleClick 分流到 removeFund。 */
+.nav-chart-legend-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-left: 2px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.nav-chart-legend-remove:hover {
+  background: var(--danger-subtle);
+  color: var(--danger);
+}
+
+/* 被隐藏的 legend item 里，× 仍保持可见可用 —— 用户可能想先隐藏再删除 */
+.nav-chart-legend-item.is-hidden .nav-chart-legend-remove {
+  opacity: 0.8;
+  text-decoration: none;
+}
+
+/* 图表 toolbar：header 右侧，保存图片 / 重置缩放按钮。
+   取代 ECharts 内置 toolbox —— 内置的只能画在 canvas 里，会和 markPoint 重叠。 */
+.nav-chart-toolbar {
+  display: inline-flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.nav-chart-toolbar-btn {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--rule);
+  background: transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.nav-chart-toolbar-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-subtle);
+}
+
+.nav-chart-toolbar-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.nav-chart-toolbar-btn svg {
+  display: block;
+}
+
+/* fullscreen 按钮：两个 icon 切换。默认 enter 可见，进入全屏后 exit 可见 */
+#nav-chart-toolbar-fullscreen .icon-exit { display: none; }
+#nav-chart-toolbar-fullscreen.is-active .icon-enter { display: none; }
+#nav-chart-toolbar-fullscreen.is-active .icon-exit { display: block; }
+
+/* ══════════════════════════════════════════════
+   全屏模式：.page-nav 固定覆盖全屏，grid 两栏布局
+   左 = 搜索 + header（legend），右上 = controls，右下 = chart
+   ══════════════════════════════════════════════ */
+body.is-fullscreen-nav {
+  overflow: hidden;
+}
+
+body.is-fullscreen-nav .top-rail {
+  display: none;
+}
+
+body.is-fullscreen-nav .page-nav {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  margin: 0;
+  padding: 12px;
+  background: var(--bg-base, var(--bg-sunk));
+  overflow: hidden;
+}
+
+body.is-fullscreen-nav .page-nav .container {
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px 12px;
+  height: 100%;
+  max-width: none;
+  padding: 0;
+}
+
+/* 页面标题与统计表：全屏模式下隐藏 */
+body.is-fullscreen-nav .page-nav .page-header,
+body.is-fullscreen-nav .page-nav .nav-stats-section {
+  display: none;
+}
+
+/* 左列：toolbar（搜索）占第 1 行；chart-header（legend）占第 2 行 */
+body.is-fullscreen-nav .page-nav .nav-toolbar {
+  grid-column: 1;
+  grid-row: 1;
+  margin-bottom: 0;
+}
+
+body.is-fullscreen-nav .page-nav .nav-chart-header {
+  grid-column: 1;
+  grid-row: 2;
+  margin-bottom: 0;
+  /* 改竖排：legend items 每行一个；toolbar 保持在顶部右侧 */
+  flex-direction: column;
+  align-items: stretch;
+  overflow: auto;
+  min-height: 0;
+}
+
+body.is-fullscreen-nav .page-nav .nav-chart-toolbar {
+  align-self: flex-end;
+  margin-bottom: 6px;
+}
+
+body.is-fullscreen-nav .page-nav .nav-chart-legend {
+  flex-direction: column;
+  align-items: stretch;
+  flex-wrap: nowrap;
+  gap: 4px;
+}
+
+body.is-fullscreen-nav .page-nav .nav-chart-legend-item {
+  justify-content: flex-start;
+  width: 100%;
+}
+
+/* 基金名称在左列较窄时允许省略，避免撑破布局 */
+body.is-fullscreen-nav .page-nav .nav-chart-legend-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 右列：controls 第 1 行，chart 第 2 行 */
+body.is-fullscreen-nav .page-nav .nav-controls {
+  grid-column: 2;
+  grid-row: 1;
+  margin-bottom: 0;
+}
+
+body.is-fullscreen-nav .page-nav .nav-chart-wrap {
+  grid-column: 2;
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 8px;
+}
+
+body.is-fullscreen-nav .page-nav .nav-chart-canvas {
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100% !important;
+  min-height: 0;
+}
+
 .nav-chart-empty {
   position: absolute;
   inset: 0;
@@ -165,13 +479,85 @@
   align-items: center;
   justify-content: center;
   color: var(--text-tertiary);
-  font-size: 14px;
+  font-size: 16px;
   pointer-events: none;
 }
 
 .nav-chart-empty p {
   margin: 0;
   font-family: var(--font-cjk);
+}
+
+/* `display: inline-flex` 下面会 override 掉 UA 的 [hidden] { display:none }，
+   所以 panel.hidden = true 会失效。手动补回一条等同或更高优先级的规则。 */
+.nav-baseline-panel[hidden] {
+  display: none !important;
+}
+
+/* 基准日拖动 panel：图表上方的小色标，向下衍生出图里的虚线 */
+.nav-baseline-panel {
+  position: absolute;
+  transform: translateX(-50%);
+  padding: 3px 4px 3px 10px;
+  background: var(--bg-raised);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: ew-resize;
+  user-select: none;
+  white-space: nowrap;
+  z-index: 5;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: background-color 0.12s ease, box-shadow 0.12s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nav-baseline-panel-reset {
+  all: unset;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--accent);
+  opacity: 0.7;
+  padding: 2px 4px;
+  border-radius: 6px;
+  transition: opacity 0.12s ease, background-color 0.12s ease;
+}
+
+.nav-baseline-panel-reset:hover {
+  opacity: 1;
+  background: var(--accent-subtle);
+}
+
+.nav-baseline-panel-reset:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.nav-baseline-panel::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 5px solid var(--accent);
+}
+
+.nav-baseline-panel:hover {
+  background: var(--accent-subtle);
+}
+
+.nav-baseline-panel.is-dragging {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
 }
 
 /* 统计表 */
@@ -181,7 +567,7 @@
 
 .nav-stats-title {
   font-family: var(--font-cjk);
-  font-size: 1rem;
+  font-size: 1.125rem;
   font-weight: 600;
   color: var(--text-primary);
   margin-bottom: 0.6rem;
@@ -197,7 +583,7 @@
 .nav-stats-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12.5px;
+  font-size: 14.5px;
 }
 
 .nav-stats-table thead {
@@ -207,7 +593,7 @@
 .nav-stats-table th {
   font-family: var(--font-mono);
   font-weight: 500;
-  font-size: 10.5px;
+  font-size: 12.5px;
   letter-spacing: 1.2px;
   color: var(--text-tertiary);
   text-transform: uppercase;
@@ -253,8 +639,232 @@
   vertical-align: middle;
 }
 
-.nav-stats-pos { color: var(--success); }
-.nav-stats-neg { color: var(--danger); }
+/* A 股惯例 红涨绿跌 */
+.nav-stats-pos { color: var(--danger); }
+.nav-stats-neg { color: var(--success); }
+
+/* 指标按钮（MA20 / MA60 / 回撤副图）：与周期/分段按钮等高，
+   覆盖全局 .toggle-btn 的 padding 0.5rem 1.1rem 和 0.85rem 字号 */
+.nav-controls .toggle-btn.toggle-btn-inline {
+  padding: 5px 12px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  border-radius: var(--radius-sm);
+  margin-left: 0;
+  box-shadow: none;
+}
+
+.nav-controls .toggle-btn.toggle-btn-inline .toggle-btn-text {
+  font-size: 13px;
+}
+
+.nav-controls .toggle-btn.toggle-btn-inline:has(.toggle-btn-input:checked) {
+  /* 抹掉全局选中态的发光阴影，跟周期按钮的"实色填充"风格保持一致 */
+  box-shadow: none;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-inverse);
+}
+
+/* ==================== 区间统计：右键拖选 ==================== */
+
+/* 选区半透明矩形：纯装饰层，pointer-events none —— 操作入口在 control panel / stats panel */
+.nav-range-select-overlay {
+  position: absolute;
+  pointer-events: none;
+  background: var(--accent-subtle);
+  border-left: 1px dashed var(--accent);
+  border-right: 1px dashed var(--accent);
+  z-index: 4;
+}
+
+.nav-range-select-overlay[hidden] { display: none !important; }
+
+/* 贴在 overlay 顶部居中的控制 panel：左侧拖动把手 + ⊞/× 按钮。
+   外框 accent 主题色 —— 与基准 marker 同款，提示这是"互动浮层"。
+   panel 本身 cursor:grab；按下按钮时 JS 短路不会启动拖动。 */
+.nav-range-control-panel {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  background: var(--bg-raised);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 13;
+  cursor: grab;
+  user-select: none;
+}
+
+.nav-range-control-panel[hidden] { display: none !important; }
+
+.nav-range-control-panel.is-dragging { cursor: grabbing; }
+
+/* 三条竖线把手图标：仅视觉提示拖动方向 */
+.nav-range-grip-bars {
+  display: inline-block;
+  width: 10px;
+  height: 12px;
+  background-image: linear-gradient(
+    to right,
+    var(--text-secondary) 0 1px,
+    transparent 1px 4px,
+    var(--text-secondary) 4px 5px,
+    transparent 5px 8px,
+    var(--text-secondary) 8px 9px
+  );
+  opacity: 0.7;
+}
+
+/* 按钮在 panel 里：cursor 改回 pointer 覆盖 panel 的 grab */
+.nav-range-control-panel .nav-range-ctrl-btn { cursor: pointer; }
+
+.nav-range-ctrl-btn {
+  padding: 0 6px;
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.nav-range-ctrl-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-subtle);
+}
+
+/* 浮动 stats panel：默认贴选区右侧，用户可抓 header 拖走。
+   外框用 --rule（信息面板风格）；accent 主题色留给上方的 grip / actions 小 panel。 */
+.nav-range-stats-panel {
+  position: absolute;
+  background: var(--bg-raised);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+  padding: 8px 12px 10px;
+  font-size: 13px;
+  color: var(--text-primary);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  z-index: 12;
+  min-width: 280px;
+  max-width: min(640px, calc(100% - 24px));
+  user-select: none;
+}
+
+.nav-range-stats-panel[hidden] { display: none !important; }
+
+.nav-range-stats-panel.is-dragging { box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28); }
+
+.nav-range-stats-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 6px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  cursor: grab;
+}
+
+.nav-range-stats-panel.is-dragging .nav-range-stats-header { cursor: grabbing; }
+
+.nav-range-stats-title {
+  white-space: nowrap;
+  pointer-events: none;  /* 让 cursor:grab 覆盖整个 header，不被文本捕获 */
+}
+
+/* 单基金：4 列 grid（label / value / label / value） */
+.nav-range-stats-grid {
+  display: grid;
+  grid-template-columns: auto 1fr auto 1fr;
+  column-gap: 14px;
+  row-gap: 5px;
+  font-size: 13px;
+  align-items: baseline;
+}
+
+.nav-range-stats-grid .label {
+  font-family: var(--font-mono);
+  color: var(--text-tertiary);
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+}
+
+.nav-range-stats-grid .value {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.nav-range-stats-grid .mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 多基金：紧凑表格 */
+.nav-range-stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.nav-range-stats-table thead th {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 11.5px;
+  letter-spacing: 0.6px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  padding: 4px 8px;
+  text-align: right;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--rule);
+}
+
+.nav-range-stats-table thead th:first-child {
+  text-align: left;
+}
+
+.nav-range-stats-table tbody td {
+  padding: 4px 8px;
+  text-align: right;
+  white-space: nowrap;
+  border-bottom: 1px dashed var(--rule);
+}
+
+.nav-range-stats-table tbody td:first-child {
+  text-align: left;
+}
+
+.nav-range-stats-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.nav-range-stats-table .mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.nav-range-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+/* A 股惯例 红涨绿跌 */
+.nav-range-pos { color: var(--danger); }
+.nav-range-neg { color: var(--success); }
 
 /* 窄屏 */
 @media (max-width: 768px) {

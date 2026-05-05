@@ -1,16 +1,11 @@
 /** @typedef {{code:string,name:string,buyFee:number,annualFee:number,sellFeeSegments?:Array<{to:number|null,rate:number}>,trackingTarget?:string,fundManager?:string,performanceBenchmark?:string,tradingStatus?:{subscribe?:string,redeem?:string},initials?:string,fundType?:string,establishmentDate?:string,updatedAt?:string,source?:string,needsCrawl?:boolean,raw?:any}} CachedFundRow */
 
-/** 解析 fund API 基地址（与 api-adapter.getFeeApiBase 等价，避免跨模块引入） */
-function resolveFundApiBase() {
-  if (typeof window !== 'undefined' && window.FUND_FEE_API_BASE) return window.FUND_FEE_API_BASE;
-  if (typeof window !== 'undefined') {
-    const h = window.location.hostname;
-    if (h === 'localhost' || h === '127.0.0.1') return 'http://localhost:3457/api/fund';
-    if (h.endsWith('.github.io')) return null;
-    return '/api/fund';
-  }
-  return null;
-}
+import { escapeHtml } from '../../utils/format.js';
+import { getFeeApiBase } from '../../data/fund-api.js';
+import { setupNarrowFilterDrawer, setupSidebarToggle } from './sidebar.js';
+import { setupJsonModal } from './json-modal.js';
+import { applyFilters, refreshFilterOptions, setupFilters } from './filters.js';
+import { loadCachedFunds as fetchCachedFunds } from './data-loader.js';
 
 /** @type {CachedFundRow[]} */
 let allFunds = [];
@@ -25,57 +20,8 @@ let totalPages = 1;
 /** 当前排序配置：key 对应下拉框里的 code/name/buy/annual，dir 为 asc/desc */
 let currentSort = { key: 'code', dir: 'asc' };
 
-/** 当前筛选条件 */
-let activeFilters = {
-  fundType: new Set(),
-  fundManager: new Set(),
-  subscribe: new Set(),
-  redeem: new Set(),
-  floatingFee: '',      // '' | 'yes' | 'no'
-  buyFeeMin: null,
-  buyFeeMax: null,
-  annualFeeMin: null,
-  annualFeeMax: null,
-  trackingTarget: '',
-};
-
-/** 保存 allfund.json 中的原始数据，按代码索引，便于弹窗中展示完整字段 */
+/** 按代码索引的基金原始详情；data-loader 与 json-modal 共享同一引用。 */
 const fundDetailMap = {};
-
-/** allfund 原始 store 缓存，避免反复读取大文件 */
-let allfundStoreCache = null;
-let allfundStoreLoading = null;
-
-/**
- * 确保已加载 allfund.json，并返回按代码索引的原始对象
- * @returns {Promise<Record<string, any>>}
- */
-async function ensureAllfundStore() {
-  if (allfundStoreCache) return allfundStoreCache;
-  if (allfundStoreLoading) return allfundStoreLoading;
-  allfundStoreLoading = (async () => {
-    try {
-      const res = await fetch('data/allfund/allfund.json').catch(() => null);
-      if (!res || !res.ok) return {};
-      const data = await res.json();
-      const store = data.funds || data || {};
-      /** @type {Record<string, any>} */
-      const byCode = {};
-      for (const code of Object.keys(store)) {
-        byCode[code] = store[code];
-        fundDetailMap[code] = store[code];
-      }
-      allfundStoreCache = byCode;
-      return byCode;
-    } catch {
-      allfundStoreCache = {};
-      return {};
-    } finally {
-      allfundStoreLoading = null;
-    }
-  })();
-  return allfundStoreLoading;
-}
 
 /** 统一搜索排序规则：与主页面基金卡片添加下拉栏保持一致 */
 function getSearchScoreForRow(row, query) {
@@ -95,12 +41,6 @@ function getSearchScoreForRow(row, query) {
 function formatPercent(value) {
   if (value == null || Number.isNaN(value)) return '-';
   return (value * 100).toFixed(2) + '%';
-}
-
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
 }
 
 function formatSellFeeSegments(segs) {
@@ -413,284 +353,14 @@ function renderTable() {
 }
 
 async function loadCachedFunds() {
-  try {
-    setStatus('正在读取缓存基金列表...');
-    setProgress(0, 1);
-
-    // 优化：优先读取轻量级的 list-index.json，而不是庞大的 allfund.json
-    const indexRes = await fetch('data/allfund/list-index.json').catch(() => null);
-    
-    if (!indexRes || !indexRes.ok) {
-      // 如果 list-index.json 不存在，则回退到原来的 allfund.json (保证向后兼容)
-      const store = await ensureAllfundStore();
-      const codes = Object.keys(store);
-      
-      const results = [];
-      for (const code of codes) {
-        const f = store[code];
-        if (!f) continue;
-        results.push({
-          code: f.code || code,
-          name: f.name || code,
-          buyFee: f.buyFee ?? 0,
-          annualFee: f.annualFee ?? (f.operationFees?.total ?? 0),
-          sellFeeSegments: f.sellFeeSegments ?? f.redeemSegments ?? [],
-          fundType: f.fundType || '',
-          establishmentDate: f.establishmentDate || '',
-          trackingTarget: f.trackingTarget || '',
-          performanceBenchmark: f.performanceBenchmark || '',
-          fundManager: f.fundManager || '',
-          tradingStatus: f.tradingStatus || null,
-          updatedAt: f.updatedAt || '',
-          raw: f
-        });
-      }
-      allFunds = results;
-    } else {
-      // 使用分片索引数据（轻量），再用 allfund 补全详情字段
-      const list = await indexRes.json();
-      const store = await ensureAllfundStore();
-      allFunds = list.map((row) => {
-        const code = row.code || row.fundCode || '';
-        const origin = code && store[code] ? store[code] : null;
-        if (origin) {
-          fundDetailMap[code] = origin;
-        }
-        return {
-          code,
-          name: row.name || code,
-          buyFee: row.buyFee ?? origin?.buyFee ?? 0,
-          annualFee: row.annualFee ?? origin?.annualFee ?? (origin?.operationFees?.total ?? 0),
-          sellFeeSegments: row.sellFeeSegments ?? origin?.sellFeeSegments ?? origin?.redeemSegments ?? [],
-          fundType: row.fundType || origin?.fundType || '',
-          establishmentDate: row.establishmentDate || origin?.establishmentDate || '',
-          trackingTarget: row.trackingTarget || origin?.trackingTarget || '',
-          performanceBenchmark: row.performanceBenchmark || origin?.performanceBenchmark || '',
-          fundManager: row.fundManager || origin?.fundManager || '',
-          tradingStatus: row.tradingStatus || origin?.tradingStatus || null,
-          updatedAt: row.updatedAt || origin?.updatedAt || '',
-          initials: row.initials || '',
-          source: row.source || (origin ? 'crawler' : 'tushare'),
-          status: row.status || null,
-          lifecycle: row.lifecycle || 'normal',
-          needsCrawl: !!row.needsCrawl,
-          raw: origin || row
-        };
-      });
-    }
-
-    setProgress(1, 1);
-    allFunds.sort((a, b) => a.code.localeCompare(b.code));
-    setStatus(`已加载 ${allFunds.length} 只基金。`);
-    populateFilterOptions();
-    renderTable();
-    updateCompareFab();
-  } catch (e) {
-    setStatus('从本地汇总文件加载缓存基金失败。', true);
-  }
-}
-
-/** 应用筛选条件 */
-function applyFilters(rows) {
-  const f = activeFilters;
-  return rows.filter(r => {
-    if (f.fundType.size && !f.fundType.has(r.fundType || '')) return false;
-    if (f.fundManager.size && !f.fundManager.has(r.fundManager || '')) return false;
-    if (f.subscribe.size) {
-      const sv = (r.tradingStatus?.subscribe || '').trim() || '-';
-      if (!f.subscribe.has(sv)) return false;
-    }
-    if (f.redeem.size) {
-      const rv = (r.tradingStatus?.redeem || '').trim() || '-';
-      if (!f.redeem.has(rv)) return false;
-    }
-    if (f.floatingFee === 'yes' && !(r.raw && r.raw.isFloatingAnnualFee)) return false;
-    if (f.floatingFee === 'no' && (r.raw && r.raw.isFloatingAnnualFee)) return false;
-    if (f.buyFeeMin != null && (r.buyFee ?? 0) < f.buyFeeMin) return false;
-    if (f.buyFeeMax != null && (r.buyFee ?? 0) > f.buyFeeMax) return false;
-    if (f.annualFeeMin != null && (r.annualFee ?? 0) < f.annualFeeMin) return false;
-    if (f.annualFeeMax != null && (r.annualFee ?? 0) > f.annualFeeMax) return false;
-    if (f.trackingTarget) {
-      const kw = f.trackingTarget.toLowerCase();
-      if (!(r.trackingTarget || '').toLowerCase().includes(kw)) return false;
-    }
-    return true;
-  });
-}
-
-function countActiveFilters() {
-  const f = activeFilters;
-  let n = 0;
-  if (f.fundType.size) n++;
-  if (f.fundManager.size) n++;
-  if (f.subscribe.size) n++;
-  if (f.redeem.size) n++;
-  if (f.floatingFee) n++;
-  if (f.buyFeeMin != null || f.buyFeeMax != null) n++;
-  if (f.annualFeeMin != null || f.annualFeeMax != null) n++;
-  if (f.trackingTarget) n++;
-  return n;
-}
-
-function updateFilterBadge() {
-  const el = document.getElementById('cf-filter-active-count');
-  if (!el) return;
-  const n = countActiveFilters();
-  el.textContent = n > 0 ? `(${n})` : '';
-}
-
-function updateFilterResultHint() {
-  const el = document.getElementById('cf-filter-result-hint');
-  if (!el) return;
-  const n = countActiveFilters();
-  if (n === 0) { el.textContent = ''; return; }
-  const total = allFunds.length;
-  const filtered = applyFilters(allFunds).length;
-  el.textContent = `${filtered} / ${total} 只基金符合条件`;
-}
-
-/** 从已加载数据中提取筛选选项并渲染标签按钮 */
-function populateFilterOptions() {
-  const fundTypes = new Map();
-  const managers = new Map();
-  const subscribes = new Map();
-  const redeems = new Map();
-
-  for (const f of allFunds) {
-    const ft = f.fundType || '';
-    if (ft) fundTypes.set(ft, (fundTypes.get(ft) || 0) + 1);
-    const fm = f.fundManager || '';
-    if (fm) managers.set(fm, (managers.get(fm) || 0) + 1);
-    const sv = (f.tradingStatus?.subscribe || '').trim();
-    if (sv) subscribes.set(sv, (subscribes.get(sv) || 0) + 1);
-    const rv = (f.tradingStatus?.redeem || '').trim();
-    if (rv) redeems.set(rv, (redeems.get(rv) || 0) + 1);
-  }
-
-  const renderTags = (containerEl, map, filterSet) => {
-    if (!containerEl) return;
-    const sorted = [...map.entries()].sort((a, b) => b[1] - a[1]);
-    containerEl.innerHTML = sorted.map(([label, count]) => {
-      const active = filterSet.has(label) ? ' cf-filter-tag-active' : '';
-      return `<button type="button" class="cf-filter-tag${active}" data-value="${escapeHtml(label)}">${escapeHtml(label)} <small>(${count})</small></button>`;
-    }).join('');
-  };
-
-  renderTags(document.getElementById('cf-filter-fundType'), fundTypes, activeFilters.fundType);
-  renderTags(document.getElementById('cf-filter-fundManager'), managers, activeFilters.fundManager);
-  renderTags(document.getElementById('cf-filter-subscribe'), subscribes, activeFilters.subscribe);
-  renderTags(document.getElementById('cf-filter-redeem'), redeems, activeFilters.redeem);
-
-  const floatingEl = document.getElementById('cf-filter-floatingFee');
-  if (floatingEl) {
-    floatingEl.innerHTML = ['yes', 'no'].map(v => {
-      const label = v === 'yes' ? '仅浮动费率' : '排除浮动费率';
-      const active = activeFilters.floatingFee === v ? ' cf-filter-tag-active' : '';
-      return `<button type="button" class="cf-filter-tag${active}" data-value="${v}">${label}</button>`;
-    }).join('');
-  }
-}
-
-function resetFilters() {
-  activeFilters = {
-    fundType: new Set(),
-    fundManager: new Set(),
-    subscribe: new Set(),
-    redeem: new Set(),
-    floatingFee: '',
-    buyFeeMin: null,
-    buyFeeMax: null,
-    annualFeeMin: null,
-    annualFeeMax: null,
-    trackingTarget: '',
-  };
-  const ids = ['cf-filter-buyFee-min', 'cf-filter-buyFee-max', 'cf-filter-annualFee-min', 'cf-filter-annualFee-max', 'cf-filter-trackingTarget'];
-  ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-  populateFilterOptions();
-  updateFilterBadge();
-}
-
-function readFiltersFromUI() {
-  const pv = (id) => { const v = parseFloat(document.getElementById(id)?.value); return isNaN(v) ? null : v / 100; };
-  activeFilters.buyFeeMin = pv('cf-filter-buyFee-min');
-  activeFilters.buyFeeMax = pv('cf-filter-buyFee-max');
-  activeFilters.annualFeeMin = pv('cf-filter-annualFee-min');
-  activeFilters.annualFeeMax = pv('cf-filter-annualFee-max');
-  activeFilters.trackingTarget = (document.getElementById('cf-filter-trackingTarget')?.value || '').trim();
-}
-
-function setupFilterEvents() {
-  const bar = document.querySelector('.cf-filter-bar');
-  const toggleBtn = document.getElementById('cf-filter-toggle');
-  const panel = document.getElementById('cf-filter-panel');
-  const applyBtn = document.getElementById('cf-filter-apply');
-  const resetBtn = document.getElementById('cf-filter-reset');
-
-  if (toggleBtn && panel && bar) {
-    toggleBtn.addEventListener('click', () => {
-      const open = panel.hidden;
-      panel.hidden = !open;
-      bar.classList.toggle('cf-filter-open', open);
-    });
-  }
-
-  const bindTagToggle = (containerId, filterSet) => {
-    const el = document.getElementById(containerId);
-    if (!el) return;
-    el.addEventListener('click', (e) => {
-      const tag = e.target.closest('.cf-filter-tag');
-      if (!tag) return;
-      const val = tag.dataset.value;
-      if (filterSet.has(val)) {
-        filterSet.delete(val);
-        tag.classList.remove('cf-filter-tag-active');
-      } else {
-        filterSet.add(val);
-        tag.classList.add('cf-filter-tag-active');
-      }
-    });
-  };
-
-  bindTagToggle('cf-filter-fundType', activeFilters.fundType);
-  bindTagToggle('cf-filter-fundManager', activeFilters.fundManager);
-  bindTagToggle('cf-filter-subscribe', activeFilters.subscribe);
-  bindTagToggle('cf-filter-redeem', activeFilters.redeem);
-
-  const floatingEl = document.getElementById('cf-filter-floatingFee');
-  if (floatingEl) {
-    floatingEl.addEventListener('click', (e) => {
-      const tag = e.target.closest('.cf-filter-tag');
-      if (!tag) return;
-      const val = tag.dataset.value;
-      if (activeFilters.floatingFee === val) {
-        activeFilters.floatingFee = '';
-        tag.classList.remove('cf-filter-tag-active');
-      } else {
-        activeFilters.floatingFee = val;
-        floatingEl.querySelectorAll('.cf-filter-tag').forEach(t => t.classList.remove('cf-filter-tag-active'));
-        tag.classList.add('cf-filter-tag-active');
-      }
-    });
-  }
-
-  if (applyBtn) {
-    applyBtn.addEventListener('click', () => {
-      readFiltersFromUI();
-      currentPage = 1;
-      renderTable();
-      updateFilterBadge();
-      updateFilterResultHint();
-    });
-  }
-
-  if (resetBtn) {
-    resetBtn.addEventListener('click', () => {
-      resetFilters();
-      currentPage = 1;
-      renderTable();
-      updateFilterResultHint();
-    });
-  }
+  const funds = await fetchCachedFunds({ setStatus, setProgress, fundDetailMap });
+  if (!funds) return;
+  funds.sort((a, b) => a.code.localeCompare(b.code));
+  allFunds = funds;
+  setStatus(`已加载 ${allFunds.length} 只基金。`);
+  refreshFilterOptions(allFunds);
+  renderTable();
+  updateCompareFab();
 }
 
 function setupEvents() {
@@ -703,34 +373,6 @@ function setupEvents() {
   const pageSizeSelect = document.getElementById('cached-funds-page-size');
   const pageInput = document.getElementById('cached-funds-page-input');
   const lastBtn = document.getElementById('cached-funds-last');
-
-  const jsonModal = document.getElementById('fund-json-modal');
-  const jsonContent = document.getElementById('fund-json-content');
-  const jsonTable = document.getElementById('fund-json-table');
-  const jsonCloseBtn = document.getElementById('fund-json-close');
-  const jsonCancelBtn = document.getElementById('fund-json-cancel');
-  const jsonToTableBtn = document.getElementById('fund-json-to-table');
-  const jsonOpenEmBtn = document.getElementById('fund-json-open-em');
-  const jsonOpenSohuBtn = document.getElementById('fund-json-open-sohu');
-
-  /** @type {any|null} */
-  let currentFundDetail = null;
-  /** @type {'json'|'table'} */
-  let currentFundViewMode = 'json';
-  /** @type {string} */
-  let currentFundCode = '';
-
-  function openModal(backdrop) {
-    if (!backdrop) return;
-    backdrop.classList.add('modal-visible');
-    backdrop.setAttribute('aria-hidden', 'false');
-  }
-
-  function closeModal(backdrop) {
-    if (!backdrop) return;
-    backdrop.classList.remove('modal-visible');
-    backdrop.setAttribute('aria-hidden', 'true');
-  }
 
   /** @param {number} target */
   const goToPage = (target) => {
@@ -901,7 +543,7 @@ function setupEvents() {
       if (!btn) return;
       const code = btn.getAttribute('data-code') || '';
       if (!code) return;
-      const base = resolveFundApiBase();
+      const base = getFeeApiBase();
       if (!base) {
         alert('当前部署模式不支持触发爬取（无后端 API）。请在本地或 VPS 部署运行。');
         return;
@@ -995,274 +637,16 @@ function setupEvents() {
     });
   }
 
-  // 表格中点击「查看」按钮，展示对应基金的完整原始数据
-  if (tbody && jsonModal && jsonContent && jsonTable) {
-    tbody.addEventListener('click', async (e) => {
-      const target = /** @type {HTMLElement|null} */ (e.target instanceof HTMLElement ? e.target.closest('.cached-fund-json-btn') : null);
-      if (!target) return;
-      const code = target.getAttribute('data-code') || '';
-      if (!code) return;
-      currentFundCode = code;
-
-      // 优化：如果内存中没有详情，则按需从分片文件加载
-      let detail = fundDetailMap[code] || null;
-      if (!detail) {
-        try {
-          const res = await fetch(`data/allfund/funds/${code}.json`);
-          if (res.ok) {
-            detail = await res.json();
-            fundDetailMap[code] = detail;
-          }
-        } catch (err) {
-          console.error('加载基金详情失败:', err);
-        }
-      }
-
-      currentFundDetail = detail;
-      if (!detail) {
-        currentFundViewMode = 'json';
-        jsonContent.textContent = `无法加载代码为 ${code} 的详细数据。`;
-        jsonContent.style.display = 'block';
-        jsonTable.style.display = 'none';
-        if (jsonToTableBtn) jsonToTableBtn.textContent = '转为表格';
-      } else {
-        // 默认以表格视图展示
-        currentFundViewMode = 'table';
-        jsonContent.textContent = JSON.stringify(detail, null, 2);
-        renderFundDetailAsTable(detail);
-        jsonContent.style.display = 'none';
-        jsonTable.style.display = 'block';
-        if (jsonToTableBtn) jsonToTableBtn.textContent = '查看 JSON';
-      }
-      openModal(jsonModal);
-    });
-  }
-
-  [jsonCloseBtn, jsonCancelBtn].forEach(btn => {
-    if (!btn || !jsonModal) return;
-    btn.addEventListener('click', () => closeModal(jsonModal));
-  });
-
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && jsonModal && jsonModal.classList.contains('modal-visible')) {
-      closeModal(jsonModal);
-    }
-  });
-
-  function renderFundDetailAsTable(detail) {
-    if (!jsonTable) return;
-    if (!detail) {
-      jsonTable.innerHTML = '<div class="modal-json-table-empty">无可用数据</div>';
-      return;
-    }
-    /** @type {Set<any>} */
-    const seen = new Set();
-
-    function renderValue(value, nested = true) {
-      if (value === null || value === undefined) {
-        return '';
-      }
-      const t = typeof value;
-      if (t === 'string' || t === 'number' || t === 'boolean') {
-        return escapeHtml(String(value));
-      }
-      if (t === 'object') {
-        if (seen.has(value)) {
-          return '<span class="modal-json-circular">[Circular]</span>';
-        }
-        seen.add(value);
-        let html;
-        if (Array.isArray(value)) {
-          html = renderArray(value);
-        } else {
-          html = renderObject(value, nested);
-        }
-        seen.delete(value);
-        return html;
-      }
-      return escapeHtml(String(value));
-    }
-
-    function renderObject(obj, nested = false) {
-      const entries = Object.entries(obj);
-      if (!entries.length) {
-        return '<span class="modal-json-empty-object">{}</span>';
-      }
-      const rows = entries.map(([key, value]) => {
-        return `<tr><th>${escapeHtml(key)}</th><td>${renderValue(value)}</td></tr>`;
-      });
-      const cls = nested ? 'modal-json-table-inner modal-json-table-inner-nested' : 'modal-json-table-inner';
-      return `<table class="${cls}"><tbody>${rows.join('')}</tbody></table>`;
-    }
-
-    function renderArray(arr) {
-      if (!arr.length) {
-        return '<span class="modal-json-empty-array">[]</span>';
-      }
-      const rows = arr.map((value, idx) => {
-        return `<tr><th>[${idx}]</th><td>${renderValue(value)}</td></tr>`;
-      });
-      return `<table class="modal-json-table-inner modal-json-table-inner-nested"><tbody>${rows.join('')}</tbody></table>`;
-    }
-
-    jsonTable.innerHTML = renderObject(detail, false);
-  }
-
-  if (jsonToTableBtn && jsonModal && jsonContent && jsonTable) {
-    jsonToTableBtn.addEventListener('click', () => {
-      if (!currentFundDetail) {
-        return;
-      }
-      if (currentFundViewMode === 'json') {
-        renderFundDetailAsTable(currentFundDetail);
-        jsonContent.style.display = 'none';
-        jsonTable.style.display = 'block';
-        jsonToTableBtn.textContent = '查看 JSON';
-        currentFundViewMode = 'table';
-      } else {
-        jsonContent.textContent = JSON.stringify(currentFundDetail, null, 2);
-        jsonContent.style.display = 'block';
-        jsonTable.style.display = 'none';
-        jsonToTableBtn.textContent = '转为表格';
-        currentFundViewMode = 'json';
-      }
-    });
-  }
-
-  // 打开外部费率页面（天天基金 / 搜狐）
-  const openExternalRatePage = (type) => {
-    const code = (currentFundCode || '').trim();
-    if (!code) return;
-    let url = '';
-    if (type === 'em') {
-      if (/^968\d{3}$/.test(code)) {
-        // 中港互认 / 海外基金：使用海外基金主页
-        url = `https://overseas.1234567.com.cn/${code}`;
-      } else {
-        // 境内公募：使用 jjfl 费率页
-        url = `https://fundf10.eastmoney.com/jjfl_${code}.html`;
-      }
-    } else if (type === 'sohu') {
-      url = `https://q.fund.sohu.com/${code}/index.shtml?code=${code}`;
-    }
-    if (url) {
-      window.open(url, '_blank', 'noopener,noreferrer');
-    }
-  };
-
-  if (jsonOpenEmBtn) {
-    jsonOpenEmBtn.addEventListener('click', () => openExternalRatePage('em'));
-  }
-  if (jsonOpenSohuBtn) {
-    jsonOpenSohuBtn.addEventListener('click', () => openExternalRatePage('sohu'));
-  }
-}
-
-function setupNarrowFilterDrawer() {
-  const sidebar = document.getElementById('cf-filter-panel');
-  if (!sidebar) return;
-  if (document.getElementById('cf-filter-toggle-btn')) return;
-
-  if (!sidebar.querySelector('.cf-sidebar-handle')) {
-    const handle = document.createElement('div');
-    handle.className = 'cf-sidebar-handle';
-    handle.setAttribute('aria-hidden', 'true');
-    sidebar.insertBefore(handle, sidebar.firstChild);
-  }
-
-  const backdrop = document.createElement('div');
-  backdrop.className = 'cf-sidebar-backdrop';
-  backdrop.id = 'cf-sidebar-backdrop';
-  document.body.appendChild(backdrop);
-
-  const btn = document.createElement('button');
-  btn.type = 'button';
-  btn.id = 'cf-filter-toggle-btn';
-  btn.className = 'cf-filter-toggle';
-  btn.setAttribute('aria-label', '打开筛选');
-  btn.innerHTML = '<span>筛选</span><span class="cf-filter-toggle-count" id="cf-filter-toggle-count"></span>';
-  document.body.appendChild(btn);
-
-  const list = document.querySelector('.page-list');
-  function isOnList() {
-    return list && list.classList.contains('active');
-  }
-  function setVisible(v) {
-    btn.style.display = v ? '' : 'none';
-  }
-  setVisible(isOnList());
-  window.addEventListener('hashchange', () => {
-    setVisible(isOnList());
-    if (!isOnList()) {
-      sidebar.classList.remove('cf-sidebar-open');
-      backdrop.classList.remove('cf-sidebar-backdrop-open');
-    }
-  });
-
-  function open() {
-    sidebar.classList.add('cf-sidebar-open');
-    backdrop.classList.add('cf-sidebar-backdrop-open');
-  }
-  function close() {
-    sidebar.classList.remove('cf-sidebar-open');
-    backdrop.classList.remove('cf-sidebar-backdrop-open');
-  }
-  btn.addEventListener('click', () => {
-    if (sidebar.classList.contains('cf-sidebar-open')) close();
-    else open();
-  });
-  backdrop.addEventListener('click', close);
-
-  const applyBtn = document.getElementById('cf-filter-apply');
-  const resetBtn = document.getElementById('cf-filter-reset');
-  if (applyBtn) applyBtn.addEventListener('click', close);
-  if (resetBtn) resetBtn.addEventListener('click', close);
-
-  const countEl = document.getElementById('cf-filter-toggle-count');
-  const sourceCountEl = document.getElementById('cf-filter-active-count');
-  if (countEl && sourceCountEl) {
-    const sync = () => {
-      const t = (sourceCountEl.textContent || '').trim();
-      countEl.textContent = t;
-    };
-    sync();
-    new MutationObserver(sync).observe(sourceCountEl, { childList: true, characterData: true, subtree: true });
-  }
-}
-
-function setupSidebarToggle() {
-  const sidebar = document.getElementById('cf-filter-panel');
-  if (!sidebar) return;
-  if (sidebar.querySelector('.cf-sidebar-toggle')) return;
-  const btn = document.createElement('button');
-  btn.type = 'button';
-  btn.className = 'cf-sidebar-toggle';
-  btn.title = '收起 / 展开筛选栏';
-  btn.setAttribute('aria-label', '收起 / 展开筛选栏');
-  const setLabel = () => {
-    btn.textContent = sidebar.classList.contains('cf-sidebar-collapsed') ? '‹' : '›';
-  };
-  // 持久化折叠态
-  try {
-    if (localStorage.getItem('fundcal-cf-sidebar-collapsed') === '1') {
-      sidebar.classList.add('cf-sidebar-collapsed');
-    }
-  } catch {}
-  setLabel();
-  btn.addEventListener('click', () => {
-    sidebar.classList.toggle('cf-sidebar-collapsed');
-    try {
-      localStorage.setItem('fundcal-cf-sidebar-collapsed',
-        sidebar.classList.contains('cf-sidebar-collapsed') ? '1' : '0');
-    } catch {}
-    setLabel();
-  });
-  sidebar.insertBefore(btn, sidebar.firstChild);
+  // 基金详情弹窗（JSON / 表格双视图 + 外链）
+  setupJsonModal({ tbody, fundDetailMap });
 }
 
 export function pageInit() {
   setupEvents();
-  setupFilterEvents();
+  setupFilters({
+    getAllFunds: () => allFunds,
+    onChange: () => { currentPage = 1; renderTable(); },
+  });
   setupNarrowFilterDrawer();
   setupSidebarToggle();
   loadCachedFunds();

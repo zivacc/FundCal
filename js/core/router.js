@@ -3,11 +3,11 @@
  */
 
 const ROUTES = {
-  calc:  { module: './app.js',               selector: '[data-route="calc"]' },
-  list:  { module: './fund-cache-page.js',   selector: '[data-route="list"]' },
-  index: { module: './index-picker-page.js', selector: '[data-route="index"]' },
-  nav:   { module: './nav-chart-page.js',    selector: '[data-route="nav"]' },
-  stats: { module: './fund-stats-page.js',   selector: '[data-route="stats"]' },
+  calc:  { module: '../pages/calc/index.js',          selector: '[data-route="calc"]' },
+  list:  { module: '../pages/list/index.js',          selector: '[data-route="list"]' },
+  index: { module: '../pages/index-picker/index.js',  selector: '[data-route="index"]' },
+  nav:   { module: '../pages/nav/index.js',           selector: '[data-route="nav"]' },
+  stats: { module: '../pages/stats/index.js',         selector: '[data-route="stats"]' },
 };
 
 const DEFAULT_ROUTE = 'calc';

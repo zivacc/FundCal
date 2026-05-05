@@ -9,9 +9,9 @@
  *   data/allfund/search-index.json  — [{code, name, initials}]
  *   data/allfund/list-index.json    — 列表页用 subset
  *
- * 字段合并策略：智能回退
- *   - name/fundType/fundManager/performanceBenchmark：fund_basic 非空用 fund_basic，否则回 *_crawler 影子列
- *   - establishmentDate：直接用 fund_meta.found_date_normalized (YYYY-MM-DD)
+ * 字段策略：fund_basic 已是裁决后权威值 (apply-merge-rules 写入)
+ *   - name / fundType / fundManager / performanceBenchmark / establishmentDate 均直接读 fund_basic
+ *   - 仅当 fund_basic 字段意外为空时, 回退 *_crawler / *_tushare 影子列做兜底
  *
  * 用法:
  *   node scripts/build-allfund-from-db.js
@@ -49,19 +49,21 @@ function getInitials(text) {
   }
 }
 
-/** Tushare 非空用 Tushare，否则回 crawler 影子值 */
-function smartPick(tushareVal, crawlerVal) {
-  if (tushareVal != null && String(tushareVal).trim() !== '') return tushareVal;
-  return crawlerVal;
+/** 优先 authoritative (fund_basic), 兜底 crawler 影子, 再兜底 tushare 影子 */
+function fallback(...vals) {
+  for (const v of vals) {
+    if (v != null && String(v).trim() !== '') return v;
+  }
+  return '';
 }
 
 /** 拼装单个基金完整 JSON（向后兼容旧 schema 字段） */
 function buildFundObject(row, segsByKind, stageReturns) {
-  const name = smartPick(row.name, row.name_crawler) || '';
-  const fundType = smartPick(row.fund_type, row.fund_type_crawler) || '';
-  const fundManager = smartPick(row.management, row.management_crawler) || '';
-  const benchmark = smartPick(row.benchmark, row.benchmark_crawler) || '';
-  const establishmentDate = row.found_date_normalized || '';
+  const name = fallback(row.name, row.name_crawler, row.name_tushare);
+  const fundType = fallback(row.fund_type, row.fund_type_crawler, row.fund_type_tushare);
+  const fundManager = fallback(row.management, row.management_crawler, row.management_tushare);
+  const benchmark = fallback(row.benchmark, row.benchmark_crawler, row.benchmark_tushare);
+  const establishmentDate = fallback(row.found_date_normalized, row.found_date_tushare);
 
   const obj = {
     code: row.code,
@@ -72,6 +74,7 @@ function buildFundObject(row, segsByKind, stageReturns) {
     fundManager,
     performanceBenchmark: benchmark,
     fundType,
+    shareClass: row.share_class || null,
     tradingStatus: (row.trading_subscribe || row.trading_redeem) ? {
       subscribe: row.trading_subscribe || '',
       redeem: row.trading_redeem || '',
@@ -121,6 +124,8 @@ function main() {
       m.net_asset_text, m.net_asset_amount_text, m.net_asset_as_of,
       m.stage_returns_as_of, m.crawler_updated_at, m.found_date_normalized,
       m.name_crawler, m.fund_type_crawler, m.management_crawler, m.benchmark_crawler,
+      m.name_tushare, m.fund_type_tushare, m.management_tushare, m.benchmark_tushare, m.found_date_tushare,
+      m.share_class,
       b.name, b.management, b.fund_type, b.benchmark, b.status
     FROM fund_meta m
     LEFT JOIN fund_basic b ON b.ts_code = m.ts_code
@@ -197,6 +202,7 @@ function main() {
       status: row.status || null,
       lifecycle,
       needsCrawl,
+      shareClass: row.share_class || null,
       buyFee: obj.buyFee,
       annualFee: obj.annualFee,
       fundType: obj.fundType,

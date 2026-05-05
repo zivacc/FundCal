@@ -10,7 +10,7 @@
  */
 
 import { tushare } from './tushare-client.js';
-import { getDb, upsertFundBasicRecords, logSync, closeDb } from './db.js';
+import { getDb, upsertFundBasicFromTushare, logSync, closeDb } from './db.js';
 import { loadEnv } from './env.js';
 
 loadEnv();
@@ -64,7 +64,7 @@ async function syncMarket(market) {
     benchmark: r.benchmark || null,
   }));
 
-  upsertFundBasicRecords(records);
+  const stats = upsertFundBasicFromTushare(records);
 
   const finishedAt = new Date().toISOString();
   logSync({
@@ -76,7 +76,7 @@ async function syncMarket(market) {
     finished_at: finishedAt,
   });
 
-  console.log(`  ✅ ${label}基金: ${records.length} 条已写入`);
+  console.log(`  ✅ ${label}基金: ${records.length} 条 (新增 ${stats.inserted} / 更新 ${stats.updatedBasic} / 影子 ${stats.updatedShadow})`);
   return records.length;
 }
 

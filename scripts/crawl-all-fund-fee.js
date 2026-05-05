@@ -13,7 +13,8 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { fetchFundFee, saveFund, DATA_DIR } from './crawl-fund-fee.js';
+import { fetchFundFee, saveFund, saveCrawlerData, DATA_DIR } from './crawl-fund-fee.js';
+import { getDb, closeDb } from './nav/db.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const INDEX_PATH = path.join(DATA_DIR, 'index.json');
@@ -31,14 +32,16 @@ function parseArgs() {
   let delayMs = 50;
   let retry = 10;
   let limit = 0;
+  let keepJson = false;
   for (const a of args) {
     if (a === '--force') force = true;
+    else if (a === '--keep-json') keepJson = true;
     else if (a.startsWith('--concurrency=')) concurrency = Math.max(1, Math.min(50, parseInt(a.slice(14), 10) || 10));
     else if (a.startsWith('--delay=')) delayMs = Math.max(0, parseInt(a.slice(8), 10) || 0);
     else if (a.startsWith('--retry=')) retry = Math.max(0, Math.min(10, parseInt(a.slice(7), 10) || 2));
     else if (a.startsWith('--limit=')) limit = Math.max(0, parseInt(a.slice(8), 10) || 0);
   }
-  return { force, concurrency, delayMs, retry, limit };
+  return { force, concurrency, delayMs, retry, limit, keepJson };
 }
 
 /**
@@ -128,6 +131,17 @@ async function fetchOverseasFundCodes() {
 }
 
 function loadExistingCodes() {
+  // 优先用 DB: 已写入 fund_meta (source IN crawler/both) 即视为已抓取
+  try {
+    const db = getDb();
+    const rows = db.prepare(
+      "SELECT code FROM fund_meta WHERE source IN ('crawler','both') AND crawler_updated_at IS NOT NULL"
+    ).all();
+    if (rows.length > 0) return rows.map(r => r.code);
+  } catch (_) {
+    // ignore, fall through to legacy index
+  }
+  // 兜底: 旧 data/funds/index.json
   if (!fs.existsSync(INDEX_PATH)) return [];
   try {
     const index = JSON.parse(fs.readFileSync(INDEX_PATH, 'utf8'));
@@ -155,7 +169,7 @@ async function fetchWithRetry(code, retryCount, retryDelayMs) {
 }
 
 async function main() {
-  const { force, concurrency, delayMs, retry, limit } = parseArgs();
+  const { force, concurrency, delayMs, retry, limit, keepJson } = parseArgs();
   console.log('正在获取基金代码列表…');
   const domesticCodes = await fetchDomesticFundCodes();
   console.log(`境内公募基金 ${domesticCodes.length} 只`);
@@ -174,8 +188,21 @@ async function main() {
   const allCodes = [...new Set([...domesticCodes, ...overseasCodes])].sort();
   console.log(`合计 ${allCodes.length} 只基金（含境内公募与中港互认基金）`);
 
+  // 过滤已终止 (status='D') 的基金, 避免给天天基金/搜狐发无效请求
+  let dedSet = new Set();
+  try {
+    const db = getDb();
+    const dRows = db.prepare("SELECT code FROM fund_basic WHERE status = 'D'").all();
+    dedSet = new Set(dRows.map(r => r.code));
+  } catch (_) {}
+  const beforeFilter = allCodes.length;
+  const liveCodes = allCodes.filter(c => !dedSet.has(c));
+  if (beforeFilter !== liveCodes.length) {
+    console.log(`已剔除 ${beforeFilter - liveCodes.length} 只 status='D' 基金, 剩余 ${liveCodes.length} 只`);
+  }
+
   const existing = loadExistingCodes();
-  let toCrawl = force ? allCodes : allCodes.filter(c => !existing.includes(c));
+  let toCrawl = force ? liveCodes : liveCodes.filter(c => !existing.includes(c));
   if (limit > 0) {
     toCrawl = toCrawl.slice(0, limit);
     console.log(`--limit=${limit}，实际抓取 ${toCrawl.length} 只`);
@@ -225,7 +252,7 @@ async function main() {
       if (delayMs > 0) await new Promise(r => setTimeout(r, delayMs));
       const data = await fetchWithRetry(code, retry, retryDelayMs);
       if (data) {
-        saveFund(data);
+        await saveCrawlerData(data, { toDb: true, keepJson });
         ok++;
       } else {
         fail++;
@@ -252,43 +279,9 @@ async function main() {
     console.log(`⚠ 失败代码：${show}`);
   }
 
-  // 抓取完成后，基于 data/funds 下的单只文件聚合生成 data/allfund/allfund.json
-  try {
-    fs.mkdirSync(ALLFUND_DIR, { recursive: true });
-    if (!fs.existsSync(INDEX_PATH)) {
-      console.warn('索引 index.json 不存在，跳过 allfund.json 生成');
-    } else {
-      const index = JSON.parse(fs.readFileSync(INDEX_PATH, 'utf8'));
-      const codes = index.codes || [];
-      const funds = {};
-      for (const code of codes) {
-        const filePath = path.join(DATA_DIR, `${code}.json`);
-        if (!fs.existsSync(filePath)) continue;
-        try {
-          const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-          // 规范化基金类型：
-          // - 对于来源页面标记为「中港互认基金」的，统一归类为「中港互认」
-          // - 对于 968 开头的中港互认基金，如缺少类型，也统一标记为「中港互认」
-          if (typeof data.fundType === 'string') {
-            const t = data.fundType.trim();
-            if (t === '中港互认基金') {
-              data.fundType = '中港互认';
-            }
-          }
-          if ((!data.fundType || String(data.fundType).trim() === '') && /^968\d{3}$/.test(code)) {
-            data.fundType = '中港互认';
-          }
-          funds[code] = data;
-        } catch {
-          // 跳过损坏文件
-        }
-      }
-      fs.writeFileSync(ALLFUND_PATH, JSON.stringify({ codes, funds }, null, 2), 'utf8');
-      console.log(`已生成聚合文件 ${ALLFUND_PATH}（${codes.length} 只基金）`);
-    }
-  } catch (e) {
-    console.error('生成 allfund.json 失败：', e);
-  }
+  // 关闭 DB 连接 (新流程不再聚合 JSON; 由 build-allfund-from-db.js 单独负责)
+  try { closeDb(); } catch (_) {}
+  console.log('💡 提示: 抓取完成. 后续静态资源由 `node scripts/build-allfund-from-db.js` 生成.');
 }
 
 main().catch(e => {

@@ -9,11 +9,89 @@
  */
 
 import { getDb, codeToTsCode } from './db.js';
+import {
+  downsample,
+  computeStats,
+  computeUnionRange,
+  parseIndicators,
+  enrichSeriesIndicators,
+} from '../../js/domain/nav-stats.js';
 
 function json(res, status, data) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store');
   res.writeHead(status);
   res.end(JSON.stringify(data));
+}
+
+/**
+ * 计算 weak ETag (FNV-1a 32-bit) for an arbitrary string body.
+ * Weak 即可——我们只用它做条件请求短路，不用做 byte-equal 校验。
+ *
+ * @param {string} body
+ * @returns {string}  形如 `W/"af7c2b13"`，始终带引号；可直接放进 ETag 头。
+ */
+export function computeETag(body) {
+  let h = 0x811c9dc5; // FNV offset basis
+  for (let i = 0; i < body.length; i++) {
+    h ^= body.charCodeAt(i);
+    // 32-bit FNV prime: 16777619；用 Math.imul 避免高位被丢
+    h = Math.imul(h, 0x01000193);
+  }
+  // 转无符号 32 位再 hex
+  return `W/"${(h >>> 0).toString(16).padStart(8, '0')}"`;
+}
+
+/**
+ * 解析 If-None-Match 头，返回是否命中给定 etag。
+ * 处理多值 (逗号分隔) 与 `*` 通配符。weak/strong 视为等价。
+ *
+ * @param {string|undefined} headerVal  原始 If-None-Match 值
+ * @param {string} etag                 我们刚算出的 ETag (含 W/" 前缀和引号)
+ * @returns {boolean}
+ */
+export function ifNoneMatchHits(headerVal, etag) {
+  if (!headerVal || !etag) return false;
+  const norm = (s) => s.trim().replace(/^W\//, '');
+  const target = norm(etag);
+  for (const part of headerVal.split(',')) {
+    const p = part.trim();
+    if (p === '*') return true;
+    if (norm(p) === target) return true;
+  }
+  return false;
+}
+
+/**
+ * 发送可缓存的 JSON 响应：
+ *   - 序列化一次 → 计算 weak ETag
+ *   - 命中 If-None-Match → 304 (空 body, 仍带 ETag/Cache-Control)
+ *   - 否则 200 + ETag + Cache-Control: private, max-age=N, must-revalidate
+ *
+ * @param {http.IncomingMessage} req
+ * @param {http.ServerResponse}  res
+ * @param {Object} data
+ * @param {Object} [opts]
+ * @param {number} [opts.maxAge=60]   秒；客户端缓存窗口
+ */
+function jsonCached(req, res, data, opts = {}) {
+  const { maxAge = 60 } = opts;
+  const body = JSON.stringify(data);
+  const etag = computeETag(body);
+  const cc = `private, max-age=${maxAge}, must-revalidate`;
+
+  res.setHeader('ETag', etag);
+  res.setHeader('Cache-Control', cc);
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+
+  if (ifNoneMatchHits(req.headers && req.headers['if-none-match'], etag)) {
+    res.writeHead(304);
+    res.end();
+    return;
+  }
+
+  res.writeHead(200);
+  res.end(body);
 }
 
 function parseQuery(url) {
@@ -36,13 +114,14 @@ function handleNavStats(req, res) {
     const earliest = db.prepare('SELECT min(end_date) as d FROM fund_nav').get().d;
     const latest = db.prepare('SELECT max(end_date) as d FROM fund_nav').get().d;
 
-    json(res, 200, {
+    // 整库统计换得不快：变化频率 = ETL 频率 (天级)。max-age=300 依然会靠 ETag 多拾一颗。
+    jsonCached(req, res, {
       fund_basic_count: basicCount,
       fund_nav_total_records: navCount,
       funds_with_nav: fundWithNav,
       earliest_date: earliest,
       latest_date: latest,
-    });
+    }, { maxAge: 300 });
   } catch (e) {
     json(res, 500, { error: '查询失败', detail: e.message });
   }
@@ -62,7 +141,8 @@ function handleNavLatest(code, req, res) {
       return;
     }
 
-    json(res, 200, {
+    // 最新净值：最多一天一变；max-age=60 加 ETag 足够。
+    jsonCached(req, res, {
       code,
       ts_code: tsCode,
       name: basic?.name || null,
@@ -75,7 +155,7 @@ function handleNavLatest(code, req, res) {
       accum_div: latest.accum_div,
       net_asset: latest.net_asset,
       total_netasset: latest.total_netasset,
-    });
+    }, { maxAge: 60 });
   } catch (e) {
     json(res, 500, { error: '查询失败', detail: e.message });
   }
@@ -105,13 +185,14 @@ function handleNavHistory(code, req, res) {
 
     const basic = db.prepare('SELECT name FROM fund_basic WHERE code = ?').get(code);
 
-    json(res, 200, {
+    // 历史查询：序列主体不变、仅末尾可能增量。max-age=60。
+    jsonCached(req, res, {
       code,
       ts_code: tsCode,
       name: basic?.name || null,
       count: rows.length,
       data: rows,
-    });
+    }, { maxAge: 60 });
   } catch (e) {
     json(res, 500, { error: '查询失败', detail: e.message });
   }
@@ -143,6 +224,7 @@ function handleNavCompare(req, res) {
     if (codes.length > 20) { json(res, 400, { error: '一次最多对比 20 只' }); return; }
 
     const interval = qs.interval || 'daily'; // daily / weekly / monthly
+    const indicators = parseIndicators(qs.indicators); // P1.D: 可选预算
     const series = [];
     const stats = [];
 
@@ -168,101 +250,20 @@ function handleNavCompare(req, res) {
       const adjNavs = sampled.map(r => r.adj_nav ?? r.unit_nav);
 
       series.push({ code, name, dates, navs, adjNavs });
-      stats.push({ code, name, ...computeStats(dates, adjNavs) });
+      stats.push({ code, name, ...computeStats(dates, adjNavs, { interval }) });
     }
 
-    const allDates = series.flatMap(s => s.dates);
-    const range = allDates.length ? { start: allDates[0], end: allDates[allDates.length - 1] } : null;
+    const range = computeUnionRange(series);
 
-    json(res, 200, { codes, range, series, stats });
+    // P1.D: 按请求增补 ma20 / ma60 / drawdown 等指标字段。
+    // 其他名被 parseIndicators 丢弃，enrichSeriesIndicators 是 mutate-and-return。
+    if (indicators.length) enrichSeriesIndicators(series, indicators);
+
+    // compare 是页面热路径，加上 ETag 后重访问只走 304。max-age=60。
+    jsonCached(req, res, { codes, range, series, stats }, { maxAge: 60 });
   } catch (e) {
     json(res, 500, { error: e.message });
   }
-}
-
-/** 按 interval 降采样：weekly 取每周最后一个交易日, monthly 取每月最后一个 */
-function downsample(rows, interval) {
-  if (interval === 'daily' || rows.length < 800) return rows;
-  const out = [];
-  if (interval === 'weekly') {
-    let lastWeek = '';
-    for (const r of rows) {
-      const d = `${r.end_date.slice(0,4)}-${r.end_date.slice(4,6)}-${r.end_date.slice(6,8)}`;
-      const dt = new Date(d);
-      // ISO 周键
-      const y = dt.getUTCFullYear();
-      const onejan = new Date(Date.UTC(y, 0, 1));
-      const w = Math.ceil((((dt - onejan) / 86400000) + onejan.getUTCDay() + 1) / 7);
-      const key = `${y}-${w}`;
-      if (key !== lastWeek && out.length) {
-        // out 已含上一周末记录
-      }
-      // 简化：last-of-week
-      if (out.length && out[out.length - 1]._wkey === key) out[out.length - 1] = { ...r, _wkey: key };
-      else out.push({ ...r, _wkey: key });
-      lastWeek = key;
-    }
-    return out.map(r => ({ end_date: r.end_date, unit_nav: r.unit_nav, adj_nav: r.adj_nav }));
-  }
-  if (interval === 'monthly') {
-    const out2 = [];
-    for (const r of rows) {
-      const ym = r.end_date.slice(0, 6);
-      if (out2.length && out2[out2.length - 1]._mkey === ym) out2[out2.length - 1] = { ...r, _mkey: ym };
-      else out2.push({ ...r, _mkey: ym });
-    }
-    return out2.map(r => ({ end_date: r.end_date, unit_nav: r.unit_nav, adj_nav: r.adj_nav }));
-  }
-  return rows;
-}
-
-/** 计算统计指标：CAGR / 最大回撤 / 年化波动率 / Sharpe (rf=2%) */
-function computeStats(dates, navs) {
-  if (!navs || navs.length < 2) {
-    return { startNav: null, endNav: null, totalReturn: null, cagr: null, maxDrawdown: null, volatility: null, sharpe: null };
-  }
-  const startNav = navs[0];
-  const endNav = navs[navs.length - 1];
-  const totalReturn = endNav / startNav - 1;
-  // 年化复合
-  const startDate = parseDate(dates[0]);
-  const endDate = parseDate(dates[dates.length - 1]);
-  const days = (endDate - startDate) / 86400000;
-  const years = days / 365.25;
-  const cagr = years > 0 ? Math.pow(endNav / startNav, 1 / years) - 1 : null;
-
-  // 最大回撤
-  let peak = navs[0], mdd = 0;
-  for (const v of navs) {
-    if (v > peak) peak = v;
-    const dd = v / peak - 1;
-    if (dd < mdd) mdd = dd;
-  }
-
-  // 日收益率
-  const rets = [];
-  for (let i = 1; i < navs.length; i++) {
-    if (navs[i - 1] > 0) rets.push(navs[i] / navs[i - 1] - 1);
-  }
-  // 年化波动率
-  const mean = rets.reduce((a, b) => a + b, 0) / (rets.length || 1);
-  const variance = rets.reduce((a, b) => a + (b - mean) ** 2, 0) / (rets.length || 1);
-  const dailyVol = Math.sqrt(variance);
-  const volatility = dailyVol * Math.sqrt(252);
-  // Sharpe: (CAGR - rf) / 年化波动率
-  const rf = 0.02;
-  const sharpe = volatility > 0 && cagr != null ? (cagr - rf) / volatility : null;
-
-  return {
-    startNav, endNav, totalReturn,
-    cagr, maxDrawdown: mdd, volatility, sharpe,
-  };
-}
-
-function parseDate(s) {
-  if (!s) return new Date(NaN);
-  if (s.length === 8) return new Date(`${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}`);
-  return new Date(s);
 }
 
 function handleNavRange(code, req, res) {
@@ -280,13 +281,14 @@ function handleNavRange(code, req, res) {
       return;
     }
 
-    json(res, 200, {
+    // 日期 range 变化极慢（天级 ETL 后才动）。max-age=300。
+    jsonCached(req, res, {
       code,
       ts_code: tsCode,
       earliest: range.earliest,
       latest: range.latest,
       total_records: range.total,
-    });
+    }, { maxAge: 300 });
   } catch (e) {
     json(res, 500, { error: '查询失败', detail: e.message });
   }

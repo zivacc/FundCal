@@ -19,7 +19,7 @@ module.exports = {
       autorestart: true,
       max_restarts: 10,
       watch: false,
-      max_memory_restart: '200M',
+      max_memory_restart: '500M',
     },
   ],
 };

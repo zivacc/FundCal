@@ -8,7 +8,9 @@
  * - 默认基准 = 所有当前基金都有数据的最早节点（不含成立来 / 今天）
  */
 
-import { getColorForIndex, escapeHtml, getChartTheme } from './utils.js';
+import { getColorForIndex } from '../utils/color.js';
+import { escapeHtml } from '../utils/format.js';
+import { getChartTheme } from '../core/theme.js';
 
 const TODAY_LABEL = '今天';
 

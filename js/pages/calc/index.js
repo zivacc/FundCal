@@ -1,21 +1,42 @@
 /**
  * 基金费率计算器 - 主应用
  */
-import { MAX_CALC_DAYS, calcFeeCurve, calcTotalFeeRate, findAllCrossovers, toAnnualizedFeeRate, getSellFeeRate } from './fee-calculator.js';
-import { fetchFundFeeFromAPI, fetchFundCodesFromAPI, fetchSearchIndexFromAPI, fetchFeederIndexFromAPI } from './api-adapter.js';
+import { calcFeeCurve, calcTotalFeeRate, findAllCrossovers, toAnnualizedFeeRate, getSellFeeRate } from '../../domain/fee-calculator.js';
+import { fetchFundFeeFromAPI, fetchFundCodesFromAPI, fetchSearchIndexFromAPI } from '../../data/fund-api.js';
+import { getColorForIndex } from '../../utils/color.js';
+import { parseRate, formatRate, escapeHtml, shuffle, parseDaysInput } from '../../utils/format.js';
+import { getChartTheme } from '../../core/theme.js';
+import { DEMO_FUND_CODES } from '../../domain/calc-defaults.js';
+import { SEARCH_DEBOUNCE_MS, filterSearchIndex } from '../../utils/search.js';
+import { setupIndexPickerModal } from './index-picker-modal.js';
+import { setupImportModal } from './import-modal.js';
 import {
-  getColorForIndex, DEMO_FUND_CODES, QUICK_SEGMENT_DAYS,
-  defaultSegments, parseRate, formatRate, escapeHtml, shuffle, parseDaysInput,
-  openModal, closeModal, getChartTheme
-} from './utils.js';
-import { SEARCH_DEBOUNCE_MS, filterSearchIndex } from './search-utils.js';
+  CALC_EXTENDED_DAYS,
+  syncCardColors,
+  getFundDisplayName,
+  ensureFeederIndex,
+  applyFeederPenetration,
+  getEffectiveMaxDays,
+} from './funds-collector.js';
 import {
-  normalizeImportText, parseImportFromText, parseImportFromLines,
-  readFileAsText, readExcelFirstColumn
-} from './import-utils.js';
-import { setupIndexPickerModal } from './index-picker.js';
-import { renderFundDetailTable } from './fund-detail-table.js';
-import { renderStageReturnChart, resetStageReturnChartState } from './stage-return-chart.js';
+  createExportSnapshot,
+  saveStateToStorage,
+  loadStateFromStorage,
+  clearStorageState,
+  consumeCompareFromCacheSession,
+} from './state.js';
+import { renderFundDetailTable } from '../../components/fund-detail-table.js';
+import { renderStageReturnChart, resetStageReturnChartState } from '../../components/stage-return-chart.js';
+import { createTypeahead } from '../../components/typeahead.js';
+import { createFundCardFactory } from './fund-card.js';
+
+// 卡片工厂：注入 updateChart / saveState / ensureSearchIndex 三个页面级闭包，避免循环 import。
+// updateChart / saveState / ensureSearchIndex 都是 function declaration，受提升保护，可在此处提前引用。
+const { createFundCard, addFundCard, removeCardByFundCode } = createFundCardFactory({
+  updateChart: () => updateChart(),
+  saveState:   () => saveState(),
+  ensureSearchIndex: () => ensureSearchIndex(),
+});
 
 // 注册 Chart.js 标注插件（由 script 标签加载，全局名 chartjs-plugin-annotation）
 if (typeof window !== 'undefined' && window.Chart && window['chartjs-plugin-annotation']) {
@@ -30,15 +51,8 @@ let hideAllSnapshot = null;
 let lastFundsForCrosshair = [];
 let buyFeeDiscountFactor = 1;
 
-const STORAGE_KEY = 'fundCalState';
-/** 数据库列表页「去比较」写入，主页启动时消费后清除 */
-const SESSION_COMPARE_FROM_CACHE_KEY = 'fundCalCompareFromCache';
-
 /** 全局搜索索引缓存，供顶部搜索、卡片名称联想、批量导入共用 */
 let searchIndexCache = null;
-
-/** 导入结果临时缓存：[{ code?, name, source }] */
-let importParsedItems = [];
 
 async function ensureSearchIndex() {
   if (searchIndexCache) return searchIndexCache;
@@ -70,144 +84,6 @@ function readFundFromCard(card) {
   return fund;
 }
 
-/** 根据持有天数和卖出费率计算年化费率，并更新行上的悬停提示 */
-function updateSegmentRowTitle(row) {
-  const daysInput = row.querySelector('.input-days');
-  const rateInput = row.querySelector('.input-rate');
-  const days = parseInt(daysInput?.value, 10);
-  const rate = parseRate(rateInput?.value);
-  if (!isNaN(days) && days > 0) {
-    const annualized = rate * (365 / days);
-    row.title = `折合年化约 ${formatRate(annualized)}`;
-  } else {
-    row.title = '';
-  }
-}
-
-/** 渲染分段表格行（含删除按钮）。seg.to=null 表示永久段，days 列显示「永久」标签并锁定 */
-function renderSegmentRow(container, seg = { to: 7, rate: 0 }, onUpdate, onRowChange) {
-  // 兼容旧 ziva 快照里的 {days, unbounded} 格式
-  if (!('to' in seg) && (seg.days !== undefined || seg.unbounded)) {
-    seg = { to: seg.unbounded ? null : (seg.days ?? null), rate: seg.rate };
-  }
-  const row = document.createElement('tr');
-  row.className = 'segment-row';
-  const isUnbounded = seg.to === null;
-  const daysVal = seg.to != null ? seg.to : '';
-  const rateVal = seg.rate != null && seg.rate > 0 ? (seg.rate * 100).toFixed(2) : '';
-  if (isUnbounded) {
-    row.dataset.unbounded = 'true';
-    row.innerHTML = `
-      <td class="unbounded-days-cell">永久</td>
-      <td><input type="text" class="input-rate" value="${rateVal}" placeholder="0.00"></td>
-      <td class="segment-actions"><button type="button" class="segment-del-btn" title="删除该行" aria-label="删除该行">×</button></td>
-    `;
-  } else {
-    row.innerHTML = `
-      <td><input type="number" class="input-days" value="${daysVal}" min="1" placeholder="期限"></td>
-      <td><input type="text" class="input-rate" value="${rateVal}" placeholder="0.00"></td>
-      <td class="segment-actions"><button type="button" class="segment-del-btn" title="删除该行" aria-label="删除该行">×</button></td>
-    `;
-  }
-  container.appendChild(row);
-
-  if (!isUnbounded) {
-    updateSegmentRowTitle(row);
-    row.addEventListener('mouseenter', () => updateSegmentRowTitle(row));
-  }
-
-  row.querySelector('.segment-del-btn').addEventListener('click', () => {
-    if (container.querySelectorAll('.segment-row').length <= 1) return;
-    row.remove();
-    onRowChange?.();
-    onUpdate?.();
-  });
-
-  const daysInput = row.querySelector('.input-days');
-  if (daysInput) {
-    daysInput.addEventListener('blur', () => {
-      sortSegmentRows(container);
-      onRowChange?.();
-      onUpdate?.();
-    });
-  }
-  row.querySelectorAll('input').forEach(inp => {
-    inp.addEventListener('input', () => {
-      if (!isUnbounded) updateSegmentRowTitle(row);
-      onUpdate?.();
-    });
-  });
-  return row;
-}
-
-/** 按持有天数从小到大重排卖出费率表格行；永久段（to=null）排最后 */
-function sortSegmentRows(tbody) {
-  const rows = Array.from(tbody.querySelectorAll('.segment-row'));
-  const withDays = rows.map(row => {
-    if (row.dataset.unbounded === 'true') return { row, days: Infinity };
-    const days = parseInt(row.querySelector('.input-days')?.value, 10);
-    return { row, days: !isNaN(days) && days > 0 ? days : Infinity };
-  });
-  withDays.sort((a, b) => a.days - b.days);
-  withDays.forEach(({ row }) => tbody.appendChild(row));
-}
-
-/** 获取表格中已存在的持有天数列表 */
-function getExistingDays(tbody) {
-  return Array.from(tbody.querySelectorAll('.segment-row'))
-    .filter(r => r.dataset.unbounded !== 'true')
-    .map(r => parseInt(r.querySelector('.input-days')?.value, 10))
-    .filter(d => !isNaN(d) && d > 0);
-}
-
-/** 是否已有永久段 */
-function hasUnboundedRow(tbody) {
-  return !!tbody.querySelector('.segment-row[data-unbounded="true"]');
-}
-
-/** 刷新快捷按钮：显示表格中尚未存在的天数 + 永久按钮（若尚无永久段） */
-function updateQuickButtons(tbody, quickContainer, onUpdate, onRowChange) {
-  if (!quickContainer) return;
-  const existing = getExistingDays(tbody);
-  quickContainer.innerHTML = '';
-  QUICK_SEGMENT_DAYS.forEach(days => {
-    if (existing.includes(days)) return;
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'btn btn-sm';
-    btn.dataset.days = days;
-    btn.textContent = `${days}天`;
-    btn.addEventListener('click', () => {
-      addQuickSegment(tbody, days, onUpdate, onRowChange);
-    });
-    quickContainer.appendChild(btn);
-  });
-  if (!hasUnboundedRow(tbody)) {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'btn btn-sm';
-    btn.textContent = '永久';
-    btn.title = '添加永久（无上限）段：(上一段, +∞)';
-    btn.addEventListener('click', () => {
-      renderSegmentRow(tbody, { to: null, rate: 0 }, onUpdate, onRowChange);
-      sortSegmentRows(tbody);
-      onRowChange?.();
-      onUpdate?.();
-    });
-    quickContainer.appendChild(btn);
-  }
-}
-
-/** 添加快捷分段，若该天数已存在则跳过；新行天数预填，费率为空 */
-function addQuickSegment(tbody, days, onUpdate, onRowChange) {
-  const existing = getExistingDays(tbody);
-  if (existing.includes(days)) return;
-  renderSegmentRow(tbody, { to: days, rate: '' }, onUpdate, onRowChange);
-  sortSegmentRows(tbody);
-  onRowChange?.();
-  onUpdate?.();
-}
-
 /** 从 DOM 收集可持久化的状态 */
 function getStateFromDOM() {
   const calcDaysMinEl = document.getElementById('calc-days-min');
@@ -233,43 +109,12 @@ function getStateFromDOM() {
 
 /** 构建可导出的页面快照（.ziva） */
 function buildExportSnapshot() {
-  const state = getStateFromDOM();
-  return {
-    type: 'FundCalSnapshot',
-    version: 1,
-    createdAt: new Date().toISOString(),
-    state
-  };
+  return createExportSnapshot(getStateFromDOM());
 }
 
-/** 从 .ziva 快照对象中提取 state；容错支持直接传入 state 本身 */
-function extractStateFromSnapshot(snapshot) {
-  if (!snapshot || typeof snapshot !== 'object') return null;
-  if (snapshot.type === 'FundCalSnapshot' && snapshot.state && typeof snapshot.state === 'object') {
-    return snapshot.state;
-  }
-  // 兼容老格式：直接就是 state
-  if (snapshot.funds || snapshot.calcDaysMin != null || snapshot.calcDaysMax != null) {
-    return snapshot;
-  }
-  return null;
-}
-
-/** 暂存到 localStorage（防抖由调用方保证） */
+/** 暂存当前页面状态到 localStorage（防抖由调用方保证） */
 function saveState() {
-  try {
-    const state = getStateFromDOM();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch (e) { /* ignore */ }
-}
-
-/** 从 localStorage 读取暂存 */
-function loadState() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw);
-  } catch (e) { return null; }
+  saveStateToStorage(getStateFromDOM());
 }
 
 /**
@@ -277,39 +122,22 @@ function loadState() {
  * @returns {Promise<boolean>} 是否已应用并应跳过 restoreState
  */
 async function applyCompareFromCacheSession() {
-  try {
-    const raw = sessionStorage.getItem(SESSION_COMPARE_FROM_CACHE_KEY);
-    if (!raw) return false;
-    let parsed;
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      return false;
-    }
-    const list = parsed && (parsed.funds || parsed);
-    if (!Array.isArray(list) || list.length === 0) return false;
-    clearStoredState();
-    for (const item of list) {
-      const code = String(item?.code ?? '').trim();
-      if (!code) continue;
-      const data = await fetchFundFeeFromAPI(code);
-      const payload = data || { name: item.name || `基金${code}`, code };
-      addFundCard(payload);
-    }
-    try {
-      sessionStorage.removeItem(SESSION_COMPARE_FROM_CACHE_KEY);
-    } catch { /* ignore */ }
-    return true;
-  } catch {
-    return false;
+  const list = consumeCompareFromCacheSession();
+  if (!list) return false;
+  clearStoredState();
+  for (const item of list) {
+    const code = String(item?.code ?? '').trim();
+    if (!code) continue;
+    const data = await fetchFundFeeFromAPI(code);
+    const payload = data || { name: item.name || `基金${code}`, code };
+    addFundCard(payload);
   }
+  return true;
 }
 
 /** 清除所有卡片并清除本地暂存 */
 function clearStoredState() {
-  try {
-    localStorage.removeItem(STORAGE_KEY);
-  } catch (e) { /* ignore */ }
+  clearStorageState();
   const container = document.getElementById('fund-cards');
   if (!container) return;
   container.innerHTML = '';
@@ -317,222 +145,6 @@ function clearStoredState() {
   if (buyFeeDiscountEl) buyFeeDiscountEl.value = '0.1';
   buyFeeDiscountFactor = 0.1;
   updateChart();
-}
-
-/** 创建基金卡片 DOM，可选传入 initialData 用于恢复 */
-function createFundCard(index, color, initialData) {
-  const card = document.createElement('div');
-  card.className = 'fund-card';
-  card.dataset.index = index;
-  card.innerHTML = `
-    <h3>
-      <span class="color-dot" style="background:${color}"></span>
-      <div class="fund-name-wrap">
-        <input type="text" class="fund-name" value="基金 ${index + 1}" placeholder="基金名称" data-min-ch="10" autocomplete="off" aria-autocomplete="list">
-        <ul class="fund-name-dropdown" role="listbox" aria-hidden="true"></ul>
-        <span class="fund-code" aria-hidden="true"></span>
-      </div>
-      <button type="button" class="remove-btn" title="移除该基金" aria-label="移除该基金">×</button>
-    </h3>
-    <div class="form-row form-row-fee">
-      <span class="segment-section-label">买入</span>
-      <input type="text" class="input-buy-fee" placeholder="0.1">
-      <span class="input-unit">%</span>
-    </div>
-    <div class="form-row form-row-annual form-row-fee">
-      <span class="segment-section-label">年化</span>
-      <input type="text" class="input-annual-fee" placeholder="1.5">
-      <span class="input-unit">%</span>
-    </div>
-    <p class="segment-section-label">卖出费率</p>
-    <table class="segments-table">
-      <thead><tr><th>天数</th><th>费率 %</th><th class="segment-actions"></th></tr></thead>
-      <tbody></tbody>
-    </table>
-    <div class="segment-toolbar">
-      <button type="button" class="btn btn-sm segment-add-row">+ 添加</button>
-      <div class="segment-quick-buttons"></div>
-    </div>
-  `;
-  const tbody = card.querySelector('.segments-table tbody');
-  const quickContainer = card.querySelector('.segment-quick-buttons');
-  const debounce = (fn, ms) => { let t; return () => { clearTimeout(t); t = setTimeout(fn, ms); }; };
-  const update = debounce(() => { updateChart(); saveState(); }, 300);
-  const refreshQuickButtons = () => updateQuickButtons(tbody, quickContainer, update, refreshQuickButtons);
-
-  const nameInput = card.querySelector('.fund-name');
-  const nameDropdown = card.querySelector('.fund-name-dropdown');
-
-  function resizeFundNameInput() {
-    // 宽度由 CSS width:100% 控制，无需动态设置
-  }
-
-  function showNameDropdown(items) {
-    nameDropdown.innerHTML = '';
-    nameDropdown.setAttribute('aria-hidden', 'true');
-    nameDropdown.classList.remove('fund-name-dropdown-visible');
-    if (!items || items.length === 0) return;
-    items.forEach((item, i) => {
-      const li = document.createElement('li');
-      li.setAttribute('role', 'option');
-      li.dataset.code = item.code;
-      li.dataset.name = item.name;
-      li.innerHTML = `<span class="fund-search-code">${item.code}</span> <span class="fund-search-name">${item.name}</span>`;
-      li.addEventListener('mousedown', (e) => { e.preventDefault(); selectNameItem(card, item); });
-      nameDropdown.appendChild(li);
-    });
-    nameDropdown.setAttribute('aria-hidden', 'false');
-    nameDropdown.classList.add('fund-name-dropdown-visible');
-    card.dataset.nameHighlightIndex = '0';
-    nameDropdown.querySelectorAll('[role="option"]').forEach((el, i) => el.classList.toggle('fund-search-item-active', i === 0));
-  }
-
-  function selectNameItem(cardEl, item) {
-    const inp = cardEl.querySelector('.fund-name');
-    const codeSpan = cardEl.querySelector('.fund-code');
-    if (inp) inp.value = item.name || `基金${item.code}`;
-    if (codeSpan) codeSpan.textContent = item.code || '';
-    cardEl.dataset.fundCode = item.code || '';
-    resizeFundNameInput();
-    nameDropdown.classList.remove('fund-name-dropdown-visible');
-    (async () => {
-      const data = await fetchFundFeeFromAPI(item.code);
-      if (data && cardEl.isConnected) {
-        cardEl.querySelector('.input-buy-fee').value = data.buyFee != null ? (data.buyFee * 100).toFixed(2) : '';
-        cardEl.querySelector('.input-annual-fee').value = data.annualFee != null ? (data.annualFee * 100).toFixed(2) : '';
-        const tbody = cardEl.querySelector('.segments-table tbody');
-        const segs = data.sellFeeSegments?.length ? data.sellFeeSegments : defaultSegments();
-        tbody.innerHTML = '';
-        segs.forEach(seg => renderSegmentRow(tbody, seg, update, refreshQuickButtons));
-        refreshQuickButtons();
-      }
-      update();
-    })();
-  }
-
-  let nameDebounceTimer;
-  nameInput.addEventListener('focus', () => ensureSearchIndex());
-  nameInput.addEventListener('input', () => {
-    resizeFundNameInput();
-    update();
-    clearTimeout(nameDebounceTimer);
-    nameDebounceTimer = setTimeout(async () => {
-      const q = nameInput.value.trim();
-      if (!q) {
-        showNameDropdown([]);
-        return;
-      }
-      const list = await ensureSearchIndex();
-      const items = filterSearchIndex(list, q);
-      showNameDropdown(items);
-    }, SEARCH_DEBOUNCE_MS);
-  });
-  nameInput.addEventListener('keydown', (e) => {
-    const list = nameDropdown.querySelectorAll('[role="option"]');
-    if (e.key === 'Escape') {
-      nameDropdown.classList.remove('fund-name-dropdown-visible');
-      nameInput.blur();
-      return;
-    }
-    if (list.length === 0) return;
-    let idx = parseInt(card.dataset.nameHighlightIndex, 10);
-    if (Number.isNaN(idx)) idx = 0;
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      idx = idx < list.length - 1 ? idx + 1 : 0;
-      card.dataset.nameHighlightIndex = String(idx);
-      list.forEach((el, i) => el.classList.toggle('fund-search-item-active', i === idx));
-      list[idx].scrollIntoView({ block: 'nearest' });
-      return;
-    }
-    if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      idx = idx <= 0 ? list.length - 1 : idx - 1;
-      card.dataset.nameHighlightIndex = String(idx);
-      list.forEach((el, i) => el.classList.toggle('fund-search-item-active', i === idx));
-      list[idx].scrollIntoView({ block: 'nearest' });
-      return;
-    }
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const item = { code: list[idx].dataset.code, name: list[idx].dataset.name };
-      selectNameItem(card, item);
-    }
-  });
-
-  document.addEventListener('click', (e) => {
-    if (!card.contains(e.target) && nameDropdown.classList.contains('fund-name-dropdown-visible')) {
-      nameDropdown.classList.remove('fund-name-dropdown-visible');
-    }
-  });
-
-  resizeFundNameInput();
-
-  if (initialData) {
-    nameInput.value = initialData.name || '';
-    const codeVal = (initialData.code != null ? String(initialData.code).trim() : '') || '';
-    if (codeVal) {
-      card.dataset.fundCode = codeVal;
-      const codeEl = card.querySelector('.fund-code');
-      if (codeEl) codeEl.textContent = `${codeVal}`;
-    }
-    resizeFundNameInput();
-    card.querySelector('.input-buy-fee').value = initialData.buyFee != null ? (initialData.buyFee * 100).toFixed(2) : '';
-    card.querySelector('.input-annual-fee').value = initialData.annualFee != null ? (initialData.annualFee * 100).toFixed(2) : '';
-    const segs = initialData.sellFeeSegments?.length ? initialData.sellFeeSegments : defaultSegments();
-    tbody.innerHTML = '';
-    segs.forEach(seg => renderSegmentRow(tbody, seg, update, refreshQuickButtons));
-  } else {
-    defaultSegments().forEach(seg => renderSegmentRow(tbody, seg, update, refreshQuickButtons));
-  }
-  refreshQuickButtons();
-
-  card.querySelector('.segment-add-row').addEventListener('click', () => {
-    renderSegmentRow(tbody, { to: '', rate: '' }, update, refreshQuickButtons);
-    sortSegmentRows(tbody);
-    refreshQuickButtons();
-    update();
-  });
-
-  card.querySelector('.remove-btn').addEventListener('click', () => {
-    card.remove();
-    updateChart();
-    saveState();
-  });
-
-  card.querySelectorAll('input').forEach(inp => inp.addEventListener('input', update));
-
-  return card;
-}
-
-/** 添加基金卡片 */
-function addFundCard(initialData) {
-  const container = document.getElementById('fund-cards');
-  // 按基金代码去重：同一代码只保留一张卡片（无代码则不校验）
-  const code = initialData && (initialData.code ?? initialData.fundCode);
-  if (code && String(code).trim()) {
-    const target = String(code).trim();
-    const exists = container && Array.from(container.querySelectorAll('.fund-card'))
-      .some(c => (c.dataset.fundCode || '').trim() === target);
-    if (exists) return;
-  }
-  const count = container.querySelectorAll('.fund-card').length;
-  const color = getColorForIndex(count);
-  container.appendChild(createFundCard(count, color, initialData));
-  updateChart();
-  saveState();
-}
-
-/** 根据基金代码移除对应卡片 */
-function removeCardByFundCode(code) {
-  const target = String(code || '').trim();
-  if (!target) return;
-  const card = document.querySelector(`.fund-card[data-fund-code="${target}"]`);
-  if (card) {
-    card.remove();
-    updateChart();
-    saveState();
-  }
 }
 
 /** 根据暂存恢复页面 */
@@ -605,15 +217,6 @@ function collectFunds() {
   }
   knownChartFundCodes = new Set(allIds);
   return funds;
-}
-
-/** 将卡片上的颜色点与当前 fund.color 同步，保证卡片与图表颜色一致 */
-function syncCardColors(funds) {
-  const cards = document.querySelectorAll('.fund-card');
-  cards.forEach((card, i) => {
-    const dot = card.querySelector('.color-dot');
-    if (dot && funds[i]) dot.style.background = funds[i].color;
-  });
 }
 
 /** 渲染图表右侧基金参与列表，并绑定点击开关逻辑 */
@@ -766,66 +369,6 @@ function getShowTooltip() {
 /** 是否开启联接基金穿透（年化费率 = 联接年化 + 母基金年化）。ETF 联接不存在双重收费，功能保留但默认不启用，开关已隐藏。 */
 function getPenetrateFeeder() {
   return false;
-}
-
-/** 图表与悬浮窗中显示的基金名：已穿透的联接基金后加「(穿透)」标注 */
-function getFundDisplayName(fund) {
-  const name = fund && fund.name ? String(fund.name).trim() : '';
-  if (fund && fund.__penetrationInfo) return name ? name + ' (穿透)' : '(穿透)';
-  return name || '基金';
-}
-
-/** 联接/母基金索引缓存 */
-let feederIndexCache = null;
-async function ensureFeederIndex() {
-  if (feederIndexCache) return feederIndexCache;
-  feederIndexCache = await fetchFeederIndexFromAPI();
-  return feederIndexCache;
-}
-
-/**
- * 对联接基金做年化费率穿透：年化 = 联接年化 + 母基金年化，买入/卖出费率不变。
- * 为被穿透的基金附加 __penetrationInfo 供图例展示。
- * @param {Array<{code?:string, annualFee?:number, [k:string]:any}>} funds
- * @returns {Promise<typeof funds>} 同一数组（已就地修改）
- */
-async function applyFeederPenetration(funds) {
-  const { codeToFeeder } = await ensureFeederIndex();
-  if (!codeToFeeder || Object.keys(codeToFeeder).length === 0) return funds;
-  for (const fund of funds) {
-    const code = fund.code && String(fund.code).trim();
-    if (!code || code.length !== 6) continue;
-    const info = codeToFeeder[code];
-    if (!info || !info.isFeeder || !info.masterCode) continue;
-    const master = await fetchFundFeeFromAPI(info.masterCode);
-    const originalAnnual = fund.annualFee ?? 0;
-    const masterAnnual = (master && typeof master.annualFee === 'number') ? master.annualFee : 0;
-    const penetratedAnnual = originalAnnual + masterAnnual;
-    fund.annualFee = penetratedAnnual;
-    fund.__penetrationInfo = {
-      masterName: info.masterName || `母基金${info.masterCode}`,
-      masterCode: info.masterCode,
-      originalAnnual,
-      masterAnnual,
-      penetratedAnnual
-    };
-  }
-  return funds;
-}
-
-/** 未指定显示区间时，在 [1, CALC_EXTENDED_DAYS] 内算交叉点，显示结束 = max(365, dynamic)，dynamic = max(表格最大天数+100, 最后交叉点+50)；永久段不影响最大天数 */
-const CALC_EXTENDED_DAYS = 7300;
-function getEffectiveMaxDays(funds) {
-  const maxSegmentDays = funds.reduce((acc, f) => {
-    const segs = f.sellFeeSegments ?? [];
-    const finite = segs.filter(s => s.to != null).map(s => s.to);
-    const m = finite.length ? Math.max(...finite) : 0;
-    return Math.max(acc, m);
-  }, 0);
-  const crossovers = findAllCrossovers(funds, CALC_EXTENDED_DAYS);
-  const lastCrossover = crossovers.length ? Math.max(...crossovers.map(c => c.days)) : 0;
-  const dynamic = Math.max(maxSegmentDays + 100, lastCrossover + 50);
-  return Math.max(365, Math.min(dynamic, CALC_EXTENDED_DAYS));
 }
 
 /** 十字线 overlay：仅创建一次并绑定 canvas 事件 */
@@ -1405,245 +948,10 @@ async function renderFundDetailTableForMainPage(funds) {
   });
 }
 
-function renderImportResultsList(container, items) {
-  if (!container) return;
-  container.innerHTML = '';
-  items.forEach((item, index) => {
-    const row = document.createElement('div');
-    row.className = 'fund-import-result-item';
-    row.dataset.index = String(index);
-    row.innerHTML = `
-      <div class="fund-import-result-main">
-        <div class="fund-import-result-line1">
-          <span class="fund-import-result-name">${escapeHtml(item.name || (item.code ? '基金' + item.code : '未命名基金'))}</span>
-          ${item.code ? `<span class="fund-import-result-code">${escapeHtml(item.code)}</span>` : ''}
-          <span class="fund-import-result-badge">${item.code ? '按代码匹配' : '按名称匹配'}</span>
-        </div>
-        <div class="fund-import-result-source">来源：${escapeHtml(item.source || '')}</div>
-      </div>
-      <div class="fund-import-result-actions">
-        <button type="button" class="btn btn-sm btn-secondary fund-import-remove-item">删除</button>
-      </div>
-    `;
-    const removeBtn = row.querySelector('.fund-import-remove-item');
-    if (removeBtn) {
-      removeBtn.addEventListener('click', () => {
-        importParsedItems.splice(index, 1);
-        renderImportResultsList(container, importParsedItems);
-        const emptyHint = document.getElementById('fund-import-empty-hint');
-        if (emptyHint) emptyHint.hidden = importParsedItems.length > 0;
-      });
-    }
-    container.appendChild(row);
-  });
-}
-
-async function applyImportedFunds(items) {
-  for (const item of items) {
-    if (item.code) {
-      const data = await fetchFundFeeFromAPI(item.code);
-      if (data) {
-        addFundCard(data);
-        continue;
-      }
-    }
-    addFundCard({
-      name: item.name || (item.code ? `基金${item.code}` : '未命名基金'),
-      ...(item.code ? { code: item.code } : {})
-    });
-  }
-}
-
-function setupImportModal() {
-  const btn = document.getElementById('import-funds');
-  const backdrop = document.getElementById('fund-import-modal');
-  const confirmBackdrop = document.getElementById('fund-import-confirm-modal');
-  const closeBtn = document.getElementById('fund-import-modal-close');
-  const cancelBtn = document.getElementById('fund-import-modal-cancel');
-  const startBtn = document.getElementById('fund-import-start');
-  const textArea = document.getElementById('fund-import-text');
-  const fileInput = document.getElementById('fund-import-file');
-  const fileNameEl = document.getElementById('fund-import-file-name');
-  const dropzone = document.getElementById('fund-import-dropzone');
-
-  const confirmCloseBtn = document.getElementById('fund-import-confirm-close');
-  const confirmCancelBtn = document.getElementById('fund-import-confirm-cancel');
-  const confirmApplyBtn = document.getElementById('fund-import-confirm-apply');
-  const resultListEl = document.getElementById('fund-import-result-list');
-  const emptyHintEl = document.getElementById('fund-import-empty-hint');
-
-  if (!btn || !backdrop || !textArea || !startBtn || !confirmBackdrop || !resultListEl) return;
-
-  function resetImportState() {
-    importParsedItems = [];
-    if (textArea) textArea.value = '';
-    if (fileInput) fileInput.value = '';
-    if (fileNameEl) fileNameEl.textContent = '';
-    if (resultListEl) resultListEl.innerHTML = '';
-    if (emptyHintEl) emptyHintEl.hidden = true;
-  }
-
-  btn.addEventListener('click', () => {
-    resetImportState();
-    openModal(backdrop);
-    textArea.focus();
-  });
-
-  [closeBtn, cancelBtn].forEach(el => {
-    if (!el) return;
-    el.addEventListener('click', () => {
-      closeModal(backdrop);
-    });
-  });
-
-  if (confirmCloseBtn) {
-    confirmCloseBtn.addEventListener('click', () => {
-      closeModal(confirmBackdrop);
-    });
-  }
-
-  if (confirmCancelBtn) {
-    confirmCancelBtn.addEventListener('click', () => {
-      // 返回导入弹窗：关闭确认弹窗，重新打开导入弹窗
-      closeModal(confirmBackdrop);
-      openModal(backdrop);
-    });
-  }
-
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      if (confirmBackdrop.classList.contains('modal-visible')) {
-        closeModal(confirmBackdrop);
-      } else if (backdrop.classList.contains('modal-visible')) {
-        closeModal(backdrop);
-      }
-    }
-  });
-
-  if (fileInput) {
-    fileInput.addEventListener('change', () => {
-      const file = fileInput.files && fileInput.files[0];
-      if (!fileNameEl) return;
-      if (file) {
-        fileNameEl.textContent = `已选择：${file.name}`;
-      } else {
-        fileNameEl.textContent = '';
-      }
-    });
-  }
-
-  if (dropzone) {
-    ['dragenter', 'dragover'].forEach(evt => {
-      dropzone.addEventListener(evt, (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        dropzone.classList.add('import-file-dragover');
-      });
-    });
-    ['dragleave', 'drop'].forEach(evt => {
-      dropzone.addEventListener(evt, (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        dropzone.classList.remove('import-file-dragover');
-      });
-    });
-    dropzone.addEventListener('drop', (e) => {
-      const dt = e.dataTransfer;
-      if (!dt || !dt.files || dt.files.length === 0 || !fileInput) return;
-      const file = dt.files[0];
-      const dataTransfer = new DataTransfer();
-      dataTransfer.items.add(file);
-      fileInput.files = dataTransfer.files;
-      if (fileNameEl) fileNameEl.textContent = `已选择：${file.name}`;
-    });
-  }
-
-  startBtn.addEventListener('click', async () => {
-    const file = fileInput && fileInput.files && fileInput.files[0];
-    const rawText = textArea.value || '';
-    startBtn.disabled = true;
-    try {
-      // 1) 优先处理 .ziva 快照导入：直接恢复整个页面状态
-      if (file) {
-        const nameLower = file.name.toLowerCase();
-        if (nameLower.endsWith('.ziva')) {
-          try {
-            const txt = await readFileAsText(file);
-            const parsed = JSON.parse(txt);
-            const state = extractStateFromSnapshot(parsed);
-            if (state && state.funds) {
-              closeModal(backdrop);
-              closeModal(confirmBackdrop);
-              restoreState(state);
-              saveState();
-              return;
-            }
-          } catch (e) {
-            // 若解析失败则继续按普通文本/表格逻辑处理
-          }
-        }
-      }
-
-      // 2) 常规导入：文本 / CSV / Excel
-      let items = [];
-      if (file) {
-        const type = file.type || '';
-        const nameLower = file.name.toLowerCase();
-        if (type.startsWith('text/') || nameLower.endsWith('.txt') || nameLower.endsWith('.csv')) {
-          const txt = await readFileAsText(file);
-          const lines = normalizeImportText(txt).split('\n').map(line => {
-            const first = line.split(/[,;\t]/)[0];
-            return first;
-          });
-          items = await parseImportFromLines(lines, ensureSearchIndex);
-        } else if (nameLower.endsWith('.xls') || nameLower.endsWith('.xlsx')) {
-          const lines = await readExcelFirstColumn(file);
-          items = await parseImportFromLines(lines, ensureSearchIndex);
-        }
-      }
-      if (!file || items.length === 0) {
-        const textItems = await parseImportFromText(rawText, ensureSearchIndex);
-        if (textItems.length > 0) {
-          items = textItems;
-        }
-      }
-      importParsedItems = items;
-      closeModal(backdrop);
-      if (!items.length) {
-        importParsedItems = [];
-        resultListEl.innerHTML = '';
-        if (emptyHintEl) emptyHintEl.hidden = false;
-        openModal(confirmBackdrop);
-        return;
-      }
-      renderImportResultsList(resultListEl, items);
-      if (emptyHintEl) emptyHintEl.hidden = items.length > 0;
-      openModal(confirmBackdrop);
-    } finally {
-      startBtn.disabled = false;
-    }
-  });
-
-  confirmApplyBtn?.addEventListener('click', async () => {
-    if (!importParsedItems.length) {
-      closeModal(confirmBackdrop);
-      return;
-    }
-    confirmApplyBtn.disabled = true;
-    try {
-      await applyImportedFunds(importParsedItems);
-      importParsedItems = [];
-      closeModal(confirmBackdrop);
-    } finally {
-      confirmApplyBtn.disabled = false;
-    }
-  });
-}
-
 /** 初始化 */
 function init() {
   document.getElementById('add-fund').addEventListener('click', () => addFundCard());
-  setupImportModal();
+  setupImportModal({ addFundCard, restoreState, saveState, ensureSearchIndex });
   const exportBtn = document.getElementById('export-funds');
   if (exportBtn) {
     exportBtn.addEventListener('click', () => {
@@ -1785,7 +1093,6 @@ function init() {
   initChartFundListToggle();
   const searchInput = document.getElementById('fund-search-input');
   const searchDropdown = document.getElementById('fund-search-dropdown');
-  let searchHighlightIndex = -1;
 
   function isFundAddedByCode(code) {
     const cards = document.querySelectorAll('.fund-card');
@@ -1794,125 +1101,57 @@ function init() {
     return Array.from(cards).some(c => (c.dataset.fundCode || '').trim() === target);
   }
 
-  let lastSearchItems = [];
+  async function selectSearchItem(item) {
+    if (!item || !item.code) return;
+    const data = await fetchFundFeeFromAPI(item.code);
+    const payload = data || { name: item.name || `基金${item.code}`, code: item.code };
+    addFundCard(payload);
+    // 不收起下拉，刷新一次以更新「+ / ✓」状态
+    fundSearchTypeahead?.rerender();
+  }
 
-  function showDropdown(items) {
-    if (!searchDropdown) return;
-    searchHighlightIndex = -1;
-    searchDropdown.innerHTML = '';
-    if (!items || items.length === 0) {
-      lastSearchItems = [];
-      searchDropdown.setAttribute('aria-hidden', 'true');
-      searchDropdown.classList.remove('fund-search-dropdown-visible');
-      return;
-    }
-    lastSearchItems = items;
-    items.forEach((item, i) => {
-      const li = document.createElement('li');
-      li.setAttribute('role', 'option');
-      li.dataset.index = String(i);
-      li.dataset.code = item.code;
-      li.dataset.name = item.name;
-      const added = isFundAddedByCode(item.code);
-      li.innerHTML = `
-        <span class="fund-search-code">${item.code}</span>
-        <span class="fund-search-name">${item.name}</span>
-        <button type="button" class="fund-search-add-btn ${added ? 'added' : ''}" data-code="${item.code}" title="${added ? '已添加，点击移除' : '添加到卡片'}">
-          ${added ? '✓' : '+'}
-        </button>
-      `;
-      li.addEventListener('click', (e) => {
-        if (e.target && e.target.classList.contains('fund-search-add-btn')) return;
-        selectSearchItem(item);
-      });
-      const addBtn = li.querySelector('.fund-search-add-btn');
-      if (addBtn) {
-        addBtn.addEventListener('click', (e) => {
+  let fundSearchTypeahead = null;
+  if (searchInput && searchDropdown) {
+    fundSearchTypeahead = createTypeahead({
+      inputEl: searchInput,
+      dropdownEl: searchDropdown,
+      debounceMs: SEARCH_DEBOUNCE_MS,
+      closeOnSelect: false,
+      clearOnSelect: false,
+      search: async (q) => {
+        const list = await ensureSearchIndex();
+        return filterSearchIndex(list, q);
+      },
+      renderItem: (item, { rerender }) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'fund-search-item-content';
+        const added = isFundAddedByCode(item.code);
+        wrap.innerHTML = `
+          <span class="fund-search-code">${item.code}</span>
+          <span class="fund-search-name">${item.name}</span>
+          <button type="button" class="fund-search-add-btn ${added ? 'added' : ''}" data-typeahead-skip data-code="${item.code}" title="${added ? '已添加，点击移除' : '添加到卡片'}">
+            ${added ? '✓' : '+'}
+          </button>
+        `;
+        const btn = wrap.querySelector('.fund-search-add-btn');
+        btn.addEventListener('click', (e) => {
           e.stopPropagation();
           if (added) {
             removeCardByFundCode(item.code);
-            showDropdown(lastSearchItems);
+            rerender();
           } else {
-            selectSearchItem(item, true);
+            selectSearchItem(item);
           }
         });
-      }
-      searchDropdown.appendChild(li);
-    });
-    searchDropdown.setAttribute('aria-hidden', 'false');
-    searchDropdown.classList.add('fund-search-dropdown-visible');
-  }
-
-  function selectSearchItem(item, fromAddButton = false) {
-    if (!item || !item.code) return;
-    (async () => {
-      const data = await fetchFundFeeFromAPI(item.code);
-      const payload = data || { name: item.name || `基金${item.code}`, code: item.code };
-      addFundCard(payload);
-      // 不收起下拉：用当前列表刷新一次，更新「+ / ✓」状态
-      if (lastSearchItems.length) showDropdown(lastSearchItems);
-    })();
-  }
-
-  function highlightSearchItem(index, items) {
-    const options = searchDropdown.querySelectorAll('[role="option"]');
-    options.forEach((el, i) => el.classList.toggle('fund-search-item-active', i === index));
-    searchHighlightIndex = index;
-    if (index >= 0 && items[index]) {
-      const opt = options[index];
-      if (opt) opt.scrollIntoView({ block: 'nearest' });
-    }
-  }
-
-  if (searchInput && searchDropdown) {
-    let searchDebounceTimer;
-    searchInput.addEventListener('focus', () => ensureSearchIndex());
-    searchInput.addEventListener('input', () => {
-      clearTimeout(searchDebounceTimer);
-      searchDebounceTimer = setTimeout(async () => {
-        const list = await ensureSearchIndex();
-        const q = searchInput.value;
-        const items = filterSearchIndex(list, q);
-        showDropdown(items);
-      }, SEARCH_DEBOUNCE_MS);
-    });
-    searchInput.addEventListener('keydown', (e) => {
-      const options = searchDropdown.querySelectorAll('[role="option"]');
-      const items = Array.from(options).map(el => ({ code: el.dataset.code, name: el.dataset.name }));
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        const next = searchHighlightIndex < items.length - 1 ? searchHighlightIndex + 1 : 0;
-        highlightSearchItem(next, items);
-        return;
-      }
-      if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        const next = searchHighlightIndex <= 0 ? items.length - 1 : searchHighlightIndex - 1;
-        highlightSearchItem(next, items);
-        return;
-      }
-      if (e.key === 'Enter' && items.length > 0) {
-        e.preventDefault();
-        const idx = searchHighlightIndex >= 0 ? searchHighlightIndex : 0;
-        selectSearchItem({ code: items[idx].code, name: items[idx].name });
-        return;
-      }
-      if (e.key === 'Escape') {
-        showDropdown([]);
-        searchInput.blur();
-      }
-    });
-    searchDropdown.addEventListener('mousedown', (e) => e.preventDefault());
-    document.addEventListener('click', (e) => {
-      if (searchDropdown.classList.contains('fund-search-dropdown-visible') && !searchInput.contains(e.target) && !searchDropdown.contains(e.target)) {
-        showDropdown([]);
-      }
+        return wrap;
+      },
+      onSelect: (item) => { selectSearchItem(item); },
     });
   }
   (async () => {
     const appliedCompare = await applyCompareFromCacheSession();
     if (appliedCompare) return;
-    const state = loadState();
+    const state = loadStateFromStorage();
     if (state && state.funds && state.funds.length > 0) {
       restoreState(state);
     } else {

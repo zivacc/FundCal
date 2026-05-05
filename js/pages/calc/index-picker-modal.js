@@ -2,8 +2,9 @@
  * 基金费率计算器 - 指数选择弹窗模块
  */
 
-import { escapeHtml, openModal, closeModal } from './utils.js';
-import { fetchFundStatsFromAPI, fetchFundFeeFromAPI } from './api-adapter.js';
+import { escapeHtml } from '../../utils/format.js';
+import { openModal, closeModal } from '../../utils/dom.js';
+import { fetchFundStatsFromAPI, fetchFundFeeFromAPI } from '../../data/fund-api.js';
 
 let indexPickerStatsCache = null;
 let indexPickerSelectedIndex = null;
