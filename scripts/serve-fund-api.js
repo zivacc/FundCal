@@ -65,7 +65,8 @@ const fundRouter = createFundRouter();
 const server = http.createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, If-None-Match');
+  res.setHeader('Access-Control-Expose-Headers', 'ETag, Cache-Control');
   if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
 
   // 远程拉全量代码（旧行为）

@@ -9,6 +9,8 @@
  * —— 避免把上古时代的基金数据误杀。
  */
 
+import { cachedJsonFetch } from './idb-cache.js';
+
 let _openSet = null;
 let _fromYmd = '';
 let _toYmd = '';
@@ -16,6 +18,7 @@ let _loadingPromise = null;
 
 /**
  * 异步加载交易日历。重复调用复用同一个 Promise，不会发多次请求。
+ * 走 IndexedDB SWR：日历更新频率低（~每年），freshMs 拉到 24h。
  * fetch 失败时不抛异常，返回 null；isTradingDay 会降级放行所有日期。
  */
 export function loadTradeCalendar() {
@@ -23,9 +26,10 @@ export function loadTradeCalendar() {
   if (_loadingPromise) return _loadingPromise;
   _loadingPromise = (async () => {
     try {
-      const res = await fetch('data/allfund/trade-calendar.json');
-      if (!res.ok) return null;
-      const cal = await res.json();
+      const { data: cal } = await cachedJsonFetch('data/allfund/trade-calendar.json', {
+        key: 'trade-calendar',
+        freshMs: 24 * 60 * 60 * 1000,
+      });
       if (!cal || !Array.isArray(cal.openDays)) return null;
       _openSet = new Set(cal.openDays);
       _fromYmd = String(cal.from || '');
