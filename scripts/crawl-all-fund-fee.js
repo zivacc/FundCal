@@ -19,7 +19,6 @@ import { getDb, closeDb } from './nav/db.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const INDEX_PATH = path.join(DATA_DIR, 'index.json');
 const ALLFUND_DIR = path.join(__dirname, '..', 'data', 'allfund');
-const ALLFUND_PATH = path.join(ALLFUND_DIR, 'allfund.json');
 const OVERSEAS_CODES_PATH = path.join(ALLFUND_DIR, 'overseas-codes.json');
 const FUND_LIST_URL = 'http://fund.eastmoney.com/js/fundcode_search.js';
 const HK_FUND_LIST_URL = 'https://overseas.1234567.com.cn/FundList';

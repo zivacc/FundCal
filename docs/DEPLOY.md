@@ -1,14 +1,15 @@
 # 部署与运维指南
 
-支持多种部署方式, **生产环境推荐: 阿里云 ECS + Cloudflare 反代** (见 [§ 五](#五阿里云-ecs--cloudflare-反代-推荐生产)).
+支持多种部署方式, **生产环境推荐: Oracle Cloud Free + Cloudflare 反代** (见 [DEPLOY-ORACLE.md](DEPLOY-ORACLE.md)).
 
-| 方式 | 适用场景 | 数据迁移 | 运维成本 |
+| 方式 | 适用场景 | 数据迁移 | 月成本 |
 |---|---|---|---|
+| **Oracle Cloud Free + CF** | **生产首选** (4c24g 永久免费, IOPS 高) | 0 | **0** |
+| 阿里云 ECS + CF 反代 | 灾备 / 国内极速访问 | 0 | 服务器年付 |
 | 本地开发 | 开发/调试 | 0 | 0 |
 | GitHub Pages | 静态展示 (无 API) | 仅 build-all 产物 | 0 |
+| Cloudflare D1 + R2 | 完全 serverless | 6-7 天分批写 D1 | 0 |
 | Cloudflare Workers + KV | 旧版 (已弃) | KV 全量写超 Free 额度 | — |
-| Cloudflare D1 + R2 | Free tier 边缘部署 | 6-7 天分批写 D1 | 中 |
-| **阿里云 ECS + CF 反代** | **生产推荐** | **0 (sqlite 直接用)** | **低** |
 
 ---
 

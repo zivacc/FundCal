@@ -1,21 +1,21 @@
 /**
- * 基于 data/allfund/allfund.json 生成缓存基金统计数据 data/allfund/fund-stats.json，
- * 并为 tracking 维度补充拼音首字母 initials 字段，供前端按「跟踪指数名称 / 首字母」搜索使用。
+ * 基于 fundcal.db 生成 data/allfund/fund-stats.json (体积 ~1.7 MB, 静态兜底用)
+ * 维度: tracking / manager / benchmark / fundType (与 /api/fund/stats 输出对齐)
  *
- * 使用方式：
- *   node scripts/build-fund-stats.js
+ * 已停产: fund-stats-detail.json (21 MB, 现由 /api/fund/stats/detail 按需提供, 历史归档至 archive/)
+ *
+ * 用法: node scripts/build-fund-stats.js
  */
 
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { pinyin } from 'pinyin-pro';
+import { getDb, closeDb } from './nav/db.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ALLFUND_DIR = path.join(__dirname, '..', 'data', 'allfund');
-const ALLFUND_PATH = path.join(ALLFUND_DIR, 'allfund.json');
 const FUND_STATS_PATH = path.join(ALLFUND_DIR, 'fund-stats.json');
-const FUND_STATS_DETAIL_PATH = path.join(ALLFUND_DIR, 'fund-stats-detail.json');
 
 function getInitials(text) {
   if (!text || typeof text !== 'string') return '';
@@ -27,175 +27,72 @@ function getInitials(text) {
   }
 }
 
-/** 按跟踪标的、基金公司、业绩基准、基金类型聚合统计 */
-function buildStats(allfund) {
-  /** @type {{codes:string[],funds:Record<string, any>}} */
-  const data = allfund;
-  const codes = Array.isArray(data.codes) ? data.codes : Object.keys(data.funds || {});
-  const store = data.funds || {};
+function buildStats(db) {
+  const rows = db.prepare(`
+    SELECT m.code, m.tracking_target,
+      COALESCE(b.management, m.management_crawler) AS manager,
+      COALESCE(b.benchmark, m.benchmark_crawler) AS benchmark,
+      COALESCE(b.fund_type, m.fund_type_crawler) AS fund_type
+    FROM fund_meta m LEFT JOIN fund_basic b ON b.ts_code = m.ts_code
+    WHERE m.source IN ('both', 'crawler')
+  `).all();
 
-  const trackingMap = new Map();  // label -> {label,count,codes:Set}
+  const trackingMap = new Map();
   const managerMap = new Map();
   const benchmarkMap = new Map();
   const fundTypeMap = new Map();
-
-  let total = 0;
   let trackingFundCount = 0;
 
-  for (const code of codes) {
-    const f = store[code];
-    if (!f) continue;
-    total += 1;
+  const inc = (map, key, code) => {
+    const k = key || '';
+    let entry = map.get(k);
+    if (!entry) { entry = { label: k, count: 0, codes: [] }; map.set(k, entry); }
+    entry.count += 1;
+    if (code) entry.codes.push(code);
+  };
 
-    const trackingTarget = (f.trackingTarget || '').trim();
-    const fundManager = (f.fundManager || '').trim();
-    const performanceBenchmark = (f.performanceBenchmark || '').trim();
-    const fundType = (f.fundType || '').trim();
+  for (const r of rows) {
+    const rawTracking = (r.tracking_target || '').trim();
+    const isNoTracking = !rawTracking || rawTracking.includes('该基金无跟踪标的');
+    const fundManager = (r.manager || '').trim();
+    const performanceBenchmark = (r.benchmark || '').trim();
+    const fundType = (r.fund_type || '').trim();
 
-    const isNoTracking = !trackingTarget || trackingTarget === '该基金无跟踪标的' || trackingTarget.includes('该基金无跟踪标的');
     if (!isNoTracking) {
       trackingFundCount += 1;
-      const key = trackingTarget;
-      let entry = trackingMap.get(key);
-      if (!entry) {
-        entry = { label: key, count: 0, codes: new Set() };
-        trackingMap.set(key, entry);
-      }
-      if (!entry.codes.has(code)) {
-        entry.codes.add(code);
-        entry.count += 1;
-      }
+      inc(trackingMap, rawTracking, r.code);
     }
-
-    if (fundManager) {
-      const key = fundManager;
-      let entry = managerMap.get(key);
-      if (!entry) {
-        entry = { label: key, count: 0, codes: new Set() };
-        managerMap.set(key, entry);
-      }
-      if (!entry.codes.has(code)) {
-        entry.codes.add(code);
-        entry.count += 1;
-      }
-    }
-
-    if (performanceBenchmark) {
-      const key = performanceBenchmark;
-      let entry = benchmarkMap.get(key);
-      if (!entry) {
-        entry = { label: key, count: 0, codes: new Set() };
-        benchmarkMap.set(key, entry);
-      }
-      if (!entry.codes.has(code)) {
-        entry.codes.add(code);
-        entry.count += 1;
-      }
-    }
-
-    if (fundType) {
-      const key = fundType;
-      let entry = fundTypeMap.get(key);
-      if (!entry) {
-        entry = { label: key, count: 0, codes: new Set() };
-        fundTypeMap.set(key, entry);
-      }
-      if (!entry.codes.has(code)) {
-        entry.codes.add(code);
-        entry.count += 1;
-      }
-    }
+    if (fundManager) inc(managerMap, fundManager, r.code);
+    if (performanceBenchmark) inc(benchmarkMap, performanceBenchmark, r.code);
+    if (fundType) inc(fundTypeMap, fundType, r.code);
   }
 
-  const toSortedArray = (m) => {
-    return Array.from(m.values())
-      .map(e => ({ label: e.label, count: e.count, codes: Array.from(e.codes) }))
+  const toSortedArray = (m) =>
+    Array.from(m.values())
       .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, 'zh-CN'));
-  };
 
   const tracking = toSortedArray(trackingMap).map(item => ({
     ...item,
     initials: getInitials(item.label),
   }));
 
-  const manager = toSortedArray(managerMap);
-  const benchmark = toSortedArray(benchmarkMap);
-  const fundType = toSortedArray(fundTypeMap);
-
   return {
-    total,
+    total: rows.length,
     trackingFundCount,
     tracking,
-    manager,
-    benchmark,
-    fundType,
-  };
-}
-
-/**
- * 基于聚合结果和 allfund，构建统计维度的基金详情：
- * {
- *   tracking: { [label]: [{code,name,trackingTarget,fundManager,performanceBenchmark}] },
- *   manager:  { ... },
- *   benchmark:{ ... },
- *   fundType: { ... }
- * }
- */
-function buildStatsDetail(allfund, stats) {
-  const data = allfund;
-  const store = data.funds || {};
-
-  const buildDetailForItems = (items) => {
-    const map = {};
-    (items || []).forEach(item => {
-      const label = item.label;
-      const codes = Array.isArray(item.codes) ? item.codes : [];
-      const list = [];
-      for (const code of codes) {
-        const f = store[code];
-        if (!f) continue;
-        list.push({
-          code,
-          name: f.name || '',
-          trackingTarget: (f.trackingTarget || '').trim(),
-          fundManager: (f.fundManager || '').trim(),
-          performanceBenchmark: (f.performanceBenchmark || '').trim(),
-        });
-      }
-      map[label] = list;
-    });
-    return map;
-  };
-
-  return {
-    tracking: buildDetailForItems(stats.tracking),
-    manager: buildDetailForItems(stats.manager),
-    benchmark: buildDetailForItems(stats.benchmark),
-    fundType: buildDetailForItems(stats.fundType),
+    manager: toSortedArray(managerMap),
+    benchmark: toSortedArray(benchmarkMap),
+    fundType: toSortedArray(fundTypeMap),
   };
 }
 
 function main() {
-  if (!fs.existsSync(ALLFUND_PATH)) {
-    console.error(`未找到 allfund 文件：${ALLFUND_PATH}，请先运行 build-allfund.js`);
-    process.exit(1);
-  }
-
-  let allfund;
-  try {
-    allfund = JSON.parse(fs.readFileSync(ALLFUND_PATH, 'utf8'));
-  } catch (e) {
-    console.error('读取或解析 allfund.json 失败：', e);
-    process.exit(1);
-  }
-
-  const stats = buildStats(allfund);
-  const detail = buildStatsDetail(allfund, stats);
+  const db = getDb();
+  const stats = buildStats(db);
   fs.mkdirSync(ALLFUND_DIR, { recursive: true });
   fs.writeFileSync(FUND_STATS_PATH, JSON.stringify(stats), 'utf8');
-  fs.writeFileSync(FUND_STATS_DETAIL_PATH, JSON.stringify(detail), 'utf8');
-  console.log(`已生成 ${FUND_STATS_PATH} 和 ${FUND_STATS_DETAIL_PATH}，total=${stats.total}，trackingFundCount=${stats.trackingFundCount}。`);
+  console.log(`已生成 ${FUND_STATS_PATH}, total=${stats.total}, trackingFundCount=${stats.trackingFundCount}`);
+  closeDb();
 }
 
 main();
-

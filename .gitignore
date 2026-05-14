@@ -5,7 +5,11 @@ node_modules/
 data/funds/
 data/allfund/funds/
 
-# allfund.json 已纳入 Git，供 GitHub Pages 纯静态模式使用
+# 已下线的胖静态产物 (历史归档至 archive/data-allfund/)
+# 走 /api/fund/* 之后这些文件不再生成; 若意外重生说明构建脚本回滚, 别提交
+data/allfund/allfund.json
+data/allfund/list-index.json
+data/allfund/fund-stats-detail.json
 
 # 系统文件
 .DS_Store

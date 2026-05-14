@@ -71,16 +71,17 @@ function runChecks(db) {
     { count: emptyType },
   );
 
-  // C4 — status='L' 但无 nav
+  // C4 — status='L' 但无 nav (仅场外 .OF, 业务只服务场外基金)
   const lNoNavRows = db.prepare(`
     SELECT b.ts_code, b.code, b.name, b.found_date FROM fund_basic b
-    WHERE b.status = 'L'
+    WHERE b.status = 'L' AND b.ts_code LIKE '%.OF'
       AND b.ts_code NOT IN (SELECT DISTINCT ts_code FROM fund_nav)
     LIMIT 10
   `).all();
   const lNoNav = db.prepare(`
     SELECT COUNT(*) AS n FROM fund_basic
-    WHERE status = 'L' AND ts_code NOT IN (SELECT DISTINCT ts_code FROM fund_nav)
+    WHERE status = 'L' AND ts_code LIKE '%.OF'
+      AND ts_code NOT IN (SELECT DISTINCT ts_code FROM fund_nav)
   `).get().n;
   record(
     'C4 status=L 但无 nav',
@@ -174,11 +175,12 @@ function runChecks(db) {
     conflicts,
   );
 
-  // C10 — fund_nav 覆盖率 (有 nav 的基金 / status='L' 总基金)
-  const lTotal = db.prepare("SELECT COUNT(*) AS n FROM fund_basic WHERE status='L'").get().n;
+  // C10 — fund_nav 覆盖率 (仅 .OF, 业务只服务场外)
+  const lTotal = db.prepare("SELECT COUNT(*) AS n FROM fund_basic WHERE status='L' AND ts_code LIKE '%.OF'").get().n;
   const lWithNav = db.prepare(`
     SELECT COUNT(DISTINCT b.ts_code) AS n FROM fund_basic b
-    WHERE b.status='L' AND b.ts_code IN (SELECT ts_code FROM fund_nav)
+    WHERE b.status='L' AND b.ts_code LIKE '%.OF'
+      AND b.ts_code IN (SELECT ts_code FROM fund_nav)
   `).get().n;
   const navCoverage = lTotal > 0 ? lWithNav / lTotal : 1;
   record(

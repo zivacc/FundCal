@@ -96,6 +96,10 @@ deploy_nginx() {
     exit 1
   fi
   log "部署 Nginx 配置..."
+  # 创建 proxy_cache_path 目录 (fundcal.conf 引用)
+  mkdir -p /var/cache/nginx/fundcal
+  chown -R www-data:www-data /var/cache/nginx/fundcal 2>/dev/null || \
+    chown -R nginx:nginx /var/cache/nginx/fundcal 2>/dev/null || true
   cp "$NGINX_CONF_SRC" "$NGINX_CONF_DST"
   # 删 default site 防冲突
   rm -f /etc/nginx/sites-enabled/default
