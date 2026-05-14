@@ -6,10 +6,12 @@
   <title>基金费率计算器</title>
   <link rel="icon" type="image/png" href="pics/bronzecoinlogo.png">
   <link rel="stylesheet" href="css/main.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Source+Serif+4:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css" rel="stylesheet">
+  <!-- 字体走国内 CDN（fonts.loli.net 是 Google Fonts 国内反代；霞鹜文楷走 bootcdn） -->
+  <link rel="preconnect" href="https://fonts.loli.net">
+  <link rel="preconnect" href="https://gstatic.loli.net" crossorigin>
+  <link rel="preconnect" href="https://cdn.bootcdn.net" crossorigin>
+  <link href="https://fonts.loli.net/css2?family=Inter:wght@400;500;600&family=Source+Serif+4:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://cdn.bootcdn.net/ajax/libs/lxgw-wenkai-webfont/1.7.0/style.css" rel="stylesheet">
   <script>
     (function () {
       try {
@@ -18,9 +20,10 @@
       } catch (e) {}
     })();
   </script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+  <!-- 图表库自托管（vendor/）：消除 jsdelivr 阻塞，靠 nginx 1y 缓存 -->
+  <script src="vendor/chart-4.4.1.umd.min.js"></script>
+  <script src="vendor/chartjs-plugin-annotation-3.0.1.min.js"></script>
+  <script src="vendor/echarts-5.5.1.min.js"></script>
 </head>
 <body>
   <!-- 顶部导航条 -->
@@ -478,7 +481,7 @@
         <div class="nav-toolbar-row">
           <div class="fund-search-wrap nav-search-wrap">
             <input type="text" id="nav-fund-search" class="fund-search-input"
-              placeholder="添加基金（代码 / 名称 / 拼音首字母）" autocomplete="off">
+              placeholder="添加基金/指数（代码 / 名称 / 拼音首字母）" autocomplete="off">
             <ul id="nav-fund-search-dropdown" class="fund-search-dropdown" role="listbox" aria-hidden="true"></ul>
           </div>
           <button type="button" class="btn btn-sm btn-secondary" id="nav-clear-funds">清空</button>

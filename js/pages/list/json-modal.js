@@ -13,6 +13,7 @@
  *                   若代码缺失会按需 fetch `data/allfund/funds/<code>.json` 并把结果写回该对象。
  */
 import { openModal, closeModal } from '../../utils/dom.js';
+import { fetchFundRawFromAPI } from '../../data/fund-api.js';
 
 /**
  * @param {Object} opts
@@ -109,15 +110,12 @@ export function setupJsonModal({ tbody, fundDetailMap }) {
       if (!code) return;
       currentFundCode = code;
 
-      // 内存中无该基金详情时，按需从分片文件加载（allfund.json 已被列表预加载部分覆盖）
+      // 内存中无该基金详情时，按需 fetch (API 优先, 静态分片兜底)
       let detail = fundDetailMap[code] || null;
       if (!detail) {
         try {
-          const res = await fetch(`data/allfund/funds/${code}.json`);
-          if (res.ok) {
-            detail = await res.json();
-            fundDetailMap[code] = detail;
-          }
+          detail = await fetchFundRawFromAPI(code);
+          if (detail) fundDetailMap[code] = detail;
         } catch (err) {
           console.error('加载基金详情失败:', err);
         }

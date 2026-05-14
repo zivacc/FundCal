@@ -36,6 +36,15 @@
   transition: background var(--transition-fast), color var(--transition-fast);
 }
 
+/* 包裹一层 div 时, 让其本身成为 flex 容器, 否则内部的 flex:1 不生效, +按钮无法靠右. */
+.fund-search-item-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+}
+
 .fund-search-dropdown [role="option"]:hover,
 .fund-search-dropdown [role="option"].fund-search-item-active {
   background: var(--bg-hover);
