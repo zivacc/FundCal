@@ -1,17 +1,7 @@
-function getFeeApiBase() {
-  if (typeof window !== 'undefined' && window.FUND_FEE_API_BASE) {
-    return window.FUND_FEE_API_BASE;
-  }
-  if (typeof window !== 'undefined') {
-    const h = window.location.hostname;
-    if (h === 'localhost' || h === '127.0.0.1') {
-      return 'http://localhost:3457/api/fund';
-    }
-    if (h.endsWith('.github.io')) return null;
-    return '/api/fund';
-  }
-  return 'http://localhost:3457/api/fund';
-}
+// 单一事实来源：与 fund-api.js 共用同一份 base 解析逻辑，避免分叉（参见 docs/audit-data-flow.md P2 #5）。
+// search-index 同时被 fund-api.js 通过 IndexedDB 缓存，所以这里复用它派生 code→name 映射，
+// 而不是再去拉一份从未产出的 data/allfund/code-name-map.json（P1 #3）。
+import { getFeeApiBase, fetchSearchIndexFromAPI } from '../../data/fund-api.js';
 
 const STATS_PAGE_SIZE = 100;
 const COMPARE_SESSION_KEY = 'fundCalCompareFromCache';
@@ -20,64 +10,35 @@ let currentStatsKey = 'tracking';
 let statsLoadedCounts = {};
 let statsObserver = null;
 let fundDetailCache = {};
-let statsDetail = null;
 const fundStatsSelectedCompareCodes = new Set();
 let currentDetailFunds = [];
 
-// 静态模式下的 allfund.json 缓存，供明细回退使用（避免每次点击都重新加载大文件）
-let allfundStoreCache = null;
-let allfundStoreLoading = null;
-
-// 静态模式下的「代码 -> 基金名称」映射，体积较小，优先用于补全名称
+// 「代码 -> 基金名称」映射：从已经被 IDB 缓存的 search-index 派生，
+// 不再拉一份独立的 data/allfund/code-name-map.json（该文件从未被任何脚本生成）。
+// 详见 docs/audit-data-flow.md P1 #3。
 let codeNameMapCache = null;
 let codeNameMapLoading = null;
-
-async function ensureAllfundStore() {
-  if (allfundStoreCache) return allfundStoreCache;
-  if (allfundStoreLoading) return allfundStoreLoading;
-  allfundStoreLoading = (async () => {
-    try {
-      const res = await fetch('data/allfund/allfund.json').catch(() => null);
-      if (!res || !res.ok) return {};
-      const data = await res.json();
-      const store = data.funds || data || {};
-      /** @type {Record<string, any>} */
-      const byCode = {};
-      for (const code of Object.keys(store)) {
-        byCode[code] = store[code];
-      }
-      allfundStoreCache = byCode;
-      return byCode;
-    } catch {
-      allfundStoreCache = {};
-      return {};
-    } finally {
-      allfundStoreLoading = null;
-    }
-  })();
-  return allfundStoreLoading;
-}
 
 async function ensureCodeNameMap() {
   if (codeNameMapCache) return codeNameMapCache;
   if (codeNameMapLoading) return codeNameMapLoading;
   codeNameMapLoading = (async () => {
     try {
-      const res = await fetch('data/allfund/code-name-map.json').catch(() => null);
-      if (!res || !res.ok) {
-        codeNameMapCache = {};
-        return {};
+      const list = await fetchSearchIndexFromAPI();
+      const map = Object.create(null);
+      if (Array.isArray(list)) {
+        for (const it of list) {
+          if (!it) continue;
+          const c = String(it.code || '').trim();
+          if (c.length !== 6) continue;
+          map[c] = it.name || '';
+        }
       }
-      const data = await res.json();
-      if (!data || typeof data !== 'object') {
-        codeNameMapCache = {};
-        return {};
-      }
-      codeNameMapCache = data;
-      return data;
+      codeNameMapCache = map;
+      return map;
     } catch {
-      codeNameMapCache = {};
-      return {};
+      codeNameMapCache = Object.create(null);
+      return codeNameMapCache;
     } finally {
       codeNameMapLoading = null;
     }
@@ -87,10 +48,6 @@ async function ensureCodeNameMap() {
 
 // 跟踪指数搜索时复用 name 的拼音首字母索引：code -> initials
 let searchIndexInitialsMap = null;
-
-function getFeeApiBaseSafe() {
-  return getFeeApiBase();
-}
 
 function setStatus(msg, isError = false) {
   const el = document.getElementById('fund-stats-status');
@@ -218,7 +175,7 @@ async function ensureSearchIndexInitialsMap() {
   if (searchIndexInitialsMap) return searchIndexInitialsMap;
   searchIndexInitialsMap = new Map();
   let list = null;
-  const base = getFeeApiBaseSafe();
+  const base = getFeeApiBase();
   if (base) {
     try {
       const url = base.endsWith('/') ? `${base}search-index` : `${base}/search-index`;
@@ -354,7 +311,7 @@ function getViewItemByLabel(viewKey, label) {
 
 async function fetchFundDetailByCode(code) {
   if (fundDetailCache[code]) return fundDetailCache[code];
-  const base = getFeeApiBaseSafe();
+  const base = getFeeApiBase();
   if (base) {
     try {
       const url = base.endsWith('/') ? `${base}${code}/fee` : `${base}/${code}/fee`;
@@ -364,10 +321,10 @@ async function fetchFundDetailByCode(code) {
         fundDetailCache[code] = data;
         return data;
       }
-    } catch { /* 尝试静态回退 */ }
+    } catch { /* 尝试静态分片回退 */ }
   }
-  
-  // 优化：静态模式下优先按需从分片加载，避免频繁读取庞大的 allfund.json
+
+  // 静态分片兜底
   try {
     const res = await fetch(`data/allfund/funds/${code}.json`);
     if (res.ok) {
@@ -377,18 +334,6 @@ async function fetchFundDetailByCode(code) {
     }
   } catch (err) {
     console.error(`加载基金 ${code} 详情失败:`, err);
-  }
-
-  // 回退：如分片不存在，则从 allfund.json 中按代码查找一次
-  try {
-    const store = await ensureAllfundStore();
-    const data = store && store[code];
-    if (data) {
-      fundDetailCache[code] = data;
-      return data;
-    }
-  } catch (err) {
-    console.error(`从 allfund.json 回退查找基金 ${code} 失败:`, err);
   }
 
   fundDetailCache[code] = null;
@@ -401,18 +346,27 @@ async function loadFundsForCard(viewKey, label) {
     return { meta: item, funds: [] };
   }
 
-  // 0. 纯静态部署（无 API）且存在预生成的统计详情文件时，优先直接使用静态详情，避免逐只请求
-  const base = getFeeApiBaseSafe();
-  if (!base && statsDetail && statsDetail[viewKey] && statsDetail[viewKey][label]) {
-    const list = statsDetail[viewKey][label] || [];
-    const funds = list.map(data => ({
-      code: data.code,
-      name: data.name || '',
-      trackingTarget: (data.trackingTarget || '').trim(),
-      fundManager: (data.fundManager || '').trim(),
-      performanceBenchmark: (data.performanceBenchmark || '').trim(),
-    }));
-    return { meta: item, funds };
+  // 0. API 优先: 一次拉本分组的完整明细 (替代旧 fund-stats-detail.json 21MB 全量加载)
+  const base = getFeeApiBase();
+  if (base) {
+    try {
+      const sep = base.endsWith('/') ? '' : '/';
+      const url = `${base}${sep}stats/detail?dim=${encodeURIComponent(viewKey)}&label=${encodeURIComponent(label)}`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const list = await res.json();
+        if (Array.isArray(list)) {
+          const funds = list.map(data => ({
+            code: data.code,
+            name: data.name || '',
+            trackingTarget: (data.trackingTarget || '').trim(),
+            fundManager: (data.fundManager || '').trim(),
+            performanceBenchmark: (data.performanceBenchmark || '').trim(),
+          }));
+          return { meta: item, funds };
+        }
+      }
+    } catch { /* API 不通则按 codes 逐只回退 */ }
   }
 
   const codes = item.codes;
@@ -695,20 +649,23 @@ async function loadStats() {
     setStatus('正在加载统计数据...');
     setProgress(10);
     
-    // 1. 加载统计聚合数据 (该文件由 build-fund-stats.js 生成，体积较小)
-    const statsRes = await fetch('data/allfund/fund-stats.json');
-    if (!statsRes.ok) {
-      throw new Error('无法读取 fund-stats.json');
+    // 1. 加载统计聚合数据 (API 优先, 静态兜底; fund-stats.json 体积小可保留)
+    let statsData = null;
+    const base = getFeeApiBase();
+    if (base) {
+      try {
+        const sep = base.endsWith('/') ? '' : '/';
+        const r = await fetch(`${base}${sep}stats`);
+        if (r.ok) statsData = await r.json();
+      } catch { /* fall through to static */ }
     }
-    const statsData = await statsRes.json();
+    if (!statsData) {
+      const statsRes = await fetch('data/allfund/fund-stats.json');
+      if (!statsRes.ok) throw new Error('无法读取 fund-stats.json');
+      statsData = await statsRes.json();
+    }
 
-    // 2. 尝试加载预生成的统计详情数据（静态部署下用于直接展示基金名称等信息）
-    try {
-      const detailRes = await fetch('data/allfund/fund-stats-detail.json');
-      if (detailRes.ok) {
-        statsDetail = await detailRes.json();
-      }
-    } catch { /* ignore */ }
+    // 注: 旧 fund-stats-detail.json (21MB) 已下线; 卡片明细由 /api/fund/stats/detail 按需提供
 
     setProgress(50);
 

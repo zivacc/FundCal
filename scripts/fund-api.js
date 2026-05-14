@@ -14,12 +14,12 @@
  * 智能回退：fund_basic 非空用 fund_basic，否则用 *_crawler 影子列。
  */
 
-import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
 import { pinyin } from 'pinyin-pro';
 import { getDb } from './nav/db.js';
+import { jsonCached } from './nav/http-cache.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
@@ -169,8 +169,20 @@ function loadList(db, fields, sourceFilter) {
   const rows = db.prepare(`${FULL_SELECT} ${where} ORDER BY m.code`).all(...params);
 
   if (fields !== 'full') {
+    // 列表页要展示赎回阶梯，summary 也带 sell/redeem 分段
+    const segRows = db.prepare(`
+      SELECT ts_code, kind, seq, to_days, rate FROM fund_fee_segments
+      WHERE kind IN ('sell', 'redeem') ORDER BY ts_code, kind, seq
+    `).all();
+    const segMap = new Map();
+    for (const s of segRows) {
+      let bucket = segMap.get(s.ts_code);
+      if (!bucket) { bucket = { sell: [], redeem: [] }; segMap.set(s.ts_code, bucket); }
+      bucket[s.kind].push({ to: s.to_days, rate: s.rate });
+    }
     return rows.map(row => {
       const name = smartPick(row.name, row.name_crawler) || '';
+      const segs = segMap.get(row.ts_code) || { sell: [], redeem: [] };
       return {
         code: row.code,
         name,
@@ -181,6 +193,8 @@ function loadList(db, fields, sourceFilter) {
         needsCrawl: row.source === 'tushare',
         buyFee: row.buy_fee ?? 0,
         annualFee: row.annual_fee ?? 0,
+        sellFeeSegments: segs.sell,
+        redeemSegments: segs.redeem,
         fundType: smartPick(row.fund_type, row.fund_type_crawler) || '',
         trackingTarget: row.tracking_target || '',
         performanceBenchmark: smartPick(row.benchmark, row.benchmark_crawler) || '',
@@ -238,11 +252,12 @@ function loadSearchIndex(db) {
 }
 
 function loadStats(db) {
-  // 三维聚合，仅取 crawler-having (有费率/规模等)
+  // 四维聚合 (tracking/manager/benchmark/fundType)，仅取 crawler-having
   const rows = db.prepare(`
     SELECT m.code, m.tracking_target,
       COALESCE(b.management, m.management_crawler) AS manager,
-      COALESCE(b.benchmark, m.benchmark_crawler) AS benchmark
+      COALESCE(b.benchmark, m.benchmark_crawler) AS benchmark,
+      COALESCE(b.fund_type, m.fund_type_crawler) AS fund_type
     FROM fund_meta m LEFT JOIN fund_basic b ON b.ts_code = m.ts_code
     WHERE m.source IN ('both','crawler')
   `).all();
@@ -250,6 +265,7 @@ function loadStats(db) {
   const trackingMap = new Map();
   const managerMap = new Map();
   const benchmarkMap = new Map();
+  const fundTypeMap = new Map();
   let trackingFundCount = 0;
 
   const inc = (map, key, code) => {
@@ -265,10 +281,12 @@ function loadStats(db) {
     const tracking = isNoTracking ? '无跟踪标的' : rawTracking;
     const manager = (r.manager || '').trim() || '未知基金公司';
     const benchmark = (r.benchmark || '').trim() || '无业绩基准';
+    const fundType = (r.fund_type || '').trim();
     if (!isNoTracking) trackingFundCount++;
     inc(trackingMap, tracking, r.code);
     inc(managerMap, manager, r.code);
     inc(benchmarkMap, benchmark, r.code);
+    if (fundType) inc(fundTypeMap, fundType, r.code);
   }
 
   const toArray = (map) =>
@@ -282,7 +300,69 @@ function loadStats(db) {
     tracking: toArray(trackingMap).filter(x => !x.label.includes('无跟踪标的')),
     manager: toArray(managerMap),
     benchmark: toArray(benchmarkMap),
+    fundType: toArray(fundTypeMap),
   };
+}
+
+/**
+ * 单分组明细 (替代 fund-stats-detail.json，按需查)。
+ *
+ * @param {*} db
+ * @param {'tracking'|'manager'|'benchmark'|'fundType'} dim
+ * @param {string} label  分组标签 (含 "无跟踪标的"/"未知基金公司"/"无业绩基准" 哨兵)
+ * @returns {Array<{code,name,trackingTarget,fundManager,performanceBenchmark}>|null}
+ */
+function loadStatsDetail(db, dim, label) {
+  if (label == null) return null;
+  let where = '';
+  let param;
+  switch (dim) {
+    case 'tracking':
+      if (label === '无跟踪标的') {
+        where = "(m.tracking_target IS NULL OR trim(m.tracking_target) = '' OR m.tracking_target LIKE '%该基金无跟踪标的%')";
+      } else {
+        where = 'trim(m.tracking_target) = ?'; param = label;
+      }
+      break;
+    case 'manager':
+      if (label === '未知基金公司') {
+        where = "trim(COALESCE(b.management, m.management_crawler, '')) = ''";
+      } else {
+        where = "trim(COALESCE(b.management, m.management_crawler, '')) = ?"; param = label;
+      }
+      break;
+    case 'benchmark':
+      if (label === '无业绩基准') {
+        where = "trim(COALESCE(b.benchmark, m.benchmark_crawler, '')) = ''";
+      } else {
+        where = "trim(COALESCE(b.benchmark, m.benchmark_crawler, '')) = ?"; param = label;
+      }
+      break;
+    case 'fundType':
+      if (!label.trim()) return null;
+      where = "trim(COALESCE(b.fund_type, m.fund_type_crawler, '')) = ?"; param = label;
+      break;
+    default:
+      return null;
+  }
+  const sql = `
+    SELECT m.code, COALESCE(b.name, m.name_crawler) AS name,
+      m.tracking_target,
+      COALESCE(b.management, m.management_crawler) AS manager,
+      COALESCE(b.benchmark, m.benchmark_crawler) AS benchmark
+    FROM fund_meta m LEFT JOIN fund_basic b ON b.ts_code = m.ts_code
+    WHERE m.source IN ('both','crawler') AND ${where}
+    ORDER BY m.code
+  `;
+  const stmt = db.prepare(sql);
+  const rows = param != null ? stmt.all(param) : stmt.all();
+  return rows.map(r => ({
+    code: r.code,
+    name: r.name || '',
+    trackingTarget: (r.tracking_target || '').trim(),
+    fundManager: (r.manager || '').trim(),
+    performanceBenchmark: (r.benchmark || '').trim(),
+  }));
 }
 
 function loadCodes(db, sourceFilter) {
@@ -312,104 +392,12 @@ function runCrawl(code) {
   });
 }
 
-const SEGMENT_KIND_FROM_KEY = {
-  subscribeFrontSegments: 'subscribe_front',
-  purchaseFrontSegments:  'purchase_front',
-  purchaseBackSegments:   'purchase_back',
-  redeemSegments:         'redeem',
-  sellFeeSegments:        'sell',
-};
-
-function normalizeDate(s) {
-  if (!s) return null;
-  const t = String(s).trim();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
-  if (/^\d{8}$/.test(t)) return `${t.slice(0,4)}-${t.slice(4,6)}-${t.slice(6,8)}`;
-  return null;
-}
-
-/** 单基金 ETL：从 data/funds/<code>.json 读取并 upsert 入 DB（与 migrate-crawler-to-db 行为一致） */
-function upsertSingleFundFromCrawler(db, code) {
-  const fp = path.join(ROOT, 'data', 'funds', `${code}.json`);
-  if (!fs.existsSync(fp)) return { ok: false, reason: 'crawler JSON 不存在' };
-  let crawler;
-  try { crawler = JSON.parse(fs.readFileSync(fp, 'utf8')); }
-  catch (e) { return { ok: false, reason: 'JSON 解析失败：' + e.message }; }
-
-  const tushare = db.prepare('SELECT * FROM fund_basic WHERE code = ?').get(code);
-  const isMatched = !!tushare;
-  const tsCode = tushare ? tushare.ts_code : `${code}.OF`;
-
-  if (!isMatched) {
-    db.prepare(`
-      INSERT OR REPLACE INTO fund_basic
-        (ts_code, code, name, management, fund_type, found_date, benchmark, status, market, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, NULL, NULL, datetime('now'))
-    `).run(
-      tsCode, code,
-      crawler.name || null,
-      crawler.fundManager || null,
-      crawler.fundType || null,
-      normalizeDate(crawler.establishmentDate)?.replace(/-/g, '') || null,
-      crawler.performanceBenchmark || null,
-    );
-  }
-
-  const op = crawler.operationFees || {};
-  const ns = crawler.netAssetScale || {};
-  const ts = crawler.tradingStatus || {};
-  db.prepare(`
-    INSERT OR REPLACE INTO fund_meta (
-      ts_code, code, source,
-      tracking_target, trading_subscribe, trading_redeem,
-      buy_fee, annual_fee, is_floating_annual_fee,
-      mgmt_fee, custody_fee, sales_service_fee, operation_fee_total,
-      net_asset_text, net_asset_amount_text, net_asset_as_of,
-      stage_returns_as_of, crawler_updated_at, found_date_normalized,
-      name_crawler, fund_type_crawler, management_crawler, benchmark_crawler, found_date_crawler,
-      updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-  `).run(
-    tsCode, code, isMatched ? 'both' : 'crawler',
-    crawler.trackingTarget || null,
-    ts.subscribe || null, ts.redeem || null,
-    crawler.buyFee ?? null, crawler.annualFee ?? null, crawler.isFloatingAnnualFee ? 1 : 0,
-    op.managementFee ?? null, op.custodyFee ?? null, op.salesServiceFee ?? null, op.total ?? null,
-    ns.text || null, ns.amountText || null, ns.asOfDate || null,
-    crawler.stageReturnsAsOf || null, crawler.updatedAt || null,
-    normalizeDate((isMatched ? tushare.found_date : null) || crawler.establishmentDate),
-    crawler.name || null, crawler.fundType || null, crawler.fundManager || null,
-    crawler.performanceBenchmark || null, normalizeDate(crawler.establishmentDate),
-  );
-
-  // 替换 segments
-  db.prepare('DELETE FROM fund_fee_segments WHERE ts_code = ?').run(tsCode);
-  const insSeg = db.prepare(
-    'INSERT INTO fund_fee_segments (ts_code, kind, seq, to_days, rate) VALUES (?, ?, ?, ?, ?)'
-  );
-  for (const [crKey, kind] of Object.entries(SEGMENT_KIND_FROM_KEY)) {
-    const arr = crawler[crKey];
-    if (!Array.isArray(arr)) continue;
-    arr.forEach((s, i) => {
-      const to = s.to !== undefined ? s.to : null;
-      insSeg.run(tsCode, kind, i, to, s.rate ?? null);
-    });
-  }
-
-  // 替换 stage returns
-  db.prepare('DELETE FROM fund_stage_returns WHERE ts_code = ?').run(tsCode);
-  if (Array.isArray(crawler.stageReturns)) {
-    const insStage = db.prepare(
-      'INSERT INTO fund_stage_returns (ts_code, period, return_pct, return_text) VALUES (?, ?, ?, ?)'
-    );
-    for (const sr of crawler.stageReturns) {
-      if (!sr || !sr.period) continue;
-      insStage.run(tsCode, sr.period, sr.returnPct ?? null, sr.returnText ?? null);
-    }
-  }
-
-  return { ok: true, source: isMatched ? 'both' : 'crawler' };
-}
+/**
+ * NOTE: 历史 `upsertSingleFundFromCrawler` 已删除。`crawl-fund-fee.js` 子进程默认
+ * 直写 DB，不再产 `data/funds/<code>.json`，所以再读 JSON 二次入库永远 reason="crawler
+ * JSON 不存在"。`POST /api/fund/:code/crawl` 现在以子进程 exitCode === 0 为成功判据。
+ * 参见 docs/audit-data-flow.md 表格 P0 #2。
+ */
 
 export function createFundRouter() {
   return async function fundRouter(req, res) {
@@ -428,12 +416,10 @@ export function createFundRouter() {
             json(res, 500, { ok: false, code, exitCode: result.exitCode, stderr: result.stderr.slice(0, 500) });
             return true;
           }
-          const ingestResult = upsertSingleFundFromCrawler(db, code);
-          if (!ingestResult.ok) {
-            json(res, 500, { ok: false, code, error: '爬取成功但入 DB 失败：' + ingestResult.reason });
-            return true;
-          }
-          json(res, 200, { ok: true, code, source: ingestResult.source, message: '爬取并入 DB 完成' });
+          // 子进程 exitCode === 0 即表示 crawl-fund-fee.js 已成功直写 DB（fund_basic/fund_meta/fund_fee_segments/fund_stage_returns）。
+          // 历史的 upsertSingleFundFromCrawler 是从 data/funds/<code>.json 二次入库，而现在子进程默认不再产 JSON，
+          // 所以已经被移除，避免 “爬取成功但入 DB 失败：crawler JSON 不存在” 的误报。
+          json(res, 200, { ok: true, code, message: '爬取并入 DB 完成' });
         } catch (e) {
           json(res, 500, { ok: false, code, error: e.message });
         }
@@ -448,7 +434,8 @@ export function createFundRouter() {
     if (/^\/api\/fund\/list\/?$/.test(urlPath)) {
       try {
         const data = loadList(db, qs.fields || 'summary', qs.source || '');
-        json(res, 200, data);
+        // 列表 ETL 天级更新；max-age=300 (5min) + ETag 让重访短路
+        jsonCached(req, res, data, { maxAge: 300, scope: 'public' });
       } catch (e) {
         json(res, 500, { error: e.message });
       }
@@ -457,21 +444,35 @@ export function createFundRouter() {
 
     // GET /api/fund/codes
     if (/^\/api\/fund\/codes\/?$/.test(urlPath)) {
-      try { json(res, 200, { codes: loadCodes(db, qs.source) }); }
+      try { jsonCached(req, res, { codes: loadCodes(db, qs.source) }, { maxAge: 300, scope: 'public' }); }
       catch (e) { json(res, 500, { error: e.message }); }
       return true;
     }
 
     // GET /api/fund/search-index
     if (/^\/api\/fund\/search-index\/?$/.test(urlPath)) {
-      try { json(res, 200, loadSearchIndex(db)); }
+      try { jsonCached(req, res, loadSearchIndex(db), { maxAge: 600, scope: 'public' }); }
       catch (e) { json(res, 500, { error: e.message }); }
+      return true;
+    }
+
+    // GET /api/fund/stats/detail?dim=...&label=...
+    if (/^\/api\/fund\/stats\/detail\/?$/.test(urlPath)) {
+      try {
+        const dim = qs.dim || '';
+        const label = qs.label != null ? qs.label : '';
+        const data = loadStatsDetail(db, dim, label);
+        if (data == null) { json(res, 400, { error: 'dim/label 参数错误', dim, label }); return true; }
+        jsonCached(req, res, data, { maxAge: 600, scope: 'public' });
+      } catch (e) {
+        json(res, 500, { error: e.message });
+      }
       return true;
     }
 
     // GET /api/fund/stats
     if (/^\/api\/fund\/stats\/?$/.test(urlPath)) {
-      try { json(res, 200, loadStats(db)); }
+      try { jsonCached(req, res, loadStats(db), { maxAge: 600, scope: 'public' }); }
       catch (e) { json(res, 500, { error: e.message }); }
       return true;
     }
@@ -482,7 +483,7 @@ export function createFundRouter() {
       try {
         const data = loadOne(db, codeMatch[1]);
         if (!data) { json(res, 404, { error: '基金不存在', code: codeMatch[1] }); return true; }
-        json(res, 200, data);
+        jsonCached(req, res, data, { maxAge: 300, scope: 'public' });
       } catch (e) {
         json(res, 500, { error: e.message });
       }
