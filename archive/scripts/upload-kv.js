@@ -88,7 +88,7 @@ function uploadFundData() {
 
   if (!fs.existsSync(ALLFUND_PATH)) {
     console.error(`  错误: 未找到 ${ALLFUND_PATH}`);
-    console.error('  请先运行 node scripts/build-allfund.js 生成 allfund.json');
+    console.error('  请先运行 npm run build-allfund (即 build-allfund-from-db.js) 生成 allfund.json');
     process.exit(1);
   }
 

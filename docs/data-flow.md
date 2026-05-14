@@ -106,11 +106,13 @@ sync_log         同步日志 (审计 + 失败重放游标)
              │
              v
 [E] build-allfund-from-db.js
-  生成 data/allfund/{allfund.json, funds/<code>.json,
-       search-index.json, list-index.json}
+  生成 data/allfund/{funds/<code>.json, search-index.json,
+       index-search-index.json}
+  (旧 allfund.json / list-index.json 已下线 → archive/)
              │
              v
-[F] 静态资源 → 前端 / Cloudflare Pages
+[F] /api/fund/* (主路径) + 小静态产物 (灾备)
+    生产前端走 API + nginx 微缓存 + Cloudflare 边缘缓存
 ```
 
 ---
@@ -126,6 +128,10 @@ sync_log         同步日志 (审计 + 失败重放游标)
 | [scripts/nav/sync-fund-daily.js](../scripts/nav/sync-fund-daily.js) | 拉 Tushare 场内日线 (`fund_daily` API, 用于 ETF/LOF; close→unit_nav) | `--codes`, `--all`, `--all --include-dead`, `--full`, `--concurrency` |
 | [scripts/nav/sync-trade-calendar.js](../scripts/nav/sync-trade-calendar.js) | 拉 Tushare 交易日历 (`trade_cal` API, SSE) → `trade_calendar` 表 | `--full`, `--start`, `--end` |
 | [scripts/nav/crawl-eastmoney-nav.js](../scripts/nav/crawl-eastmoney-nav.js) | 天天基金 lsjz 接口补 nav (LOF / Reits / 子类 — tushare 给 0 行的场外基金) | `--codes`, `--missing`, `--full`, `--concurrency`, `--limit` |
+| [scripts/nav/sync-index-basic.js](../scripts/nav/sync-index-basic.js) | 拉 Tushare `index_basic` (SSE/SZSE/CSI/SW/MSCI/CICC/OTH) → `index_basic` + `index_source_map` | `--market`, `--markets` |
+| [scripts/nav/sync-index-daily.js](../scripts/nav/sync-index-daily.js) | 拉 Tushare `index_daily` 日线 → `index_daily` (source=1) | `--codes`, `--tracked`, `--all`, `--full`, `-c` |
+| [scripts/nav/crawl-em-index.js](../scripts/nav/crawl-em-index.js) | 东财 push2his 兜底拉指数日线 → `index_daily` (source=2) | `--codes` (secid), `--tracked`, `--all-em`, `--full` |
+| [scripts/nav/import-custom-index.js](../scripts/nav/import-custom-index.js) | 自定义源 (CSV/JSON) 导入指数日线 → `index_daily` (source=6) | `--ts-code`, `--file`, `--format` |
 | [scripts/crawl-fund-fee.js](../scripts/crawl-fund-fee.js) | 爬单只基金费率 (直写 DB) | `<code> [--keep-json]` |
 | [scripts/crawl-all-fund-fee.js](../scripts/crawl-all-fund-fee.js) | 爬全量基金费率 | `--force`, `--concurrency=N`, `--limit=N`, `--keep-json` |
 
@@ -144,9 +150,8 @@ sync_log         同步日志 (审计 + 失败重放游标)
 
 | 脚本 | 作用 |
 |---|---|
-| [scripts/build-allfund-from-db.js](../scripts/build-allfund-from-db.js) | DB → `data/allfund/*` 静态分片 + 索引 |
+| [scripts/build-allfund-from-db.js](../scripts/build-allfund-from-db.js) | DB → `data/allfund/*` 静态分片 + 索引（含 search-index、feeder-index、fund-stats） |
 | [scripts/build-trade-calendar.js](../scripts/build-trade-calendar.js) | `trade_calendar` 表 → `data/allfund/trade-calendar.json` (前端用) |
-| [scripts/build-search-index.js](../scripts/build-search-index.js) | 单独构建搜索索引 |
 | [scripts/build-feeder-index.js](../scripts/build-feeder-index.js) | 构建联接基金索引 |
 | [scripts/build-fund-stats.js](../scripts/build-fund-stats.js) | 构建统计数据 |
 
@@ -155,7 +160,10 @@ sync_log         同步日志 (审计 + 失败重放游标)
 | 脚本 | 状态 |
 |---|---|
 | [scripts/migrate-crawler-to-db.js](../scripts/migrate-crawler-to-db.js) | **已弃用** (爬虫已直写 DB)。仅作从 `data/funds/*.json` 备份重建 DB 的灾备脚本保留 |
-| [scripts/build-allfund.js](../scripts/build-allfund.js) | **已弃用**。被 `build-allfund-from-db.js` 替代 |
+| [archive/scripts/build-allfund.js](../archive/scripts/build-allfund.js) | **已归档**。被 `build-allfund-from-db.js` 替代 |
+| [archive/scripts/build-search-index.js](../archive/scripts/build-search-index.js) | **已归档**。依赖下线的 `data/funds/*.json`；search-index 改由 `build-allfund-from-db.js` 产出 |
+| [archive/scripts/check-allfund.js](../archive/scripts/check-allfund.js) | **已归档**。依赖下线的 `allfund.json` |
+| [archive/scripts/upload-kv.js](../archive/scripts/upload-kv.js) | **已归档**。Cloudflare Workers + KV 全量模式已弃（见 `docs/cloudflare-migration.md`） |
 | [scripts/migrate-segments.js](../scripts/migrate-segments.js) | 一次性 schema 迁移已完成 |
 
 ---
@@ -277,6 +285,92 @@ ETF / LOF 等场内基金, tushare 在 .OF 端不给 nav (给在 .SH/.SZ 经 `fu
 
 ---
 
-## 11. 部署与生产环境
+## 11. 指数 (index_*) 表与多源策略
+
+跟基金 nav 同样的"主源 + 兜底"思路, 但跨更多源 (Tushare 不覆盖中债 / 海外约 27%)。
+
+### Schema 速览
+
+```
+index_basic       (ts_code PK)         指数基础信息
+  ├─ name / fullname / publisher / category / market / index_type
+  ├─ base_date / base_point / list_date / weight_rule / description
+  └─ primary_source                    当前主拉源 (tushare/eastmoney/csindex/custom)
+
+index_source_map  (ts_code, source) PK 多源代码映射
+  ├─ source_code                       该源用的代码 (e.g. 000300.SH / 100.NDX / 932000)
+  ├─ is_active
+  └─ notes
+
+index_daily       (ts_code, end_date) PK 日线 (open/high/low/close/pct_chg/vol/amount)
+  └─ source ∈ {1: tushare, 2: eastmoney, 3: csindex, 6: custom}
+
+index_fund_tracker (index_ts_code, fund_ts_code) PK  基金跟踪关系 (派生)
+```
+
+### 数据源分级 (按推荐优先级)
+
+| 优先级 | 源 | 覆盖 | 接口 / 脚本 |
+|---|---|---|---|
+| **P1** | Tushare `index_daily` | A 股主流 ~73% | `sync-index-basic` + `sync-index-daily` |
+| **P2** | 东财 push2his (secid) | 海外 / 中债综合 / 港股 / 黄金 | `crawl-em-index` |
+| **P3** | csindex.com.cn 官方 | CSI/CBI 权威 (备选) | (待实现) |
+| **P6** | 自定义 (CSV/JSON 导入) | 内部编制 / 私有数据 | `import-custom-index` |
+
+### 多源策略 (新指数怎么入库)
+
+```
+1. (一次性) 用 sync-index-basic 拉 Tushare 全 markets, 自动注册 source='tushare' 映射
+2. (单只) 对 Tushare 不覆盖的指数, 手动 INSERT 到 index_basic + index_source_map:
+     - 海外 / 港股 / 中债 → 注册 source='eastmoney' + secid (如 100.NDX)
+     - 内部编制 → primary_source='custom', 用 import-custom-index 导入
+3. 日常: sync-index-daily --tracked + crawl-em-index --tracked, 拉被基金跟踪的指数
+4. 日线写入时 source 列标识来源, query 端可优先 source=1 → 2 → 6 fallback
+```
+
+### 输出端: `/api/nav/compare` 混编 fund + index
+
+指数链路接到比较页 (`#/nav`) 的整条数据流:
+
+```
+            sync-index-basic ───→ index_basic
+                                       │
+            sync-index-daily ───→ index_daily (source=1, Tushare)
+            crawl-em-index   ───→ index_daily (source=2, 东财)
+            import-custom-index ─→ index_daily (source=6, 自定义)
+                                       │
+         link-fund-to-index ───→ index_fund_tracker (基金 ↔ 指数关系)
+                                       │
+                                       v
+                           /api/nav/compare?codes=000001,HSI.HI,...
+                                       │
+                          ┌────────────┴────────────┐
+                          │ isFundCode(key) 判别     │
+                          │  6 位纯数字 → fund      │
+                          │  ts_code (含 .)  → index │
+                          └────────────┬────────────┘
+                                       │
+                          ┌────────────┴────────────┐
+                  fund 走 fund_nav            index 走 index_daily
+                  (拼 .OF, adj_nav 优先)      (close 同时映射 navs/adjNavs)
+                          └────────────┬────────────┘
+                                       v
+                  统一 series 结构 → computeStats → enrichSeriesIndicators
+                                       │
+                                       v
+                           前端图表 + 区间统计 + 指标
+```
+
+**协议要点** (后端实现见 [`scripts/nav/nav-api.js`](../scripts/nav/nav-api.js) `handleNavCompare`):
+
+- key 判别共用前后端的 [`js/core/code-kind.js`](../js/core/code-kind.js)。`isFundCode` = `^\d{6}$`, `isIndexKey` = ts_code 形式。未识别 key 由调用方处理 (默认报错)。
+- `interval=daily|weekly|monthly` 降采样, 周 / 月取窗口最后一个有值点 (见 `nav-stats.js` `downsample`)。
+- `indicators=ma20,ma60,drawdown` 由 [`js/domain/nav-stats.js`](../js/domain/nav-stats.js) `parseIndicators` 解析, 未知名静默丢弃; `enrichSeriesIndicators` 就地追加字段; INDICATORS 注册表是 `Object.freeze` 的, 防止误改。
+- 统计字段统一基于 `adjNavs` (基金复权; 指数 = `close`) 做日收益率序列, 这样 fund / index 在同一张 stats 表里直接可比。
+- 一次最多 20 只; 命中边缘 ETag 重访走 304。
+
+完整端到端协议另见 [README.md `/api/nav/compare 协议`](../README.md#apinavcompare-协议)。
+
+## 12. 部署与生产环境
 
 参见 [DEPLOY.md](DEPLOY.md)。Cloudflare D1+R2 迁移规划见 [cloudflare-migration.md](cloudflare-migration.md)。
