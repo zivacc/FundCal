@@ -780,6 +780,40 @@ body.is-fullscreen-nav .page-nav .nav-chart-canvas {
 .nav-range-stats-title {
   white-space: nowrap;
   pointer-events: none;  /* 让 cursor:grab 覆盖整个 header，不被文本捕获 */
+  flex: 1;
+}
+
+.nav-range-stats-min {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+.nav-range-stats-min:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-subtle);
+}
+
+.nav-range-stats-panel.is-minimized .nav-range-stats-grid,
+.nav-range-stats-panel.is-minimized .nav-range-stats-table {
+  display: none;
+}
+.nav-range-stats-panel.is-minimized .nav-range-stats-header {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: 0;
 }
 
 /* 单基金：4 列 grid（label / value / label / value） */
@@ -872,4 +906,49 @@ body.is-fullscreen-nav .page-nav .nav-chart-canvas {
   .nav-chart-canvas { height: 420px; }
   .nav-controls { gap: 0.5rem; padding: 8px; }
   .nav-stats-table { min-width: 720px; }
+}
+
+/* ══════════ Legend 内嵌基准下拉 ══════════ */
+.nav-chart-legend-item.is-benchmark .nav-chart-legend-code {
+  font-size: 10px;
+  letter-spacing: 0.6px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+}
+
+.nav-chart-legend-bm-select {
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 1px 4px;
+  font-family: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  max-width: 140px;
+}
+
+.nav-chart-legend-bm-select:hover {
+  border-color: var(--accent, var(--text-secondary));
+}
+
+.nav-chart-legend-bm-select option:disabled {
+  color: var(--text-tertiary);
+}
+
+/* ══════════ Typeahead 项 - 指数标记 ══════════ */
+.fund-search-kind {
+  flex-shrink: 0;
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--bg-sunk);
+  color: var(--text-tertiary);
+  border: 1px solid var(--rule);
+  letter-spacing: 0.4px;
+}
+.fund-search-kind.nav-kind-index {
+  background: var(--accent-subtle);
+  color: var(--accent);
+  border-color: var(--accent-glow);
 }

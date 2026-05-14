@@ -14,6 +14,8 @@ import {
   computeMissingRanges, subsetByRange, rangeOfPoints,
 } from './nav-cache.js';
 import { computeStats, computeUnionRange } from '../domain/nav-stats.js';
+import { detectKind, KIND } from '../core/code-kind.js';
+import { cachedJsonFetch } from './idb-cache.js';
 
 /* ========== 基址解析 ========== */
 
@@ -75,6 +77,30 @@ export function pickInterval(period) {
 }
 
 /* ========== 接口 ========== */
+
+/**
+ * 指数搜索索引 (并入基金搜索池).
+ * API: /api/nav/index-search-index | 静态回退: data/allfund/index-search-index.json
+ * 返回 [{ code: ts_code, name, fullname, initials?, kind: 'index', isPrice }]
+ *
+ * 走 IndexedDB SWR：体量虽小但每个页面都打一次，IDB 命中可省 RTT。
+ */
+export async function fetchIndexSearchIndexFromAPI() {
+  const base = getNavApiBase();
+  const url = base ? `${base}/index-search-index` : 'data/allfund/index-search-index.json';
+  const { data } = await cachedJsonFetch(url, {
+    key: 'index-search-index',
+    fallback: async () => {
+      try {
+        const res = await fetch('data/allfund/index-search-index.json');
+        if (!res.ok) return null;
+        return await res.json();
+      } catch { return null; }
+    },
+  });
+  return Array.isArray(data) ? data : [];
+}
+
 
 /**
  * @typedef {Object} NavCompareResponse
@@ -184,6 +210,7 @@ export async function fetchNavCompareCached({ codes, start, end, interval = 'dai
     const selected = subsetByRange(mergedPoints, start, end);
     series.push({
       code,
+      kind: detectKind(code) || KIND.FUND,
       name,
       dates:   selected.map(p => p.date),
       navs:    selected.map(p => p.unit ?? null),
@@ -198,6 +225,7 @@ export async function fetchNavCompareCached({ codes, start, end, interval = 'dai
   // 5. 客户端重算 stats（口径与服务器 nav-stats.js 完全一致）
   const stats = series.map(s => ({
     code: s.code,
+    kind: s.kind,
     name: s.name,
     ...computeStats(s.dates, s.adjNavs, { interval }),
   }));

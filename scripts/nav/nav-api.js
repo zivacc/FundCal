@@ -16,82 +16,17 @@ import {
   parseIndicators,
   enrichSeriesIndicators,
 } from '../../js/domain/nav-stats.js';
+import { isFundCode, KIND } from '../../js/core/code-kind.js';
+import { computeETag, ifNoneMatchHits, jsonCached } from './http-cache.js';
+
+// 测试入口仍从此模块导入，保留 re-export
+export { computeETag, ifNoneMatchHits };
 
 function json(res, status, data) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('Cache-Control', 'no-store');
   res.writeHead(status);
   res.end(JSON.stringify(data));
-}
-
-/**
- * 计算 weak ETag (FNV-1a 32-bit) for an arbitrary string body.
- * Weak 即可——我们只用它做条件请求短路，不用做 byte-equal 校验。
- *
- * @param {string} body
- * @returns {string}  形如 `W/"af7c2b13"`，始终带引号；可直接放进 ETag 头。
- */
-export function computeETag(body) {
-  let h = 0x811c9dc5; // FNV offset basis
-  for (let i = 0; i < body.length; i++) {
-    h ^= body.charCodeAt(i);
-    // 32-bit FNV prime: 16777619；用 Math.imul 避免高位被丢
-    h = Math.imul(h, 0x01000193);
-  }
-  // 转无符号 32 位再 hex
-  return `W/"${(h >>> 0).toString(16).padStart(8, '0')}"`;
-}
-
-/**
- * 解析 If-None-Match 头，返回是否命中给定 etag。
- * 处理多值 (逗号分隔) 与 `*` 通配符。weak/strong 视为等价。
- *
- * @param {string|undefined} headerVal  原始 If-None-Match 值
- * @param {string} etag                 我们刚算出的 ETag (含 W/" 前缀和引号)
- * @returns {boolean}
- */
-export function ifNoneMatchHits(headerVal, etag) {
-  if (!headerVal || !etag) return false;
-  const norm = (s) => s.trim().replace(/^W\//, '');
-  const target = norm(etag);
-  for (const part of headerVal.split(',')) {
-    const p = part.trim();
-    if (p === '*') return true;
-    if (norm(p) === target) return true;
-  }
-  return false;
-}
-
-/**
- * 发送可缓存的 JSON 响应：
- *   - 序列化一次 → 计算 weak ETag
- *   - 命中 If-None-Match → 304 (空 body, 仍带 ETag/Cache-Control)
- *   - 否则 200 + ETag + Cache-Control: private, max-age=N, must-revalidate
- *
- * @param {http.IncomingMessage} req
- * @param {http.ServerResponse}  res
- * @param {Object} data
- * @param {Object} [opts]
- * @param {number} [opts.maxAge=60]   秒；客户端缓存窗口
- */
-function jsonCached(req, res, data, opts = {}) {
-  const { maxAge = 60 } = opts;
-  const body = JSON.stringify(data);
-  const etag = computeETag(body);
-  const cc = `private, max-age=${maxAge}, must-revalidate`;
-
-  res.setHeader('ETag', etag);
-  res.setHeader('Cache-Control', cc);
-  res.setHeader('Content-Type', 'application/json; charset=utf-8');
-
-  if (ifNoneMatchHits(req.headers && req.headers['if-none-match'], etag)) {
-    res.writeHead(304);
-    res.end();
-    return;
-  }
-
-  res.writeHead(200);
-  res.end(body);
 }
 
 function parseQuery(url) {
@@ -199,58 +134,99 @@ function handleNavHistory(code, req, res) {
 }
 
 /**
- * 多基金净值比较 + 统计指标
- * GET /api/nav/compare?codes=000001,110011[&start=YYYYMMDD&end=YYYYMMDD][&interval=daily|weekly|monthly]
+ * 多基金/指数净值比较 + 统计指标
+ * GET /api/nav/compare?codes=000001,110011,HSI.HI,NDX.GI[&start=YYYYMMDD&end=YYYYMMDD][&interval=daily|weekly|monthly]
  *
- * 返回：
+ * codes 接受混合形式: 6 位数字 → 场外基金 (.OF); 含字母/点的串 → 指数 ts_code
+ * 后端按 key 派发到 fund_nav (source=1/2) / index_daily, 字段对齐到统一 series 结构。
+ *
+ * 返回:
  * {
  *   codes: [...],
  *   range: { start, end },
- *   series: [{ code, name, dates: [...], navs: [...], adjNavs: [...] }],
- *   stats:  [{ code, startNav, endNav, totalReturn, cagr, maxDrawdown, volatility, sharpe }]
+ *   series: [{ code, name, kind:'fund'|'index', dates, navs, adjNavs }],
+ *   stats:  [{ code, name, kind, ...statsFields }]
  * }
  *
- * 说明：
- * - navs = adj_nav 优先（复权），无则 unit_nav
- * - 统计基于 adj_nav 日收益率序列
- * - dates 用基金各自交易日；前端做对齐
+ * 说明:
+ * - 基金: navs=unit_nav, adjNavs=adj_nav ?? unit_nav (复权优先)
+ * - 指数: navs=adjNavs=close (无复权概念, 两字段同值)
+ * - 统计基于 adjNavs 日收益率序列, 前端对齐
  */
+/** 按 (start?, end?) 维度缓存 4 种 SQL 形态的 prepared stmt; key=db+sql. */
+const _stmtCache = new WeakMap();
+function cachedStmt(db, sql) {
+  let bucket = _stmtCache.get(db);
+  if (!bucket) { bucket = new Map(); _stmtCache.set(db, bucket); }
+  let stmt = bucket.get(sql);
+  if (!stmt) { stmt = db.prepare(sql); bucket.set(sql, stmt); }
+  return stmt;
+}
+
+function buildDateConds(qs) {
+  const conds = [];
+  const params = [];
+  if (qs.start) { conds.push('end_date >= ?'); params.push(qs.start); }
+  if (qs.end)   { conds.push('end_date <= ?'); params.push(qs.end); }
+  return { whereTail: conds.length ? ' AND ' + conds.join(' AND ') : '', params };
+}
+
+function loadFundSeries(db, code, qs, interval) {
+  const tsCode = codeToTsCode(code);
+  const { whereTail, params } = buildDateConds(qs);
+  const sql = `SELECT end_date, unit_nav, adj_nav FROM fund_nav
+               WHERE ts_code = ?${whereTail} ORDER BY end_date ASC`;
+  const rows = cachedStmt(db, sql).all(tsCode, ...params);
+  const basic = cachedStmt(db, 'SELECT name FROM fund_basic WHERE code = ?').get(code);
+  const sampled = downsample(rows, interval);
+  return {
+    name: basic?.name || code,
+    dates:   sampled.map(r => r.end_date),
+    navs:    sampled.map(r => r.unit_nav),
+    adjNavs: sampled.map(r => r.adj_nav ?? r.unit_nav),
+  };
+}
+
+function loadIndexSeries(db, tsCode, qs, interval) {
+  const { whereTail, params } = buildDateConds(qs);
+  const sql = `SELECT end_date, close FROM index_daily
+               WHERE ts_code = ?${whereTail} ORDER BY end_date ASC`;
+  const rows = cachedStmt(db, sql).all(tsCode, ...params);
+  const basic = cachedStmt(db, 'SELECT name FROM index_basic WHERE ts_code = ?').get(tsCode);
+  // 把 close 既当 unit_nav 又当 adj_nav 喂给 downsample, 复用同一函数 (指数无复权概念)
+  const shaped = rows.map(r => ({ end_date: r.end_date, unit_nav: r.close, adj_nav: r.close }));
+  const sampled = downsample(shaped, interval);
+  const closes = sampled.map(r => r.unit_nav);
+  return {
+    name: basic?.name || tsCode,
+    dates:   sampled.map(r => r.end_date),
+    navs:    closes,
+    adjNavs: closes,
+  };
+}
+
 function handleNavCompare(req, res) {
   try {
     const db = getDb();
     const qs = parseQuery(req.url);
-    const codes = (qs.codes || '').split(',').map(s => s.trim()).filter(s => /^\d{6}$/.test(s));
-    if (!codes.length) { json(res, 400, { error: 'codes 必填' }); return; }
-    if (codes.length > 20) { json(res, 400, { error: '一次最多对比 20 只' }); return; }
+    const rawCodes = (qs.codes || '').split(',').map(s => s.trim()).filter(Boolean);
+    if (!rawCodes.length) { json(res, 400, { error: 'codes 必填' }); return; }
+    if (rawCodes.length > 20) { json(res, 400, { error: '一次最多对比 20 只' }); return; }
 
-    const interval = qs.interval || 'daily'; // daily / weekly / monthly
-    const indicators = parseIndicators(qs.indicators); // P1.D: 可选预算
+    const interval = qs.interval || 'daily';
+    const indicators = parseIndicators(qs.indicators);
     const series = [];
     const stats = [];
+    const codes = [];
 
-    for (const code of codes) {
-      const tsCode = codeToTsCode(code);
-      const conds = ['ts_code = ?'];
-      const params = [tsCode];
-      if (qs.start) { conds.push('end_date >= ?'); params.push(qs.start); }
-      if (qs.end)   { conds.push('end_date <= ?'); params.push(qs.end); }
-      const rows = db.prepare(`
-        SELECT end_date, unit_nav, adj_nav
-        FROM fund_nav WHERE ${conds.join(' AND ')}
-        ORDER BY end_date ASC
-      `).all(...params);
-
-      const basic = db.prepare('SELECT name FROM fund_basic WHERE code = ?').get(code);
-      const name = basic?.name || code;
-
-      // 降采样
-      const sampled = downsample(rows, interval);
-      const dates = sampled.map(r => r.end_date);
-      const navs = sampled.map(r => r.unit_nav);
-      const adjNavs = sampled.map(r => r.adj_nav ?? r.unit_nav);
-
-      series.push({ code, name, dates, navs, adjNavs });
-      stats.push({ code, name, ...computeStats(dates, adjNavs, { interval }) });
+    for (const raw of rawCodes) {
+      const isFund = isFundCode(raw);
+      const kind = isFund ? KIND.FUND : KIND.INDEX;
+      const loaded = isFund ? loadFundSeries(db, raw, qs, interval)
+                            : loadIndexSeries(db, raw, qs, interval);
+      codes.push(raw);
+      series.push({ code: raw, kind, name: loaded.name, dates: loaded.dates, navs: loaded.navs, adjNavs: loaded.adjNavs });
+      stats.push({ code: raw, kind, name: loaded.name, ...computeStats(loaded.dates, loaded.adjNavs, { interval }) });
     }
 
     const range = computeUnionRange(series);
@@ -294,6 +270,36 @@ function handleNavRange(code, req, res) {
   }
 }
 
+/**
+ * 指数搜索索引: GET /api/nav/index-search-index
+ * 返回 [{ code: ts_code, name, fullname, kind: 'index', isPrice }]
+ *
+ * - code 字段直接是 ts_code (如 "HSI.HI"); 与 fund 的 6 位 code 共存于同一前端搜索池
+ * - isPrice: 通过 fullname 是否含"全收益"判断 (无该字样默认认为是价格指数)
+ * - 仅返回 index_daily 中实际有数据的指数 (避免 zombie 项)
+ */
+function handleIndexSearchIndex(req, res) {
+  try {
+    const db = getDb();
+    const rows = db.prepare(`
+      SELECT b.ts_code, b.name, b.fullname
+      FROM index_basic b
+      WHERE EXISTS (SELECT 1 FROM index_daily d WHERE d.ts_code = b.ts_code)
+      ORDER BY b.ts_code
+    `).all();
+    const list = rows.map(r => ({
+      code: r.ts_code,
+      name: r.name || r.ts_code,
+      fullname: r.fullname || '',
+      kind: 'index',
+      isPrice: !/全收益/.test(r.fullname || ''),
+    }));
+    jsonCached(req, res, list, { maxAge: 300 });
+  } catch (e) {
+    json(res, 500, { error: '查询失败', detail: e.message });
+  }
+}
+
 export function createNavRouter() {
   return function navRouter(req, res) {
     const urlPath = (req.url || '').split('?')[0];
@@ -307,6 +313,12 @@ export function createNavRouter() {
     // GET /api/nav/compare
     if (/^\/api\/nav\/compare\/?$/.test(urlPath)) {
       handleNavCompare(req, res);
+      return;
+    }
+
+    // GET /api/nav/index-search-index
+    if (/^\/api\/nav\/index-search-index\/?$/.test(urlPath)) {
+      handleIndexSearchIndex(req, res);
       return;
     }
 

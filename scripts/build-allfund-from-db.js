@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 /**
  * 从 fundcal.db 重建 data/allfund/* 静态文件
- * 取代 scripts/build-allfund.js (后者标 deprecated)
  *
- * 输出：
- *   data/allfund/allfund.json       — { codes, funds: {[code]: fullObj} }
- *   data/allfund/funds/<code>.json  — 分片
- *   data/allfund/search-index.json  — [{code, name, initials}]
- *   data/allfund/list-index.json    — 列表页用 subset
+ * 输出 (服务器化后保留的小文件; 大文件已下线 → archive/):
+ *   data/allfund/funds/<code>.json     — 单基金分片 (灾备 fallback / 纯静态站点)
+ *   data/allfund/search-index.json     — [{code, name, initials}]
+ *   data/allfund/index-search-index.json — 指数搜索池
+ *
+ * 已停产 (生产走 /api/fund/list 与 /api/fund/:code/fee, 历史归档至 archive/):
+ *   data/allfund/allfund.json   (75 MB)
+ *   data/allfund/list-index.json (26 MB)
  *
  * 字段策略：fund_basic 已是裁决后权威值 (apply-merge-rules 写入)
  *   - name / fundType / fundManager / performanceBenchmark / establishmentDate 均直接读 fund_basic
@@ -26,9 +28,8 @@ import { getDb, closeDb } from './nav/db.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
 const ALLFUND_DIR = path.join(ROOT, 'data', 'allfund');
-const ALLFUND_PATH = path.join(ALLFUND_DIR, 'allfund.json');
 const SEARCH_INDEX_PATH = path.join(ALLFUND_DIR, 'search-index.json');
-const LIST_INDEX_PATH = path.join(ALLFUND_DIR, 'list-index.json');
+const INDEX_SEARCH_PATH = path.join(ALLFUND_DIR, 'index-search-index.json');
 const SHARDED_FUNDS_DIR = path.join(ALLFUND_DIR, 'funds');
 
 const SEG_KIND_TO_KEY = {
@@ -169,12 +170,10 @@ function main() {
   fs.mkdirSync(ALLFUND_DIR, { recursive: true });
   fs.mkdirSync(SHARDED_FUNDS_DIR, { recursive: true });
 
-  // allfund.json + 分片：仅 crawler-having (有费率字段，能计算)
-  // list-index.json + search-index.json：含 tushare-only 占位行（needsCrawl=true，前端灰显 + 补全按钮）
-  const codes = [];
-  const funds = {};
+  // search-index 含 tushare-only 占位行 (needsCrawl=true, 前端灰显 + 补全按钮)
+  // 单基金分片 funds/<code>.json 仅 crawler-having (有费率字段, 能计算)
+  let writtenShards = 0;
   const searchList = [];
-  const fullList = [];
 
   for (const row of rows) {
     const code = row.code;
@@ -184,53 +183,41 @@ function main() {
     const needsCrawl = row.source === 'tushare';
 
     if (!needsCrawl) {
-      codes.push(code);
-      funds[code] = obj;
+      fs.writeFileSync(
+        path.join(SHARDED_FUNDS_DIR, `${code}.json`),
+        JSON.stringify(obj),
+        'utf8'
+      );
+      writtenShards++;
     }
 
     const initials = getInitials(obj.name);
     searchList.push({ code, name: obj.name, initials, needsCrawl });
-    // 派生 lifecycle: D=terminated, I=issuing, L/null=normal
-    const lifecycle = row.status === 'D' ? 'terminated'
-                    : row.status === 'I' ? 'issuing'
-                    : 'normal';
-    fullList.push({
-      code,
-      name: obj.name,
-      initials,
-      source: row.source,
-      status: row.status || null,
-      lifecycle,
-      needsCrawl,
-      shareClass: row.share_class || null,
-      buyFee: obj.buyFee,
-      annualFee: obj.annualFee,
-      fundType: obj.fundType,
-      trackingTarget: obj.trackingTarget,
-      performanceBenchmark: obj.performanceBenchmark,
-      fundManager: obj.fundManager,
-      establishmentDate: obj.establishmentDate,
-      tradingStatus: obj.tradingStatus,
-      updatedAt: obj.updatedAt,
-      sellFeeSegments: obj.sellFeeSegments,
-    });
   }
 
-  console.log(`📝 写入 ${codes.length} 只到 allfund.json`);
-  fs.writeFileSync(ALLFUND_PATH, JSON.stringify({ codes, funds }, null, 2), 'utf8');
+  console.log(`📝 写入 ${writtenShards} 只单基金分片到 ${SHARDED_FUNDS_DIR}`);
 
-  console.log(`📝 写入 ${codes.length} 只分片到 ${SHARDED_FUNDS_DIR}`);
-  for (const code of codes) {
-    fs.writeFileSync(
-      path.join(SHARDED_FUNDS_DIR, `${code}.json`),
-      JSON.stringify(funds[code], null, 2),
-      'utf8'
-    );
-  }
+  fs.writeFileSync(SEARCH_INDEX_PATH, JSON.stringify(searchList), 'utf8');
+  console.log(`📝 写入 search-index.json (${searchList.length} 条)`);
 
-  fs.writeFileSync(SEARCH_INDEX_PATH, JSON.stringify(searchList, null, 2), 'utf8');
-  fs.writeFileSync(LIST_INDEX_PATH, JSON.stringify(fullList, null, 2), 'utf8');
-  console.log(`📝 写入 search-index.json + list-index.json`);
+  // ─── 指数搜索索引 (与基金共享 typeahead) ───
+  // 仅含 index_daily 实际有数据的指数; ts_code 直接作为 code 字段, 与基金 6 位 code 共存
+  const indexRows = db.prepare(`
+    SELECT b.ts_code, b.name, b.fullname
+    FROM index_basic b
+    WHERE EXISTS (SELECT 1 FROM index_daily d WHERE d.ts_code = b.ts_code)
+    ORDER BY b.ts_code
+  `).all();
+  const indexSearchList = indexRows.map(r => ({
+    code: r.ts_code,
+    name: r.name || r.ts_code,
+    fullname: r.fullname || '',
+    initials: getInitials(r.name || ''),
+    kind: 'index',
+    isPrice: !/全收益/.test(r.fullname || ''),
+  }));
+  fs.writeFileSync(INDEX_SEARCH_PATH, JSON.stringify(indexSearchList), 'utf8');
+  console.log(`📝 写入 ${indexSearchList.length} 条 index-search-index.json`);
 
   console.log(`\n⏱ 耗时 ${((Date.now() - t0) / 1000).toFixed(1)}s`);
   closeDb();

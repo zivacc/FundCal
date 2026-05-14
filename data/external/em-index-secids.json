@@ -1,0 +1,127 @@
+{
+  "_doc": "东方财富 secid 映射表 — 给 tushare 不覆盖的指数手动注册. 一行一指数. 跑 register-em-index-secids.js 后即可被 crawl-em-index 拉取.",
+  "_format": "ts_code (我们的统一编码) → { name, secid, publisher, category, [fullname], [base_date], [base_point] }",
+  "_secid_rule": "100.xxx 海外, 124.xxx 港股, 118.xxx 现货商品, 0/1.xxx A股",
+
+  "indices": [
+    {
+      "ts_code": "HSI.HI",
+      "code": "HSI",
+      "name": "恒生指数",
+      "fullname": "Hang Seng Index",
+      "secid": "100.HSI",
+      "publisher": "恒生指数公司",
+      "category": "港股",
+      "market": "HKEX"
+    },
+    {
+      "ts_code": "HSTECH.HI",
+      "code": "HSTECH",
+      "name": "恒生科技指数",
+      "fullname": "Hang Seng TECH Index",
+      "secid": "124.HSTECH",
+      "publisher": "恒生指数公司",
+      "category": "港股",
+      "market": "HKEX"
+    },
+    {
+      "ts_code": "HSCEI.HI",
+      "code": "HSCEI",
+      "name": "恒生中国企业指数",
+      "fullname": "Hang Seng China Enterprises Index",
+      "secid": "100.HSCEI",
+      "publisher": "恒生指数公司",
+      "category": "港股",
+      "market": "HKEX"
+    },
+    {
+      "ts_code": "HSHKI.HI",
+      "code": "HSHKI",
+      "name": "恒生港股通指数",
+      "secid": "124.HSHKI",
+      "publisher": "恒生指数公司",
+      "category": "港股",
+      "market": "HKEX"
+    },
+    {
+      "ts_code": "HSHKS50.HI",
+      "code": "HSHKS50",
+      "name": "恒生港股通高持股50指数",
+      "secid": "124.HSHKS50",
+      "publisher": "恒生指数公司",
+      "category": "港股",
+      "market": "HKEX"
+    },
+    {
+      "ts_code": "HSBT.HI",
+      "code": "HSBT",
+      "name": "恒生生物科技指数",
+      "fullname": "Hang Seng Biotech Index",
+      "secid": "124.HSBIOT",
+      "publisher": "恒生指数公司",
+      "category": "港股",
+      "market": "HKEX"
+    },
+    {
+      "ts_code": "HSPHKTI.HI",
+      "code": "HSPHKTI",
+      "name": "恒生港股通科技主题指数",
+      "secid": "124.HSPHKTI",
+      "publisher": "恒生指数公司",
+      "category": "港股",
+      "market": "HKEX"
+    },
+
+    {
+      "ts_code": "NDX.GI",
+      "code": "NDX",
+      "name": "纳斯达克100指数",
+      "fullname": "Nasdaq-100 Index",
+      "secid": "100.NDX",
+      "publisher": "NASDAQ",
+      "category": "海外股票",
+      "market": "GLOBAL"
+    },
+    {
+      "ts_code": "SPX.GI",
+      "code": "SPX",
+      "name": "标普500指数",
+      "fullname": "S&P 500 Index",
+      "secid": "100.SPX",
+      "publisher": "Standard & Poor's",
+      "category": "海外股票",
+      "market": "GLOBAL"
+    },
+    {
+      "ts_code": "MSCIA50.GI",
+      "code": "MSCIA50",
+      "name": "MSCI中国A50互联互通人民币指数",
+      "fullname": "MSCI China A 50 Connect Index",
+      "secid": "100.MSCIA50",
+      "publisher": "MSCI",
+      "category": "A股",
+      "market": "GLOBAL"
+    },
+
+    {
+      "ts_code": "AU9999.SGE",
+      "code": "AU9999",
+      "name": "黄金9999",
+      "fullname": "黄金现货 Au99.99",
+      "secid": "118.AU9999",
+      "publisher": "上海黄金交易所",
+      "category": "商品",
+      "market": "SGE"
+    },
+    {
+      "ts_code": "SHAU.SGE",
+      "code": "SHAU",
+      "name": "上海金",
+      "fullname": "上海金基准价 (SGE 上海金集中定价)",
+      "secid": "118.SHAU",
+      "publisher": "上海黄金交易所",
+      "category": "商品",
+      "market": "SGE"
+    }
+  ]
+}

@@ -174,6 +174,66 @@ function initSchema(db) {
       updated_at    TEXT DEFAULT (datetime('now'))
     );
     CREATE INDEX IF NOT EXISTS idx_trade_calendar_open ON trade_calendar(is_open);
+
+    -- ─── 指数基础信息 ───
+    CREATE TABLE IF NOT EXISTS index_basic (
+      ts_code        TEXT PRIMARY KEY,
+      code           TEXT NOT NULL,
+      name           TEXT,
+      fullname       TEXT,
+      publisher      TEXT,
+      category       TEXT,
+      market         TEXT,
+      index_type     TEXT,
+      base_date      TEXT,
+      base_point     REAL,
+      list_date      TEXT,
+      weight_rule    TEXT,
+      description    TEXT,
+      primary_source TEXT,
+      updated_at     TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_index_basic_code ON index_basic(code);
+    CREATE INDEX IF NOT EXISTS idx_index_basic_publisher ON index_basic(publisher);
+
+    -- ─── 多源代码映射: 一个指数 → 多个源的代码 ───
+    CREATE TABLE IF NOT EXISTS index_source_map (
+      ts_code     TEXT NOT NULL REFERENCES index_basic(ts_code) ON DELETE CASCADE,
+      source      TEXT NOT NULL,        -- tushare / eastmoney / csindex / custom
+      source_code TEXT NOT NULL,        -- 该源用的代码 (e.g. 100.NDX, 932000)
+      is_active   INTEGER DEFAULT 1,
+      notes       TEXT,
+      updated_at  TEXT DEFAULT (datetime('now')),
+      PRIMARY KEY (ts_code, source)
+    );
+    CREATE INDEX IF NOT EXISTS idx_index_source_map_source ON index_source_map(source, is_active);
+
+    -- ─── 指数日线 ───
+    -- source: 1=tushare, 2=eastmoney, 3=csindex, 6=custom
+    CREATE TABLE IF NOT EXISTS index_daily (
+      ts_code   TEXT NOT NULL,
+      end_date  TEXT NOT NULL,
+      open      REAL,
+      high      REAL,
+      low       REAL,
+      close     REAL NOT NULL,
+      pre_close REAL,
+      pct_chg   REAL,
+      vol       REAL,
+      amount    REAL,
+      source    INTEGER NOT NULL DEFAULT 1,
+      PRIMARY KEY (ts_code, end_date)
+    );
+    CREATE INDEX IF NOT EXISTS idx_index_daily_date ON index_daily(end_date);
+
+    -- ─── 指数 ⇄ 基金 跟踪关系 (派生, 由 link 脚本生成) ───
+    CREATE TABLE IF NOT EXISTS index_fund_tracker (
+      index_ts_code TEXT NOT NULL REFERENCES index_basic(ts_code) ON DELETE CASCADE,
+      fund_ts_code  TEXT NOT NULL REFERENCES fund_basic(ts_code) ON DELETE CASCADE,
+      match_type    TEXT NOT NULL,        -- exact / fuzzy / manual
+      PRIMARY KEY (index_ts_code, fund_ts_code)
+    );
+    CREATE INDEX IF NOT EXISTS idx_index_fund_tracker_fund ON index_fund_tracker(fund_ts_code);
   `);
 }
 
@@ -561,6 +621,130 @@ export function upsertCrawlerData(crawler) {
     action: existing ? 'update' : 'insert',
     source: existing ? 'both' : 'crawler',
   };
+}
+
+/**
+ * 批量 upsert 指数基础信息.
+ * 字段裁决: 新源不覆盖已有非空字段 (除非显式 force).
+ *
+ * @param {Array<object>} rows  含 ts_code, code, name, ... 字段
+ * @param {string} sourceName   tushare / eastmoney / csindex / custom
+ */
+export function upsertIndexBasicRecords(rows, sourceName = 'tushare') {
+  if (!rows.length) return { inserted: 0, updated: 0 };
+  const db = getDb();
+  const stmt = db.prepare(`
+    INSERT INTO index_basic
+      (ts_code, code, name, fullname, publisher, category, market, index_type,
+       base_date, base_point, list_date, weight_rule, description, primary_source, updated_at)
+    VALUES
+      (@ts_code, @code, @name, @fullname, @publisher, @category, @market, @index_type,
+       @base_date, @base_point, @list_date, @weight_rule, @description, @primary_source, datetime('now'))
+    ON CONFLICT(ts_code) DO UPDATE SET
+      name           = COALESCE(NULLIF(excluded.name,''),           index_basic.name),
+      fullname       = COALESCE(NULLIF(excluded.fullname,''),       index_basic.fullname),
+      publisher      = COALESCE(NULLIF(excluded.publisher,''),      index_basic.publisher),
+      category       = COALESCE(NULLIF(excluded.category,''),       index_basic.category),
+      market         = COALESCE(NULLIF(excluded.market,''),         index_basic.market),
+      index_type     = COALESCE(NULLIF(excluded.index_type,''),     index_basic.index_type),
+      base_date      = COALESCE(NULLIF(excluded.base_date,''),      index_basic.base_date),
+      base_point     = COALESCE(excluded.base_point,                index_basic.base_point),
+      list_date      = COALESCE(NULLIF(excluded.list_date,''),      index_basic.list_date),
+      weight_rule    = COALESCE(NULLIF(excluded.weight_rule,''),    index_basic.weight_rule),
+      description    = COALESCE(NULLIF(excluded.description,''),    index_basic.description),
+      primary_source = excluded.primary_source,
+      updated_at     = datetime('now')
+  `);
+
+  const existing = new Set(
+    db.prepare('SELECT ts_code FROM index_basic').all().map(r => r.ts_code)
+  );
+  const stats = { inserted: 0, updated: 0 };
+  const tx = db.transaction((records) => {
+    for (const r of records) {
+      stmt.run({
+        ts_code: r.ts_code,
+        code: r.code,
+        name: r.name || null,
+        fullname: r.fullname || null,
+        publisher: r.publisher || null,
+        category: r.category || null,
+        market: r.market || null,
+        index_type: r.index_type || null,
+        base_date: r.base_date || null,
+        base_point: r.base_point ?? null,
+        list_date: r.list_date || null,
+        weight_rule: r.weight_rule || null,
+        description: r.description || null,
+        primary_source: r.primary_source || sourceName,
+      });
+      if (existing.has(r.ts_code)) stats.updated++;
+      else stats.inserted++;
+    }
+  });
+  tx(rows);
+  return stats;
+}
+
+const REGISTER_INDEX_SOURCE_SQL = `
+  INSERT INTO index_source_map (ts_code, source, source_code, is_active, notes, updated_at)
+  VALUES (?, ?, ?, 1, ?, datetime('now'))
+  ON CONFLICT(ts_code, source) DO UPDATE SET
+    source_code = excluded.source_code,
+    is_active   = excluded.is_active,
+    notes       = COALESCE(excluded.notes, index_source_map.notes),
+    updated_at  = datetime('now')
+`;
+
+/** 注册一个指数在某源的代码 */
+export function registerIndexSource(tsCode, source, sourceCode, notes = null) {
+  getDb().prepare(REGISTER_INDEX_SOURCE_SQL).run(tsCode, source, sourceCode, notes);
+}
+
+/** 批量注册指数源映射 (单事务, 单预编译). records: [{ts_code, source, source_code, notes?}] */
+export function bulkRegisterIndexSources(records) {
+  if (!records.length) return 0;
+  const db = getDb();
+  const stmt = db.prepare(REGISTER_INDEX_SOURCE_SQL);
+  const tx = db.transaction((rows) => {
+    for (const r of rows) stmt.run(r.ts_code, r.source, r.source_code, r.notes ?? null);
+  });
+  tx(records);
+  return records.length;
+}
+
+/** 获取一个指数所有源映射, 返回 { tushare: 'xxx.SH', eastmoney: '1.000300', ... } */
+export function getIndexSourceMap(tsCode) {
+  const db = getDb();
+  const rows = db.prepare('SELECT source, source_code FROM index_source_map WHERE ts_code = ? AND is_active = 1').all(tsCode);
+  const map = {};
+  for (const r of rows) map[r.source] = r.source_code;
+  return map;
+}
+
+/** 批量 upsert 指数日线 */
+export function upsertIndexDailyRecords(rows, defaultSource = 1) {
+  if (!rows.length) return;
+  const db = getDb();
+  const stmt = db.prepare(`
+    INSERT OR REPLACE INTO index_daily
+      (ts_code, end_date, open, high, low, close, pre_close, pct_chg, vol, amount, source)
+    VALUES
+      (@ts_code, @end_date, @open, @high, @low, @close, @pre_close, @pct_chg, @vol, @amount, @source)
+  `);
+  const tx = db.transaction((records) => {
+    for (const r of records) {
+      stmt.run({ ...r, source: r.source ?? defaultSource });
+    }
+  });
+  tx(rows);
+}
+
+/** 获取一个指数最新 end_date */
+export function getLatestIndexDailyDate(tsCode) {
+  const db = getDb();
+  const row = db.prepare('SELECT end_date FROM index_daily WHERE ts_code = ? ORDER BY end_date DESC LIMIT 1').get(tsCode);
+  return row ? row.end_date : null;
 }
 
 /**

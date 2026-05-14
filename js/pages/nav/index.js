@@ -10,8 +10,12 @@
  */
 
 import { createTypeahead } from '../../components/typeahead.js';
-import { fetchNavCompareCached, periodToRange } from '../../data/nav-api.js';
+import { fetchNavCompareCached, fetchIndexSearchIndexFromAPI, periodToRange } from '../../data/nav-api.js';
 import { fetchSearchIndexFromAPI } from '../../data/fund-api.js';
+import { BENCHMARK_CANDIDATES, resolveDefaultBenchmark } from '../../core/benchmarks.js';
+import { detectKind, KIND } from '../../core/code-kind.js';
+
+const MAX_SELECTED = 10;
 import { loadTradeCalendar, isTradingDay } from '../../data/trade-calendar.js';
 import { alignSeriesToDates } from '../../domain/nav-align.js';
 import {
@@ -45,6 +49,7 @@ const state = {
   showMA20: false,
   showMA60: false,
   showDD: true,
+  rangeStatsMinimized: false,
   // 通过点击自定义 legend 被隐藏的基金 code 集合；不影响 state.selected（chip 还在）
   hiddenCodes: new Set(),
   data: null,     // last compare response (始终是 MAX 数据)
@@ -76,13 +81,17 @@ function persist() {
     try {
       const payload = {
         v: STORAGE_VERSION,
-        selected: state.selected.map(f => ({ code: f.code, name: f.name })),
+        selected: state.selected.map(f => ({
+          code: f.code, name: f.name, kind: f.kind || KIND.FUND,
+          ...(f.isBenchmark ? { isBenchmark: true } : {}),
+        })),
         period: state.period,
         viewStart: state.viewStart,
         viewEnd: state.viewEnd,
         valueMode: state.valueMode,
         axisScale: state.axisScale,
         baseline: state.baseline,
+        rangeStatsMinimized: state.rangeStatsMinimized,
         hiddenCodes: [...state.hiddenCodes],
       };
       // 指标字段按注册表全量写入，加指标不用改这里
@@ -108,7 +117,13 @@ function loadPersistedState() {
   if (Array.isArray(saved.selected)) {
     state.selected = saved.selected
       .filter(f => f && typeof f.code === 'string')
-      .map((f, i) => ({ code: f.code, name: f.name || f.code, color: COLORS[i % COLORS.length] }));
+      .map((f, i) => ({
+        code: f.code,
+        name: f.name || f.code,
+        kind: f.kind || detectKind(f.code) || KIND.FUND,
+        color: COLORS[i % COLORS.length],
+        ...(f.isBenchmark ? { isBenchmark: true } : {}),
+      }));
   }
   if (typeof saved.period === 'string' || saved.period === null) state.period = saved.period;
   if (typeof saved.viewStart === 'string' || saved.viewStart === null) state.viewStart = saved.viewStart;
@@ -116,6 +131,7 @@ function loadPersistedState() {
   if (saved.valueMode === 'pct' || saved.valueMode === 'nav') state.valueMode = saved.valueMode;
   if (saved.axisScale === 'linear' || saved.axisScale === 'log') state.axisScale = saved.axisScale;
   if (typeof saved.baseline === 'string' || saved.baseline === null) state.baseline = saved.baseline;
+  if (typeof saved.rangeStatsMinimized === 'boolean') state.rangeStatsMinimized = saved.rangeStatsMinimized;
   // 指标字段按注册表还原（不认识的 key 自动忽略）
   for (const ind of INDICATORS_LIST) {
     const k = ind.persist.key;
@@ -232,10 +248,18 @@ function zoomPctToView(allDatesYMD, startPct, endPct) {
   return { start: ymdToISO(allDatesYMD[sIdx]), end: ymdToISO(allDatesYMD[eIdx]) };
 }
 
+/**
+ * 同时加载基金 + 指数搜索池, 合并后注入 kind. 基金条目无 kind 字段时默认 'fund'.
+ */
 async function loadSearchIndex() {
   if (state.searchIndex) return state.searchIndex;
-  const list = await fetchSearchIndexFromAPI();
-  state.searchIndex = Array.isArray(list) ? list : [];
+  const [funds, indices] = await Promise.all([
+    fetchSearchIndexFromAPI(),
+    fetchIndexSearchIndexFromAPI(),
+  ]);
+  const fundList = (Array.isArray(funds) ? funds : []).map(r => ({ ...r, kind: 'fund' }));
+  const indexList = (Array.isArray(indices) ? indices : []).map(r => ({ ...r, kind: 'index' }));
+  state.searchIndex = [...fundList, ...indexList];
   return state.searchIndex;
 }
 
@@ -246,12 +270,14 @@ function filterIndex(list, q) {
   const score = (r) => {
     const code = (r.code || '').toLowerCase();
     const nm = (r.name || '').toLowerCase();
+    const fnm = (r.fullname || '').toLowerCase();
     const init = (r.initials || '').toLowerCase();
     if (num && code.startsWith(num)) return 0;
     if (num && code.includes(num)) return 1;
     if (nm.startsWith(s)) return 2;
     if (init.startsWith(s)) return 3;
     if (nm.includes(s)) return 4;
+    if (fnm.includes(s)) return 5;
     return 99;
   };
   return list
@@ -289,19 +315,24 @@ function renderChartLegend() {
   }
   el.innerHTML = state.selected.map((f, i) => {
     const hidden = state.hiddenCodes.has(f.code);
+    const cls = `nav-chart-legend-item${hidden ? ' is-hidden' : ''}${f.isBenchmark ? ' is-benchmark' : ''}`;
+    const codeText = f.isBenchmark ? '基准' : escapeHtml(f.code);
+    const nameSlot = f.isBenchmark
+      ? renderBenchmarkSelect(f.code)
+      : `<span class="nav-chart-legend-name">${escapeHtml(f.name)}</span>`;
     return `
-      <span class="nav-chart-legend-item${hidden ? ' is-hidden' : ''}"
-            data-code="${f.code}"
+      <span class="${cls}"
+            data-code="${escapeHtml(f.code)}"
             data-idx="${i}"
             role="button"
             tabindex="0"
             title="点击切换显示/隐藏">
         <span class="nav-chart-legend-dot" style="background:${f.color}"></span>
-        <span class="nav-chart-legend-code">${f.code}</span>
-        <span class="nav-chart-legend-name">${escapeHtml(f.name)}</span>
+        <span class="nav-chart-legend-code">${codeText}</span>
+        ${nameSlot}
         <span class="nav-chart-legend-nav"></span>
         <span class="nav-chart-legend-chg"></span>
-        <button type="button" class="nav-chart-legend-remove" data-action="remove" data-idx="${i}" aria-label="移除该基金" title="移除">×</button>
+        <button type="button" class="nav-chart-legend-remove" data-action="remove" data-idx="${i}" aria-label="移除该项" title="移除">×</button>
       </span>
     `;
   }).join('');
@@ -311,9 +342,27 @@ function renderChartLegend() {
     el.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onLegendToggleClick(e); }
     });
+    el.addEventListener('change', onBenchmarkSelectChange);
     el.dataset.toggleBound = '1';
   }
   updateChartLegend(null);
+}
+
+function renderBenchmarkSelect(currentTsCode) {
+  const opts = BENCHMARK_CANDIDATES.map(c => {
+    const tag = c.isPrice ? ' · 价格' : '';
+    const label = `${c.label}${tag}${c.available ? '' : ' (未接入)'}`;
+    return `<option value="${escapeHtml(c.tsCode)}"
+      ${c.tsCode === currentTsCode ? 'selected' : ''}
+      ${c.available ? '' : 'disabled'}>${escapeHtml(label)}</option>`;
+  }).join('');
+  return `<select class="nav-chart-legend-bm-select" data-typeahead-skip aria-label="切换基准指数">${opts}</select>`;
+}
+
+function onBenchmarkSelectChange(e) {
+  const target = e.target instanceof HTMLElement ? e.target : null;
+  if (!target || !target.classList.contains('nav-chart-legend-bm-select')) return;
+  setBenchmark(target.value);
 }
 
 /**
@@ -324,6 +373,9 @@ function renderChartLegend() {
 function onLegendToggleClick(e) {
   const target = e.target instanceof HTMLElement ? e.target : null;
   if (!target) return;
+
+  // 基准下拉的点击不应触发 hide/show 切换 (用户只是想展开 select)
+  if (target.closest('[data-typeahead-skip], .nav-chart-legend-bm-select')) return;
 
   // × 删除按钮：优先级高于 item 切换，命中即走 removeFund
   const removeBtn = target.closest('.nav-chart-legend-remove');
@@ -417,14 +469,67 @@ function setStatusEmpty(show) {
   if (empty) empty.style.display = show ? '' : 'none';
 }
 
+/** 当前基准 ts_code 由 selected 派生; 单一真相源, 无需独立字段. */
+function getBenchmark() {
+  return state.selected.find(x => x.isBenchmark)?.code || null;
+}
+
+/** 追加一项到 selected, 自动分配下一个颜色; 满则返回 false. */
+function pushSelected({ code, name, kind, isBenchmark = false }) {
+  if (state.selected.length >= MAX_SELECTED) return false;
+  state.selected.push({
+    code, name, kind,
+    color: COLORS[state.selected.length % COLORS.length],
+    ...(isBenchmark ? { isBenchmark: true } : {}),
+  });
+  return true;
+}
+
+/**
+ * 仅当: 加入的是基金 + 当前还没有任何指数 + 还没有基准时, 注入默认基准.
+ * 让用户开局有"基金 vs 默认指数"的对照, 后续可在基准条切换.
+ */
+function maybeAutoInjectBenchmark(addedFund) {
+  if (addedFund.kind !== KIND.FUND) return;
+  if (state.selected.some(x => x.kind === KIND.INDEX)) return;
+  if (getBenchmark()) return;
+  const fundMeta = (state.searchIndex || []).find(r => r.code === addedFund.code);
+  const defaultTs = resolveDefaultBenchmark({ fundType: fundMeta?.fundType });
+  const cand = BENCHMARK_CANDIDATES.find(c => c.tsCode === defaultTs && c.available);
+  if (cand) pushSelected({ code: cand.tsCode, name: cand.label, kind: KIND.INDEX, isBenchmark: true });
+}
+
 async function addFund(f) {
   if (state.selected.find(x => x.code === f.code)) return;
-  if (state.selected.length >= 10) {
-    alert('一次最多对比 10 只基金');
+  if (state.selected.length >= MAX_SELECTED) {
+    alert(`一次最多对比 ${MAX_SELECTED} 只基金/指数`);
     return;
   }
-  const color = COLORS[state.selected.length % COLORS.length];
-  state.selected.push({ code: f.code, name: f.name, color });
+  const kind = f.kind || detectKind(f.code) || KIND.FUND;
+  pushSelected({ code: f.code, name: f.name, kind });
+  maybeAutoInjectBenchmark({ code: f.code, kind });
+
+  renderChartLegend();
+  persist();
+  await fetchAndRender();
+}
+
+/** 切换基准: 替换已有 isBenchmark 项 (颜色保留), 或追加新基准. */
+async function setBenchmark(tsCode) {
+  if (!tsCode) return;
+  const cand = BENCHMARK_CANDIDATES.find(c => c.tsCode === tsCode);
+  if (!cand || !cand.available) return;
+  const existingIdx = state.selected.findIndex(x => x.isBenchmark);
+  if (existingIdx >= 0) {
+    if (state.selected[existingIdx].code === tsCode) return;
+    state.selected[existingIdx] = {
+      code: cand.tsCode, name: cand.label, kind: KIND.INDEX,
+      color: state.selected[existingIdx].color, isBenchmark: true,
+    };
+  } else if (!pushSelected({ code: cand.tsCode, name: cand.label, kind: KIND.INDEX, isBenchmark: true })) {
+    alert(`已达 ${MAX_SELECTED} 只上限`);
+    return;
+  }
   renderChartLegend();
   persist();
   await fetchAndRender();
@@ -433,10 +538,13 @@ async function addFund(f) {
 function removeFund(idx) {
   const removed = state.selected[idx];
   state.selected.splice(idx, 1);
-  // 重新分配颜色
   state.selected.forEach((f, i) => f.color = COLORS[i % COLORS.length]);
-  // 同步清理 hiddenCodes 里的孤儿 —— 防止再次添加同一基金时继承上次"被隐藏"态
+  // 防止再次添加同一基金时继承上次"被隐藏"态
   if (removed && removed.code) state.hiddenCodes.delete(removed.code);
+  // 没有基金后, 基准也跟着撤掉 (避免只剩一条孤零零的指数让人困惑)
+  if (!state.selected.some(x => x.kind !== KIND.INDEX)) {
+    state.selected = state.selected.filter(x => !x.isBenchmark);
+  }
   renderChartLegend();
   persist();
   fetchAndRender();
@@ -1180,18 +1288,48 @@ function setupEvents() {
   const searchInput = document.getElementById('nav-fund-search');
   const dropdown = document.getElementById('nav-fund-search-dropdown');
   if (searchInput && dropdown) {
+    const isAdded = (code) => state.selected.some(x => x.code === code);
+    const removeByCode = (code) => {
+      const idx = state.selected.findIndex(x => x.code === code);
+      if (idx >= 0) removeFund(idx);
+    };
+    const kindBadge = (r) => r.kind === KIND.INDEX
+      ? `<span class="fund-search-kind nav-kind-index">${r.isPrice ? '指数 · 价格' : '指数'}</span>`
+      : '';
     createTypeahead({
       inputEl: searchInput,
       dropdownEl: dropdown,
       debounceMs: 150,
-      clearOnSelect: true,
+      closeOnSelect: false,
+      clearOnSelect: false,
       search: async (q) => {
         if (!q || !q.trim()) return [];
         const list = await loadSearchIndex();
         return filterIndex(list, q);
       },
-      renderItem: (r) => `<span class="fund-search-code">${r.code}</span> <span class="fund-search-name">${escapeHtml(r.name)}</span>`,
-      onSelect: (r) => addFund({ code: r.code, name: r.name }),
+      renderItem: (r, { rerender }) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'fund-search-item-content';
+        const added = isAdded(r.code);
+        wrap.innerHTML = `
+          ${kindBadge(r)}<span class="fund-search-code">${escapeHtml(r.code)}</span>
+          <span class="fund-search-name">${escapeHtml(r.name)}</span>
+          <button type="button" class="fund-search-add-btn ${added ? 'added' : ''}"
+                  data-typeahead-skip
+                  title="${added ? '已添加，点击移除' : '添加到对比'}">${added ? '✓' : '+'}</button>
+        `;
+        wrap.querySelector('.fund-search-add-btn').addEventListener('click', async (e) => {
+          e.stopPropagation();
+          if (added) removeByCode(r.code);
+          else await addFund({ code: r.code, name: r.name, kind: r.kind || KIND.FUND });
+          rerender();
+        });
+        return wrap;
+      },
+      onSelect: (r) => {
+        if (isAdded(r.code)) return;
+        addFund({ code: r.code, name: r.name, kind: r.kind || KIND.FUND });
+      },
     });
   }
 
@@ -1442,6 +1580,26 @@ function ensureRangeStatsPanel() {
     panel.classList.add('is-dragging');
     e.preventDefault();
   });
+  panel.addEventListener('click', (e) => {
+    if (!(e.target instanceof HTMLElement)) return;
+    if (!e.target.closest('.nav-range-stats-min')) return;
+    const wasMinimized = state.rangeStatsMinimized;
+    state.rangeStatsMinimized = !wasMinimized;
+    persist();
+    // 展开时 body HTML 之前因折叠态被跳过, 必须重新渲染才有内容; 折叠时就地翻转就够了
+    if (wasMinimized) {
+      showPersistentRangeStats();
+      return;
+    }
+    panel.classList.add('is-minimized');
+    const btn = panel.querySelector('.nav-range-stats-min');
+    if (btn) {
+      const ic = minIcon(true);
+      btn.textContent = ic.char;
+      btn.title = ic.title;
+      btn.setAttribute('aria-label', ic.title);
+    }
+  });
   return panel;
 }
 
@@ -1676,6 +1834,10 @@ function zoomToPersistentRange() {
   renderChart();
 }
 
+function minIcon(minimized) {
+  return minimized ? { char: '▾', title: '展开' } : { char: '▴', title: '收起' };
+}
+
 function showPersistentRangeStats() {
   if (!state.chart || !state.data) return;
   if (rangeSel.sIx == null || rangeSel.eIx == null) return;
@@ -1707,23 +1869,31 @@ function showPersistentRangeStats() {
   const panel = ensureRangeStatsPanel();
   if (!panel) return;
 
+  const minimized = state.rangeStatsMinimized;
+  const minBtn = `<button type="button" class="nav-range-stats-btn nav-range-stats-min"
+    aria-label="${minIcon(minimized).title}" title="${minIcon(minimized).title}">${minIcon(minimized).char}</button>`;
+
   if (!perFund.length) {
     panel.innerHTML = `
       <div class="nav-range-stats-header" title="拖动可移动此面板">
         <span class="nav-range-stats-title">区间内无有效数据</span>
+        ${minBtn}
       </div>`;
   } else {
     const days = perFund[0]?.stats?.days ?? 0;
     const headerHTML = `
       <div class="nav-range-stats-header" title="拖动可移动此面板">
         <span class="nav-range-stats-title">${formatDate(allDates[rangeSel.sIx])} — ${formatDate(allDates[rangeSel.eIx])} (${days}日)</span>
+        ${minBtn}
       </div>`;
-    const bodyHTML = perFund.length === 1
+    // 折叠态跳过 table/grid HTML 生成 (拖选区间会触发 renderRangeStats, 多基金 table 可达数 KB)
+    const bodyHTML = minimized ? '' : (perFund.length === 1
       ? renderSingleFundBody(perFund[0], rsInds)
-      : renderMultiFundTable(perFund, rsInds);
+      : renderMultiFundTable(perFund, rsInds));
     panel.innerHTML = headerHTML + bodyHTML;
   }
 
+  panel.classList.toggle('is-minimized', !!minimized);
   panel.hidden = false;
   if (rangeSel.panelLeft != null) {
     panel.style.left = `${rangeSel.panelLeft}px`;
