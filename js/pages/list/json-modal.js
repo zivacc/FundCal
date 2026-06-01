@@ -29,6 +29,7 @@ export function setupJsonModal({ tbody, fundDetailMap }) {
   const jsonToTableBtn = document.getElementById('fund-json-to-table');
   const jsonOpenEmBtn  = document.getElementById('fund-json-open-em');
   const jsonOpenSohuBtn = document.getElementById('fund-json-open-sohu');
+  const jsonOpenDetailBtn = document.getElementById('fund-json-open-detail');
 
   // 弹窗内部状态：当前展示的基金 + 视图模式
   /** @type {any|null} */
@@ -202,4 +203,15 @@ export function setupJsonModal({ tbody, fundDetailMap }) {
 
   if (jsonOpenEmBtn)   jsonOpenEmBtn.addEventListener('click', () => openExternalRatePage('em'));
   if (jsonOpenSohuBtn) jsonOpenSohuBtn.addEventListener('click', () => openExternalRatePage('sohu'));
+
+  /* ========== 跳转到基金详情页 ========== */
+
+  if (jsonOpenDetailBtn && jsonModal) {
+    jsonOpenDetailBtn.addEventListener('click', () => {
+      const code = (currentFundCode || '').trim();
+      if (!code) return;
+      closeModal(jsonModal);
+      window.location.hash = `#/fund/${code}`;
+    });
+  }
 }

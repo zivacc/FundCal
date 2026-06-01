@@ -1,4 +1,28 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(curl -s \"http://localhost:3458/api/fund/list?page=1&size=2\" -o /dev/null -w \"smoke server still alive: HTTP %{http_code}\\\\n\")",
+      "Bash(ps -W)",
+      "Bash(taskkill //PID 14460 //F)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:3458/api/fund/list?page=1&size=1\")",
+      "Bash(curl -s -w \"[%{time_total}s, %{size_download}B]\\\\n\" \"http://localhost:3457/api/fund/list?page=1&size=2\" -o /dev/null)",
+      "Bash(curl -s -w \"[%{time_total}s, %{size_download}B]\\\\n\" \"http://localhost:3457/api/fund/filter-options\" -o /dev/null)",
+      "Bash(curl -s -w \"[%{time_total}s, HTTP %{http_code}]\\\\n\" \"http://localhost:3456/\" -o /dev/null)",
+      "PowerShell(Get-NetTCPConnection -LocalPort 3456 -ErrorAction SilentlyContinue)",
+      "PowerShell(Get-Process -Id 42636 -ErrorAction SilentlyContinue)",
+      "PowerShell(Get-CimInstance Win32_Process -Filter \"ProcessId = 42636\")",
+      "PowerShell($conn = Get-NetTCPConnection -LocalPort 3457 -ErrorAction SilentlyContinue; if \\($conn\\) { $pids = $conn.OwningProcess | Sort-Object -Unique; foreach \\($p in $pids\\) { Get-CimInstance Win32_Process -Filter \"ProcessId = $p\" | Select-Object ProcessId, Name, CommandLine | Format-List } } else { Write-Output \"FREE\" })",
+      "Bash(kill bw6h5e8si *)",
+      "PowerShell(Stop-Process -Id 50344 -Force -ErrorAction SilentlyContinue; Start-Sleep -Milliseconds 800; $p3456 = Get-NetTCPConnection -LocalPort 3456 -ErrorAction SilentlyContinue; $p3457 = Get-NetTCPConnection -LocalPort 3457 -ErrorAction SilentlyContinue; \"3456: $\\(if \\($p3456\\) { 'OCCUPIED by ' + \\($p3456.OwningProcess -join ','\\) } else { 'FREE' }\\)\"; \"3457: $\\(if \\($p3457\\) { 'OCCUPIED by ' + \\($p3457.OwningProcess -join ','\\) } else { 'FREE' }\\)\")",
+      "Read(//c/Users/de_us/.claude/projects/c--Users-de-us-Desktop-StockBundle-FundCal/memory/**)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3456/index.html)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3456/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3457/api/fund/search-index)",
+      "Bash(kill %1)",
+      "Bash(pkill -f \"node.*serve-fund-api\")",
+      "Bash(pkill -f \"concurrently\")"
+    ]
+  },
   "enabledPlugins": {
     "frontend-design@claude-plugins-official": true,
     "andrej-karpathy-skills@karpathy-skills": true

@@ -1,0 +1,263 @@
+/* ══════════════════════════════════════════════════════════════
+   基金详情页 (page-fund-detail) — 卡片风格
+   ══════════════════════════════════════════════════════════════ */
+
+.page-fund-detail .page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.fd-search-wrap {
+  position: relative;
+  min-width: 280px;
+}
+
+.fd-empty {
+  padding: 4rem 1.5rem;
+  text-align: center;
+  color: var(--text-tertiary);
+  background: var(--bg-raised);
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+}
+
+.fd-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.fd-grid {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.fd-grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 900px) {
+  .fd-grid-2 { grid-template-columns: 1fr; }
+}
+
+/* ── 卡片骨架 ── */
+.fd-card {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.fd-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.fd-card-title {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.fd-card-header .fd-card-title { margin-bottom: 0; }
+
+.fd-card-body {
+  font-size: 0.94rem;
+  color: var(--text-primary);
+}
+
+/* ── Hero 卡片 ── */
+.fd-card-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, var(--bg-raised) 0%, var(--accent-subtle) 100%);
+}
+
+.fd-hero-code {
+  font-family: 'JetBrains Mono', 'DM Mono', monospace;
+  font-size: 0.85rem;
+  color: var(--accent);
+  letter-spacing: 0.08em;
+}
+
+.fd-hero-name {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.fd-hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+}
+
+.fd-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  background: var(--accent-subtle);
+  color: var(--accent);
+  border: 1px solid var(--border-glow);
+}
+
+.fd-hero-badge.fd-badge-warn { color: var(--pink); background: var(--pink-subtle); border-color: var(--pink-glow); }
+.fd-hero-badge.fd-badge-muted { color: var(--text-tertiary); background: var(--bg-subtle); border-color: var(--border); }
+
+/* ── 键值对网格 ── */
+.fd-kv-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem 1.25rem;
+}
+
+.fd-kv {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.fd-kv-label {
+  font-size: 0.76rem;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.fd-kv-value {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.fd-kv-value-num {
+  font-family: 'JetBrains Mono', 'DM Mono', monospace;
+  font-size: 1.05rem;
+  font-weight: 500;
+}
+
+.fd-kv-value-strong { color: var(--accent); }
+
+/* ── 简单表 (分段 / 阶段 / peers) ── */
+.fd-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.fd-table th,
+.fd-table td {
+  padding: 0.55rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.fd-table th {
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--bg-sunk);
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.fd-table td.fd-table-num {
+  font-family: 'JetBrains Mono', 'DM Mono', monospace;
+  text-align: right;
+}
+
+.fd-table-empty {
+  padding: 1.25rem;
+  text-align: center;
+  color: var(--text-tertiary);
+}
+
+/* ── 阶段业绩：涨幅着色 ── */
+.fd-stage-pos { color: var(--pink); font-weight: 500; }
+.fd-stage-neg { color: #2a8e6c; font-weight: 500; }
+
+/* ── 净值图表 ── */
+.fd-nav-chart {
+  width: 100%;
+  height: 360px;
+}
+
+.fd-nav-hint {
+  margin: 0.5rem 0 0;
+  font-size: 0.82rem;
+  color: var(--text-tertiary);
+}
+
+.fd-nav-period-group {
+  display: inline-flex;
+  gap: 0.25rem;
+  background: var(--bg-sunk);
+  padding: 0.2rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.fd-nav-period-btn {
+  background: transparent;
+  border: 0;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 6px;
+  font-family: inherit;
+}
+
+.fd-nav-period-btn:hover { color: var(--text-primary); }
+
+.fd-nav-period-btn-active {
+  background: var(--bg-raised);
+  color: var(--accent);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* ── 同指数基金 peer 行 ── */
+.fd-peer-link {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.fd-peer-link:hover { text-decoration: underline; }
+
+/* ── 原始数据 ── */
+.fd-raw-actions { display: flex; gap: 0.5rem; }
+
+.fd-raw-body {
+  max-height: 480px;
+  overflow: auto;
+  background: var(--bg-sunk);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-family: 'JetBrains Mono', 'DM Mono', monospace;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.fd-raw-body[hidden] { display: none; }
+
+.fd-card-raw.fd-collapsed .fd-raw-body { display: none; }

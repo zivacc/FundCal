@@ -20,6 +20,7 @@ import { spawn } from 'child_process';
 import { pinyin } from 'pinyin-pro';
 import { getDb } from './nav/db.js';
 import { jsonCached } from './nav/http-cache.js';
+import { parseListParams, buildListQuery } from './list-query.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
@@ -365,6 +366,113 @@ function loadStatsDetail(db, dim, label) {
   }));
 }
 
+/**
+ * 服务端分页 list (新增)。前端列表页用。
+ * 返回 { total, page, size, rows } —— rows 是 summary 形状, 含 sell/redeem segments。
+ */
+function loadListPaged(db, qs) {
+  const params = parseListParams(qs);
+  const { sql, countSql, params: bind } = buildListQuery(params);
+
+  const total = db.prepare(countSql).get(...bind).n || 0;
+  const rows  = db.prepare(sql).all(...bind);
+
+  // 取这一页的 sell/redeem 分段, 一次 IN 查询
+  const tsCodes = rows.map(r => r.ts_code);
+  const segMap = new Map();
+  if (tsCodes.length) {
+    const placeholders = tsCodes.map(() => '?').join(',');
+    const segRows = db.prepare(`
+      SELECT ts_code, kind, seq, to_days, rate FROM fund_fee_segments
+      WHERE kind IN ('sell','redeem') AND ts_code IN (${placeholders})
+      ORDER BY ts_code, kind, seq
+    `).all(...tsCodes);
+    for (const s of segRows) {
+      let bucket = segMap.get(s.ts_code);
+      if (!bucket) { bucket = { sell: [], redeem: [] }; segMap.set(s.ts_code, bucket); }
+      bucket[s.kind].push({ to: s.to_days, rate: s.rate });
+    }
+  }
+
+  const out = rows.map(row => {
+    const name = smartPick(row.name, row.name_crawler) || '';
+    const segs = segMap.get(row.ts_code) || { sell: [], redeem: [] };
+    return {
+      code: row.code,
+      name,
+      initials: getInitials(name),
+      source: row.source,
+      status: row.status || null,
+      lifecycle: deriveLifecycle(row.status),
+      needsCrawl: row.source === 'tushare',
+      buyFee: row.buy_fee ?? 0,
+      annualFee: row.annual_fee ?? 0,
+      isFloatingAnnualFee: !!row.is_floating_annual_fee,
+      sellFeeSegments: segs.sell,
+      redeemSegments: segs.redeem,
+      fundType: smartPick(row.fund_type, row.fund_type_crawler) || '',
+      trackingTarget: row.tracking_target || '',
+      performanceBenchmark: smartPick(row.benchmark, row.benchmark_crawler) || '',
+      fundManager: smartPick(row.management, row.management_crawler) || '',
+      establishmentDate: row.found_date_normalized || '',
+      tradingStatus: (row.trading_subscribe || row.trading_redeem) ? {
+        subscribe: row.trading_subscribe || '',
+        redeem: row.trading_redeem || '',
+      } : null,
+      updatedAt: row.crawler_updated_at || '',
+    };
+  });
+
+  return { total, page: params.page, size: params.size, rows: out };
+}
+
+/**
+ * 全维度筛选选项 + 频次 (一次性返回, 前端缓存)。
+ * 选项数字 = 全库统计 (不随其他筛选动态变化, 见用户决策 A)。
+ */
+function loadFilterOptions(db) {
+  const rows = db.prepare(`
+    SELECT
+      COALESCE(NULLIF(b.fund_type,''),  m.fund_type_crawler)  AS fund_type,
+      COALESCE(NULLIF(b.management,''), m.management_crawler) AS manager,
+      m.trading_subscribe AS sub,
+      m.trading_redeem    AS redm
+    FROM fund_meta m
+    LEFT JOIN fund_basic b ON b.ts_code = m.ts_code
+    WHERE m.source IN ('both','crawler')
+  `).all();
+
+  const accum = (col, val) => {
+    const v = (val || '').trim();
+    if (!v) return;
+    col.set(v, (col.get(v) || 0) + 1);
+  };
+  const fundType = new Map();
+  const fundManager = new Map();
+  const subscribe = new Map();
+  const redeem = new Map();
+
+  for (const r of rows) {
+    accum(fundType,    r.fund_type);
+    accum(fundManager, r.manager);
+    accum(subscribe,   r.sub);
+    accum(redeem,      r.redm);
+  }
+
+  const toSorted = (m) =>
+    [...m.entries()]
+      .map(([label, count]) => ({ label, count }))
+      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, 'zh-CN'));
+
+  return {
+    total: rows.length,
+    fundType:    toSorted(fundType),
+    fundManager: toSorted(fundManager),
+    subscribe:   toSorted(subscribe),
+    redeem:      toSorted(redeem),
+  };
+}
+
 function loadCodes(db, sourceFilter) {
   let sql = "SELECT code FROM fund_meta WHERE source IN ('both','crawler') ORDER BY code";
   const params = [];
@@ -430,15 +538,25 @@ export function createFundRouter() {
 
     if (req.method !== 'GET') return false;
 
-    // GET /api/fund/list?fields=summary|full[&source=...]
+    // GET /api/fund/list
+    //   page 参数存在 → 服务端分页/排序/筛选 (新, 列表页用)
+    //   否则 → 旧的全量返回 (灾备 / 兼容旧前端调用方)
     if (/^\/api\/fund\/list\/?$/.test(urlPath)) {
       try {
-        const data = loadList(db, qs.fields || 'summary', qs.source || '');
-        // 列表 ETL 天级更新；max-age=300 (5min) + ETag 让重访短路
+        const data = (qs.page || qs.q || qs.sort)
+          ? loadListPaged(db, qs)
+          : loadList(db, qs.fields || 'summary', qs.source || '');
         jsonCached(req, res, data, { maxAge: 300, scope: 'public' });
       } catch (e) {
         json(res, 500, { error: e.message });
       }
+      return true;
+    }
+
+    // GET /api/fund/filter-options
+    if (/^\/api\/fund\/filter-options\/?$/.test(urlPath)) {
+      try { jsonCached(req, res, loadFilterOptions(db), { maxAge: 600, scope: 'public' }); }
+      catch (e) { json(res, 500, { error: e.message }); }
       return true;
     }
 

@@ -194,6 +194,67 @@ export async function fetchFundListFromAPI() {
 }
 
 /**
+ * 列表页分页 API: /list?page=&size=&sort=&q=&fundType=&...
+ *
+ * 服务端负责 search + sort + filter + pagination，前端只渲染当前页。
+ * 仅当后端可达时调用; GitHub Pages 纯静态部署没有此接口, 调用方应回退到
+ * fetchFundListFromAPI() 一次性方案。
+ *
+ * @param {Object} params
+ * @param {number} params.page
+ * @param {number} params.size
+ * @param {string} [params.q]
+ * @param {string} [params.sort]                e.g. 'annualFee:desc'
+ * @param {Object} [params.filters]             { fundType: ['股票型'], fundManager:[], subscribe:[], redeem:[], floatingFee:'', buyFeeMin, buyFeeMax, annualFeeMin, annualFeeMax, trackingTarget }
+ * @param {AbortSignal} [params.signal]         可取消, 用于防竞态
+ * @returns {Promise<{total:number,page:number,size:number,rows:Array<any>}|null>}
+ */
+export async function fetchFundListPageFromAPI({ page = 1, size = 100, q = '', sort = '', filters = {}, signal } = {}) {
+  const base = getFeeApiBase();
+  if (!base) return null;
+  const sep = base.endsWith('/') ? '' : '/';
+  const usp = new URLSearchParams();
+  usp.set('page', String(page));
+  usp.set('size', String(size));
+  if (sort) usp.set('sort', sort);
+  if (q)    usp.set('q', q);
+  const csv = (arr) => Array.isArray(arr) && arr.length ? arr.join(',') : '';
+  const ft  = csv(filters.fundType);
+  const fm  = csv(filters.fundManager);
+  const sub = csv(filters.subscribe);
+  const red = csv(filters.redeem);
+  if (ft)  usp.set('fundType', ft);
+  if (fm)  usp.set('fundManager', fm);
+  if (sub) usp.set('subscribe', sub);
+  if (red) usp.set('redeem', red);
+  if (filters.floatingFee)        usp.set('floatingFee', filters.floatingFee);
+  if (filters.buyFeeMin    != null) usp.set('buyFeeMin', String(filters.buyFeeMin));
+  if (filters.buyFeeMax    != null) usp.set('buyFeeMax', String(filters.buyFeeMax));
+  if (filters.annualFeeMin != null) usp.set('annualFeeMin', String(filters.annualFeeMin));
+  if (filters.annualFeeMax != null) usp.set('annualFeeMax', String(filters.annualFeeMax));
+  if (filters.trackingTarget)       usp.set('trackingTarget', filters.trackingTarget);
+
+  const res = await fetch(`${base}${sep}list?${usp.toString()}`, { signal });
+  if (!res.ok) return null;
+  return await res.json();
+}
+
+/**
+ * 全维度筛选选项 + 频次。IDB SWR 缓存。
+ * 仅 API 模式; 静态部署没有此接口, 返回 null 由调用方退化到本地聚合。
+ */
+export async function fetchFilterOptionsFromAPI() {
+  const base = getFeeApiBase();
+  if (!base) return null;
+  const url = resolveUrl('filter-options', '');
+  const { data } = await cachedJsonFetch(url, {
+    key: 'fund-filter-options',
+    fallback: () => null,
+  });
+  return data || null;
+}
+
+/**
  * 单只基金费率
  * API: /:code/fee | 静态分片: data/allfund/funds/:code.json
  */

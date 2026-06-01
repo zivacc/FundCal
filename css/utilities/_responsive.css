@@ -45,14 +45,15 @@
 
   .fund-stats-main-right {
     position: fixed;
-    inset: 0;
+    inset: 52px 0 0 0;
     max-width: 100%;
     opacity: 0;
     pointer-events: none;
     transform: translateY(8px);
     background: var(--bg-base);
     z-index: 60;
-    display: block;
+    display: flex;
+    flex-direction: column;
     padding: 0;
     overflow: hidden;
   }
@@ -106,8 +107,7 @@
 
   /* 图表高度调整 */
   .chart-container {
-    height: auto;
-    min-height: 400px;
+    height: clamp(360px, calc(100vh - 8rem), 720px);
   }
 
   .chart-main {
@@ -122,6 +122,28 @@
     padding-top: 0.75rem;
   }
 
+  /* chart-footer 视觉强化分割（D） */
+  .chart-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--rule);
+  }
+  .chart-footer-right {
+    align-self: flex-end;
+  }
+
+  /* fund-detail-table 单元格保证最小宽度（A） */
+  .fund-detail-table {
+    width: auto;
+    min-width: 100%;
+  }
+  .fund-detail-table th.fund-detail-row-label,
+  .fund-detail-table td {
+    min-width: 9rem;
+  }
+
   /* 网格响应式 */
   .card-quarter {
     grid-column: span 6;
@@ -129,6 +151,30 @@
 
   .card-third {
     grid-column: span 6;
+  }
+}
+
+/* ── chart-container 容器查询（不依赖 viewport，对 viewport 缩放/桌面模式/字号设置免疫） ── */
+@container (max-width: 760px) {
+  .chart-main {
+    flex-direction: column;
+  }
+  .chart-main-right {
+    flex: 0 0 auto;
+    max-width: none;
+    border-left: none;
+    border-top: 1px solid var(--rule);
+    padding-top: 0.75rem;
+  }
+  .chart-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--rule);
+  }
+  .chart-footer-right {
+    align-self: flex-end;
   }
 }
 
@@ -175,6 +221,11 @@
     gap: 0.4rem;
   }
 
+  /* #5：取消右组 auto margin，wrap 后避免行末大空白 */
+  .actions-above-cards-right {
+    margin-left: 0;
+  }
+
   .calc-days-row label,
   .calc-days-sep {
     font-size: 0.78rem;
@@ -210,11 +261,21 @@
   /* 图表容器 */
   .chart-container {
     padding: 0.875rem;
-    min-height: 350px;
+    height: clamp(320px, calc(100vh - 7rem), 640px);
   }
 
   .chart-wrapper {
     min-height: 250px;
+  }
+
+  /* optimal-band 边界标签旋转防重叠（B） */
+  .optimal-band-labels {
+    height: 2.6rem;
+  }
+  .optimal-band-boundary-label {
+    transform: translateX(-50%) rotate(-45deg);
+    transform-origin: top left;
+    font-size: 0.65rem;
   }
 
   /* 模态框全屏 */
@@ -381,5 +442,19 @@
 
   .modal-footer {
     padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}
+
+/* ── 短横屏专项（手机横屏 / iPad 分屏底栏）── */
+@media (orientation: landscape) and (max-height: 500px) {
+  .chart-container {
+    height: clamp(280px, calc(100vh - 4rem), 100vh);
+  }
+  .chart-wrapper {
+    min-height: 220px;
+  }
+  .stage-return-chart-wrapper {
+    height: 240px;
+    min-height: 200px;
   }
 }

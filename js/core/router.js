@@ -8,6 +8,7 @@ const ROUTES = {
   index: { module: '../pages/index-picker/index.js',  selector: '[data-route="index"]' },
   nav:   { module: '../pages/nav/index.js',           selector: '[data-route="nav"]' },
   stats: { module: '../pages/stats/index.js',         selector: '[data-route="stats"]' },
+  fund:  { module: '../pages/fund-detail/index.js',   selector: '[data-route="fund"]' },
 };
 
 const DEFAULT_ROUTE = 'calc';

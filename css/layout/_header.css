@@ -226,19 +226,41 @@
 /* ── 移动端 ── */
 @media (max-width: 768px) {
   .top-rail {
-    padding: 0 16px;
-    height: auto;
-    min-height: 52px;
-    flex-wrap: wrap;
+    padding: 0 12px;
+    height: 52px;
     gap: 8px;
   }
   .top-rail-left {
-    gap: 14px;
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: 10px;
+  }
+  .top-rail-tabs {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .top-rail-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .top-rail-tab {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
   }
   .top-rail-right {
     gap: 6px;
+    flex-shrink: 0;
   }
   .top-rail-date {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .top-rail-name {
     display: none;
   }
 }

@@ -1,6 +1,7 @@
 # FundCal 数据流体检报告
 
-> 生成日期：2025（基于仓库当前工作树，未跑任何修复）
+> 原报告基准日期：**2025**
+> 最近修复日期：**2026-05** (P0 大部已修, 见各条目标注)
 > 方法：对比 `README.md` / `CLAUDE.md` / `docs/data-flow.md` 声明 vs 实际代码、DB schema、前端 fetch、静态文件、npm scripts、nginx、cron 的实际行为。
 > 定位：**只读盘点**。不动代码、文档、数据。
 
@@ -8,13 +9,13 @@
 
 ## 0. TL;DR（结论先看）
 
-1. **`docs/data-flow.md` 和 `CLAUDE.md` 基本与现状对齐**（字段裁决、双源、schema、share_class、nav.source、index 数据流都在）。
-2. **`README.md` 明显落后**：缺新 API (`/api/fund/list`, `stats/detail`, `/:code/crawl`, 全部 `/api/nav/*`)、缺多数 `scripts/nav/*` 脚本、示例目录结构仍指 `js/config.js`/`js/app.js` 等已不存在的单文件。
-3. **GitHub Pages 纯静态模式实际已坏**：`data/allfund/allfund.json` 和单基金分片 `data/allfund/funds/<code>.json` 都不存在（前者已归档，后者目录空），`cached-funds.html` / 比较 NAV / 统计页 / 单基金费率 fallback 都会落到 404。只有搜索索引 / feeder / fund-stats / trade-calendar / index-search 这 5 个小静态文件还能用。
-4. **前端存在多处"永远走不到 / 永远 404"的死 fallback**：`data/allfund/funds/<code>.json`、`data/allfund/code-name-map.json`、旧 `allfund.json` 注释。
-5. **`scripts/fund-api.js` 的 `POST /:code/crawl` 入 DB 分支同样是死路**：它从 `data/funds/<code>.json` 读，而爬虫早已直写 DB 不再产这个文件。
-6. **仓库存在 ~125 MB 的归档 + 一份 ~4.5 GB 旧 DB（`data/fundcal-old.db`）**。后者在 `.gitignore` 里应该是被忽略的，但占磁盘。
-7. **`scripts/stats/index.js`（stats 页）自备一份 `getFeeApiBase`**，与 `js/data/fund-api.js` 重复定义，没有单一事实来源。
+1. **`docs/data-flow.md` 和 `CLAUDE.md` 基本与现状对齐** [✅ 2026-05 CLAUDE.md 补齐 4 张指数表 + 服务端分页 API]
+2. **`README.md` 明显落后** [🔧 已修 2026-05: API 表加 list?page= / filter-options, 项目结构修正, 删除旧部署链接]
+3. **GitHub Pages 纯静态模式实际已坏** [📌 仍存, 但当前部署模式已切换到 PC dev + CF Tunnel, GH Pages 不再作为部署目标]
+4. **前端死 fallback** [🔧 部分修, 服务端分页改造删除了 list 页本地 score/sort/filter 死路径]
+5. **`POST /:code/crawl` 入 DB 分支死路** [✅ 已修 2026-05: 改为以子进程 exitCode === 0 为成功判据]
+6. **`data/fundcal-old.db` 4.5 GB 占盘** [✅ 已修: 文件已清]
+7. **`scripts/stats/index.js` 重复定义 `getFeeApiBase`** [✅ 已修: 统一从 `js/data/fund-api.js` import]
 
 ---
 

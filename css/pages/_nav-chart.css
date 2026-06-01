@@ -57,6 +57,12 @@
   gap: 2px;
 }
 
+.nav-excess-select {
+  font-size: 13px;
+  padding: 3px 6px;
+  max-width: 140px;
+}
+
 .nav-period-btn {
   padding: 5px 12px;
   border: 1px solid var(--rule);
@@ -906,6 +912,17 @@ body.is-fullscreen-nav .page-nav .nav-chart-canvas {
   .nav-chart-canvas { height: 420px; }
   .nav-controls { gap: 0.5rem; padding: 8px; }
   .nav-stats-table { min-width: 720px; }
+}
+
+/* ── 窄屏控件分组：每组独占一行（#4） ── */
+@media (max-width: 640px) {
+  .nav-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .nav-control-group {
+    flex-wrap: wrap;
+  }
 }
 
 /* ══════════ Legend 内嵌基准下拉 ══════════ */

@@ -32,6 +32,15 @@ import {
   getIndicatorAxisIndex,
   getEnabledRangeStatsIndicators,
 } from './indicators.js';
+import {
+  DERIVED_INDICATORS,
+  DERIVED_INDICATORS_LIST,
+  REF_FIRST_FUND,
+  REF_BENCHMARK,
+  isDerivedEnabled,
+  resolveRef,
+  excessModeForValueMode,
+} from './derived-indicators.js';
 
 const COLORS = ['#c47a3d', '#2a8e6c', '#3f6cc4', '#b8732d', '#c0412d', '#7e6cc4', '#5d8aa8', '#9b6b3f'];
 
@@ -49,6 +58,11 @@ const state = {
   showMA20: false,
   showMA60: false,
   showDD: true,
+  // 派生指标：超额收益（excess return）—— 跨 series 派生，默认开启
+  // 算法由 valueMode 决定（pct→geom, nav→arith），见 derived-indicators.js
+  excessOn: true,
+  excessNumRef: 'FIRST_FUND',
+  excessDenRef: 'BENCHMARK',
   rangeStatsMinimized: false,
   // 通过点击自定义 legend 被隐藏的基金 code 集合；不影响 state.selected（chip 还在）
   hiddenCodes: new Set(),
@@ -98,6 +112,12 @@ function persist() {
       for (const ind of INDICATORS_LIST) {
         payload[ind.persist.key] = state[ind.persist.key];
       }
+      // 派生指标：开关 + 各自参数 key
+      for (const ind of DERIVED_INDICATORS_LIST) {
+        for (const k of Object.values(ind.persist)) {
+          payload[k] = state[k];
+        }
+      }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     } catch (_) { /* 配额满 / 隐身模式禁用，忽略 */ }
   }, 100);
@@ -137,6 +157,15 @@ function loadPersistedState() {
     const k = ind.persist.key;
     if (typeof saved[k] === 'boolean') state[k] = saved[k];
   }
+  // 派生指标：enabledKey 是 bool，其余 ref key 是 string
+  for (const ind of DERIVED_INDICATORS_LIST) {
+    const ek = ind.persist.enabledKey;
+    if (typeof saved[ek] === 'boolean') state[ek] = saved[ek];
+    for (const [name, key] of Object.entries(ind.persist)) {
+      if (name === 'enabledKey') continue;
+      if (typeof saved[key] === 'string') state[key] = saved[key];
+    }
+  }
   if (Array.isArray(saved.hiddenCodes)) {
     state.hiddenCodes = new Set(saved.hiddenCodes.filter(c => typeof c === 'string'));
   }
@@ -161,7 +190,53 @@ function applyStateToUI() {
     const el = document.getElementById(ind.ui.checkboxId);
     if (el) el.checked = !!state[ind.persist.key];
   }
+  // 派生指标控件同步
+  for (const ind of DERIVED_INDICATORS_LIST) {
+    const cb = document.getElementById(ind.ui.checkboxId);
+    if (cb) cb.checked = !!state[ind.persist.enabledKey];
+  }
+  refreshExcessSelects();
   syncRangeInputs();
+}
+
+/**
+ * 刷新超额收益两个 select 的 options（按当前 state.selected 重建）+ 标签文案。
+ * 在 applyStateToUI / selected 变更 / renderChart 起点调用。
+ *
+ * 选项构成：
+ *   - <option value="FIRST_FUND">第一支基金</option>   （sentinel）
+ *   - <option value="BENCHMARK">基准</option>          （sentinel）
+ *   - 每条 selected 项一个 <option value="<code>">name</option>
+ *
+ * 选中值：直接读 state.excessNumRef / excessDenRef。若当前值已不在选项里
+ * （引用的 code 被删除），下拉显示为空但 state 不动，build 时 resolveRef
+ * 自然返回 null → 不画线。
+ */
+function refreshExcessSelects() {
+  const numSel = document.getElementById(DERIVED_INDICATORS.EXCESS.ui.numSelectId);
+  const denSel = document.getElementById(DERIVED_INDICATORS.EXCESS.ui.denSelectId);
+  if (!numSel || !denSel) return;
+
+  const buildOptions = (currentVal) => {
+    const parts = [
+      `<option value="${REF_FIRST_FUND}"${currentVal === REF_FIRST_FUND ? ' selected' : ''}>第一支基金</option>`,
+      `<option value="${REF_BENCHMARK}"${currentVal === REF_BENCHMARK ? ' selected' : ''}>基准</option>`,
+    ];
+    for (const f of state.selected) {
+      const label = (f.isBenchmark ? '[基准] ' : '') + (f.name || f.code);
+      const sel = currentVal === f.code ? ' selected' : '';
+      parts.push(`<option value="${escapeHtml(f.code)}"${sel}>${escapeHtml(label)}</option>`);
+    }
+    return parts.join('');
+  };
+  numSel.innerHTML = buildOptions(state.excessNumRef);
+  denSel.innerHTML = buildOptions(state.excessDenRef);
+
+  // 标签文案跟随 valueMode 切换
+  const modeLabel = document.getElementById('nav-ind-excess-modelabel');
+  if (modeLabel) {
+    modeLabel.textContent = excessModeForValueMode(state.valueMode) === 'geom' ? '几何超额' : '算术超额';
+  }
 }
 
 /* ========== 日期工具 ========== */
@@ -708,6 +783,9 @@ function renderChart() {
   const { series } = state.data;
   if (!series || !series.length) { chart.clear(); return; }
 
+  // 派生指标 select 的 options 跟 selected/valueMode 走，这里统一刷
+  refreshExcessSelects();
+
   const theme = readThemeColors();
   const valueMode = state.valueMode;
   const axisScale = state.axisScale;
@@ -859,6 +937,25 @@ function renderChart() {
       const target = ind.panel === 'main' ? mainSeries : subplotSeries;
       for (const entry of entries) target.push(entry);
     }
+  }
+
+  // 派生指标（跨 series 衍生层）：在 per-fund 循环之后整体调用一次
+  // ref / 信息不全的判定都在 build 内部（返回 [] = 不画）
+  for (const dInd of DERIVED_INDICATORS_LIST) {
+    if (!isDerivedEnabled(state, dInd)) continue;
+    const axisIdx = subplotIdxMap[dInd.panel] ?? 0;
+    const entries = dInd.build({
+      state,
+      series,
+      alignedByCode,
+      allDates,
+      baseline: effectiveBaseline,
+      theme,
+      xAxisIndex: axisIdx,
+      yAxisIndex: axisIdx,
+    });
+    const target = dInd.panel === 'main' ? mainSeries : subplotSeries;
+    for (const entry of entries) target.push(entry);
   }
 
   // 主图 Y 轴边界：仅按 *可视窗口内* 的值算 → 任何缩放级别都"撑满"
@@ -1412,6 +1509,28 @@ function setupEvents() {
     state.axisScale = btn.dataset.value;
     btn.parentElement.querySelectorAll('.nav-toggle-btn').forEach(b => b.classList.remove('nav-toggle-btn-active'));
     btn.classList.add('nav-toggle-btn-active');
+    renderChart();
+  });
+
+  // 派生指标：开关 checkbox + 各自参数控件（目前 EXCESS 有两个 select）
+  for (const ind of DERIVED_INDICATORS_LIST) {
+    document.getElementById(ind.ui.checkboxId)?.addEventListener('change', (e) => {
+      state[ind.persist.enabledKey] = e.target.checked;
+      persist();
+      renderChart();
+    });
+  }
+  // EXCESS 的两个 select 各自绑（注册表里没有泛化参数控件，按 id 直接挂）
+  const exNumSel = document.getElementById(DERIVED_INDICATORS.EXCESS.ui.numSelectId);
+  const exDenSel = document.getElementById(DERIVED_INDICATORS.EXCESS.ui.denSelectId);
+  exNumSel?.addEventListener('change', (e) => {
+    state.excessNumRef = e.target.value;
+    persist();
+    renderChart();
+  });
+  exDenSel?.addEventListener('change', (e) => {
+    state.excessDenRef = e.target.value;
+    persist();
     renderChart();
   });
 

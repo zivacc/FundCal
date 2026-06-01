@@ -42,6 +42,7 @@
         <a href="#/index" class="top-rail-tab" data-route="index" role="tab">指数选基</a>
         <a href="#/nav" class="top-rail-tab" data-route="nav" role="tab">净值比较</a>
         <a href="#/stats" class="top-rail-tab" data-route="stats" role="tab">统计</a>
+        <a href="#/fund" class="top-rail-tab" data-route="fund" role="tab">基金详情</a>
       </div>
     </div>
     <div class="top-rail-right">
@@ -201,6 +202,8 @@
 
         <div class="cf-filter-group">
           <div class="cf-filter-label">基金公司</div>
+          <input type="search" id="cf-filter-fundManager-search" class="cf-filter-input" placeholder="搜索基金公司..." />
+          <div class="cf-filter-hint" id="cf-filter-fundManager-hint"></div>
           <div class="cf-filter-options cf-filter-options-vertical cf-filter-options-scroll" id="cf-filter-fundManager"></div>
         </div>
 
@@ -522,10 +525,23 @@
         </div>
 
         <div class="nav-control-group">
-          <span class="nav-control-label">指标</span>
+          <span class="nav-control-label">主图指标</span>
           <label class="toggle-btn toggle-btn-inline"><input type="checkbox" id="nav-ind-ma20" class="toggle-btn-input"><span class="toggle-btn-text">MA20</span></label>
           <label class="toggle-btn toggle-btn-inline"><input type="checkbox" id="nav-ind-ma60" class="toggle-btn-input"><span class="toggle-btn-text">MA60</span></label>
-          <label class="toggle-btn toggle-btn-inline"><input type="checkbox" id="nav-ind-dd" class="toggle-btn-input" checked><span class="toggle-btn-text">回撤副图</span></label>
+        </div>
+
+        <div class="nav-control-group">
+          <span class="nav-control-label">副图指标</span>
+          <label class="toggle-btn toggle-btn-inline"><input type="checkbox" id="nav-ind-dd" class="toggle-btn-input" checked><span class="toggle-btn-text">回撤</span></label>
+        </div>
+
+        <div class="nav-control-group">
+          <span class="nav-control-label">派生指标</span>
+          <label class="toggle-btn toggle-btn-inline"><input type="checkbox" id="nav-ind-excess" class="toggle-btn-input" checked><span class="toggle-btn-text">超额</span></label>
+          <select id="nav-ind-excess-num" class="cf-filter-input nav-excess-select" aria-label="超额收益分子"></select>
+          <span class="nav-control-label">相对</span>
+          <select id="nav-ind-excess-den" class="cf-filter-input nav-excess-select" aria-label="超额收益分母"></select>
+          <span class="nav-control-label" id="nav-ind-excess-modelabel">超额</span>
         </div>
       </div>
 
@@ -661,6 +677,101 @@
   </section>
 
   <!-- ═════════════════════════════════════════════════════════════
+       页面 6：基金详情
+       ═════════════════════════════════════════════════════════════ -->
+  <section class="page page-fund-detail" data-route="fund">
+    <div class="container">
+      <header class="page-header">
+        <div class="page-header-left">
+          <span class="page-header-kicker">FUND · DETAIL</span>
+          <h1>基金详情</h1>
+          <p class="subtitle">单只基金的完整信息：基础资料、费率分段、阶段业绩、净值曲线与同指数基金</p>
+        </div>
+        <div class="page-header-right">
+          <div class="fund-search-wrap fd-search-wrap">
+            <input type="text" id="fd-search-input" class="fund-search-input" placeholder="输入代码 / 名称 / 拼音首字母" autocomplete="off">
+            <ul id="fd-search-dropdown" class="fund-search-dropdown" role="listbox" aria-hidden="true"></ul>
+          </div>
+        </div>
+      </header>
+
+      <div class="fd-empty" id="fd-empty">
+        <p>从上方搜索框选择一只基金，或在「基金列表」点击「查看」→「详细信息」进入。</p>
+      </div>
+
+      <div class="fd-content" id="fd-content" hidden>
+        <!-- 头部卡片：标题 + 代码 + 状态徽章 -->
+        <div class="fd-card fd-card-hero" id="fd-card-hero"></div>
+
+        <!-- 第一行：概览 + 费率 -->
+        <div class="fd-grid fd-grid-2">
+          <div class="fd-card" id="fd-card-overview">
+            <h3 class="fd-card-title">基础信息</h3>
+            <div class="fd-card-body" id="fd-overview-body"></div>
+          </div>
+          <div class="fd-card" id="fd-card-fees">
+            <h3 class="fd-card-title">费率</h3>
+            <div class="fd-card-body" id="fd-fees-body"></div>
+          </div>
+        </div>
+
+        <!-- 第二行：买入分段 + 卖出/赎回分段 -->
+        <div class="fd-grid fd-grid-2">
+          <div class="fd-card" id="fd-card-buy-seg">
+            <h3 class="fd-card-title">买入费率分段</h3>
+            <div class="fd-card-body" id="fd-buy-seg-body"></div>
+          </div>
+          <div class="fd-card" id="fd-card-sell-seg">
+            <h3 class="fd-card-title">卖出 / 赎回费率分段</h3>
+            <div class="fd-card-body" id="fd-sell-seg-body"></div>
+          </div>
+        </div>
+
+        <!-- 业绩 -->
+        <div class="fd-card" id="fd-card-stages">
+          <h3 class="fd-card-title">阶段业绩</h3>
+          <div class="fd-card-body" id="fd-stages-body"></div>
+        </div>
+
+        <!-- 净值曲线 -->
+        <div class="fd-card" id="fd-card-nav">
+          <div class="fd-card-header">
+            <h3 class="fd-card-title">净值曲线</h3>
+            <div class="fd-nav-period-group" id="fd-nav-period-group" role="tablist">
+              <button type="button" class="fd-nav-period-btn" data-period="1Y">1Y</button>
+              <button type="button" class="fd-nav-period-btn" data-period="3Y">3Y</button>
+              <button type="button" class="fd-nav-period-btn" data-period="5Y">5Y</button>
+              <button type="button" class="fd-nav-period-btn fd-nav-period-btn-active" data-period="MAX">MAX</button>
+            </div>
+          </div>
+          <div class="fd-card-body">
+            <div class="fd-nav-chart" id="fd-nav-chart"></div>
+            <p class="fd-nav-hint" id="fd-nav-hint"></p>
+          </div>
+        </div>
+
+        <!-- 同指数其他基金 -->
+        <div class="fd-card" id="fd-card-peers">
+          <h3 class="fd-card-title">同跟踪标的基金</h3>
+          <div class="fd-card-body" id="fd-peers-body"></div>
+        </div>
+
+        <!-- 原始数据 -->
+        <div class="fd-card fd-card-raw" id="fd-card-raw">
+          <div class="fd-card-header">
+            <h3 class="fd-card-title">原始数据</h3>
+            <div class="fd-raw-actions">
+              <button type="button" class="btn btn-sm btn-secondary" id="fd-raw-toggle-view">查看 JSON</button>
+              <button type="button" class="btn btn-sm btn-secondary" id="fd-raw-collapse">折叠</button>
+            </div>
+          </div>
+          <div class="fd-card-body fd-raw-body" id="fd-raw-body"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═════════════════════════════════════════════════════════════
        全局弹窗
        ═════════════════════════════════════════════════════════════ -->
 
@@ -788,6 +899,7 @@
       </div>
       <div class="modal-footer">
         <div class="modal-footer-right">
+          <button type="button" class="btn btn-primary" id="fund-json-open-detail">详细信息</button>
           <button type="button" class="btn btn-secondary" id="fund-json-to-table">转为表格</button>
           <button type="button" class="btn btn-secondary" id="fund-json-cancel">关闭</button>
           <button type="button" class="btn btn-secondary" id="fund-json-open-em">天天基金费率页</button>

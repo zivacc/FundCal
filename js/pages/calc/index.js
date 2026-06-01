@@ -745,19 +745,7 @@ async function updateChart() {
       layout: { padding: { left: 0, right: 8, top: 4, bottom: 0 } },
       interaction: { intersect: true, mode: 'nearest' },
       plugins: {
-        legend: {
-          position: 'top',
-          labels: {
-            filter: (item, chart) => !chart.datasets[item.datasetIndex].crossover,
-            color: tickColor,
-            font: { ...chartFont, size: 14, weight: '600' },
-            padding: 18,
-            usePointStyle: true,
-            pointStyle: 'circle',
-            boxWidth: 8,
-            boxHeight: 8
-          }
-        },
+        legend: { display: false },
         tooltip: {
           // 改为 HTML 外置悬浮窗，保证层级高于十字线信息窗与坐标刻度窗
           enabled: false,
@@ -790,7 +778,7 @@ async function updateChart() {
 
   setupCrosshair(canvas);
 
-  // 底部色带：与图表横轴对齐，每段直接显示对应基金名称
+  // 色带（移至曲线上方，CSS order: -1）：每段对应区间最优基金，点击显示完整名称
   const bandEl = document.getElementById('optimal-band');
   if (bandEl) {
     bandEl.innerHTML = '';
@@ -798,9 +786,16 @@ async function updateChart() {
       bandEl.style.display = 'block';
       bandEl.style.marginLeft = '60px';
       bandEl.style.marginRight = '15px';
+
+      const display = document.createElement('div');
+      display.className = 'optimal-band-display';
+      const placeholder = '点击下方色块查看完整名称与区间';
+      display.textContent = placeholder;
+      bandEl.appendChild(display);
+
       const strip = document.createElement('div');
       strip.className = 'optimal-band-strip';
-      displaySegments.forEach(seg => {
+      displaySegments.forEach((seg, segIndex) => {
         const segDays = seg.end - seg.start + 1;
         const widthPct = (segDays / displayDays * 100).toFixed(2) + '%';
         const color = seg.redNoText ? 'var(--danger)' : (funds[seg.fundIndex].color || getColorForIndex(seg.fundIndex));
@@ -809,6 +804,9 @@ async function updateChart() {
         segDiv.className = 'optimal-band-segment';
         segDiv.style.width = widthPct;
         segDiv.style.backgroundColor = color;
+        segDiv.dataset.segIndex = String(segIndex);
+        segDiv.dataset.fullName = labelText;
+        segDiv.dataset.range = `${seg.start}–${seg.end} 天`;
         // 仅宽度足够时显示文字（占比 > 4% 或绝对天数 > 20天）
         const showLabel = (segDays / displayDays) > 0.04 || segDays > 20;
         if (showLabel) {
@@ -819,6 +817,22 @@ async function updateChart() {
         }
         strip.appendChild(segDiv);
       });
+
+      strip.addEventListener('click', (e) => {
+        const seg = e.target.closest('.optimal-band-segment');
+        if (!seg) return;
+        const wasActive = seg.classList.contains('active');
+        strip.querySelectorAll('.optimal-band-segment.active').forEach(s => s.classList.remove('active'));
+        if (wasActive) {
+          display.textContent = placeholder;
+          display.style.color = '';
+        } else {
+          seg.classList.add('active');
+          display.textContent = `[${seg.dataset.range}] ${seg.dataset.fullName}`;
+          display.style.color = seg.style.backgroundColor;
+        }
+      });
+
       bandEl.appendChild(strip);
       // 交叉点天数标注行，与图表横轴对齐
       const labelsRow = document.createElement('div');

@@ -1,29 +1,30 @@
 /**
  * 缓存基金列表页 —— 筛选条件状态 + UI 事件。
  *
- * 设计：把可变筛选状态封装在模块作用域里，对外只暴露最小必要 API：
- * - applyFilters(rows)         —— 按当前筛选条件过滤一组行（pure 视角，仅读 state）
- * - countActiveFilters()       —— 当前激活了几条筛选；UI 用来刷新徽标 / 结果提示
- * - refreshFilterOptions(rows) —— 数据加载完后据 rows 重建标签按钮（基金类型 / 公司 / 申购 / 赎回）
- * - refreshResultHint(rows)    —— 刷新「N / Total 只基金符合条件」的提示文案
- * - setupFilters(opts)         —— 一次性绑定全部筛选 UI 事件，需要外部注入 getAllFunds() + onChange()
+ * 服务端筛选模式 (2026 重构):
+ * - tag 选项 + 频次来自 /api/fund/filter-options (一次性, IDB SWR 缓存)
+ * - fundManager 太多 (>50) → 默认显示 top-50, 配搜索框过滤剩余
+ * - 筛选状态变更 → 调用方触发分页 API 重拉, 由 API 返回的 total 写入结果提示
  *
- * 之所以把"工厂注入回调"，是因为应用筛选后还需要：
- *   1. 重置 currentPage = 1（分页器在 index.js 里）
- *   2. 触发 renderTable()
- * 这两步不属于 filters 自身职责，由调用方在 onChange 中完成。
+ * 对外:
+ *   applyOptions(options)        — 注入 API 返回的 {fundType,fundManager,subscribe,redeem,total}, 重建标签
+ *   getActiveFilters()           — 返回当前筛选状态 (供分页 API 调用方序列化进 query string)
+ *   countActiveFilters()         — 当前激活几条 (UI 徽标)
+ *   setResultHint(filteredTotal) — 显示 "N / Total 只基金符合条件"
+ *   setupFilters({ onChange })   — 一次性绑定 UI; onChange 在筛选确认/重置时被调用
  */
 
 import { escapeHtml } from '../../utils/format.js';
 
-/** 默认筛选状态：每次 reset 都从这里克隆。 */
+const MANAGER_TOP_N = 50;
+
 function makeEmptyState() {
   return {
     fundType: new Set(),
     fundManager: new Set(),
     subscribe: new Set(),
     redeem: new Set(),
-    floatingFee: '',      // '' | 'yes' | 'no'
+    floatingFee: '',
     buyFeeMin: null,
     buyFeeMax: null,
     annualFeeMin: null,
@@ -33,43 +34,26 @@ function makeEmptyState() {
 }
 
 let activeFilters = makeEmptyState();
+let cachedOptions = null;          // 上次 applyOptions 注入的全量选项
+let managerSearchQuery = '';        // fundManager 搜索框当前值
 
-/* ========== 对外：纯函数 / 状态查询 ========== */
+/* ========== 对外:状态查询 ========== */
 
-/**
- * 按当前筛选条件过滤一组行；不会修改入参。
- * @template {Record<string, any>} T
- * @param {T[]} rows
- * @returns {T[]}
- */
-export function applyFilters(rows) {
-  const f = activeFilters;
-  return rows.filter(r => {
-    if (f.fundType.size && !f.fundType.has(r.fundType || '')) return false;
-    if (f.fundManager.size && !f.fundManager.has(r.fundManager || '')) return false;
-    if (f.subscribe.size) {
-      const sv = (r.tradingStatus?.subscribe || '').trim() || '-';
-      if (!f.subscribe.has(sv)) return false;
-    }
-    if (f.redeem.size) {
-      const rv = (r.tradingStatus?.redeem || '').trim() || '-';
-      if (!f.redeem.has(rv)) return false;
-    }
-    if (f.floatingFee === 'yes' && !(r.raw && r.raw.isFloatingAnnualFee)) return false;
-    if (f.floatingFee === 'no' && (r.raw && r.raw.isFloatingAnnualFee)) return false;
-    if (f.buyFeeMin != null && (r.buyFee ?? 0) < f.buyFeeMin) return false;
-    if (f.buyFeeMax != null && (r.buyFee ?? 0) > f.buyFeeMax) return false;
-    if (f.annualFeeMin != null && (r.annualFee ?? 0) < f.annualFeeMin) return false;
-    if (f.annualFeeMax != null && (r.annualFee ?? 0) > f.annualFeeMax) return false;
-    if (f.trackingTarget) {
-      const kw = f.trackingTarget.toLowerCase();
-      if (!(r.trackingTarget || '').toLowerCase().includes(kw)) return false;
-    }
-    return true;
-  });
+export function getActiveFilters() {
+  return {
+    fundType:       [...activeFilters.fundType],
+    fundManager:    [...activeFilters.fundManager],
+    subscribe:      [...activeFilters.subscribe],
+    redeem:         [...activeFilters.redeem],
+    floatingFee:    activeFilters.floatingFee,
+    buyFeeMin:      activeFilters.buyFeeMin,
+    buyFeeMax:      activeFilters.buyFeeMax,
+    annualFeeMin:   activeFilters.annualFeeMin,
+    annualFeeMax:   activeFilters.annualFeeMax,
+    trackingTarget: activeFilters.trackingTarget,
+  };
 }
 
-/** 当前激活了几条筛选条件（用于徽标显示）。 */
 export function countActiveFilters() {
   const f = activeFilters;
   let n = 0;
@@ -84,45 +68,34 @@ export function countActiveFilters() {
   return n;
 }
 
-/* ========== 对外：UI 同步 ========== */
+/* ========== 对外:UI 同步 ========== */
 
 /**
- * 据当前数据集重建可选项标签（按出现频次倒序）。
- * 一般在 loadCachedFunds 之后调用一次，重置时也会自动调用。
- * @param {Array<Record<string, any>>} allFunds
+ * 注入服务端 filter-options。
+ * @param {{fundType:Array<{label,count}>, fundManager:Array<{label,count}>, subscribe:Array<{label,count}>, redeem:Array<{label,count}>, total?:number}|null} options
  */
-export function refreshFilterOptions(allFunds) {
-  const fundTypes = new Map();
-  const managers  = new Map();
-  const subscribes = new Map();
-  const redeems    = new Map();
+export function applyOptions(options) {
+  if (!options) return;
+  cachedOptions = options;
+  renderAllTags();
+  updateFilterBadge();
+}
 
-  for (const f of allFunds) {
-    const ft = f.fundType || '';
-    if (ft) fundTypes.set(ft, (fundTypes.get(ft) || 0) + 1);
-    const fm = f.fundManager || '';
-    if (fm) managers.set(fm, (managers.get(fm) || 0) + 1);
-    const sv = (f.tradingStatus?.subscribe || '').trim();
-    if (sv) subscribes.set(sv, (subscribes.get(sv) || 0) + 1);
-    const rv = (f.tradingStatus?.redeem || '').trim();
-    if (rv) redeems.set(rv, (redeems.get(rv) || 0) + 1);
-  }
+function renderTagList(containerEl, items, filterSet) {
+  if (!containerEl) return;
+  containerEl.innerHTML = items.map(({ label, count }) => {
+    const active = filterSet.has(label) ? ' cf-filter-tag-active' : '';
+    return `<button type="button" class="cf-filter-tag${active}" data-value="${escapeHtml(label)}">${escapeHtml(label)} <small>(${count})</small></button>`;
+  }).join('');
+}
 
-  const renderTags = (containerEl, map, filterSet) => {
-    if (!containerEl) return;
-    const sorted = [...map.entries()].sort((a, b) => b[1] - a[1]);
-    containerEl.innerHTML = sorted.map(([label, count]) => {
-      const active = filterSet.has(label) ? ' cf-filter-tag-active' : '';
-      return `<button type="button" class="cf-filter-tag${active}" data-value="${escapeHtml(label)}">${escapeHtml(label)} <small>(${count})</small></button>`;
-    }).join('');
-  };
+function renderAllTags() {
+  if (!cachedOptions) return;
+  renderTagList(document.getElementById('cf-filter-fundType'),  cachedOptions.fundType  || [], activeFilters.fundType);
+  renderTagList(document.getElementById('cf-filter-subscribe'), cachedOptions.subscribe || [], activeFilters.subscribe);
+  renderTagList(document.getElementById('cf-filter-redeem'),    cachedOptions.redeem    || [], activeFilters.redeem);
+  renderManagerTags();
 
-  renderTags(document.getElementById('cf-filter-fundType'),    fundTypes,  activeFilters.fundType);
-  renderTags(document.getElementById('cf-filter-fundManager'), managers,   activeFilters.fundManager);
-  renderTags(document.getElementById('cf-filter-subscribe'),   subscribes, activeFilters.subscribe);
-  renderTags(document.getElementById('cf-filter-redeem'),      redeems,    activeFilters.redeem);
-
-  // 浮动费率 是固定二选一，不依赖数据
   const floatingEl = document.getElementById('cf-filter-floatingFee');
   if (floatingEl) {
     floatingEl.innerHTML = ['yes', 'no'].map(v => {
@@ -133,7 +106,36 @@ export function refreshFilterOptions(allFunds) {
   }
 }
 
-/** 顶部筛选数量徽标（红色小圆圈里的数字）。 */
+function renderManagerTags() {
+  const containerEl = document.getElementById('cf-filter-fundManager');
+  if (!containerEl || !cachedOptions) return;
+  const all = cachedOptions.fundManager || [];
+  const q = managerSearchQuery.trim().toLowerCase();
+  let items;
+  if (q) {
+    items = all.filter(it => it.label.toLowerCase().includes(q));
+  } else {
+    // 默认 top-N + 已选中的(若未在 top-N) 都展示, 避免选中态消失
+    const top = all.slice(0, MANAGER_TOP_N);
+    const topLabels = new Set(top.map(x => x.label));
+    const selectedExtra = all.filter(x => activeFilters.fundManager.has(x.label) && !topLabels.has(x.label));
+    items = [...top, ...selectedExtra];
+  }
+  renderTagList(containerEl, items, activeFilters.fundManager);
+
+  // 在 tag 栏前插一条统计提示 (如果 top-N 还有更多被截断)
+  const hint = document.getElementById('cf-filter-fundManager-hint');
+  if (hint) {
+    if (q) {
+      hint.textContent = `匹配 ${items.length} 个基金公司`;
+    } else if (all.length > MANAGER_TOP_N) {
+      hint.textContent = `共 ${all.length} 个基金公司，仅显示前 ${MANAGER_TOP_N} 个，可用搜索框查找其他`;
+    } else {
+      hint.textContent = '';
+    }
+  }
+}
+
 function updateFilterBadge() {
   const el = document.getElementById('cf-filter-active-count');
   if (!el) return;
@@ -142,22 +144,20 @@ function updateFilterBadge() {
 }
 
 /**
- * 「N / Total 只基金符合条件」的实时提示。
- * @param {Array<Record<string, any>>} allFunds
+ * 显示 "N / Total 只基金符合条件"。
+ * @param {number} filteredTotal API 返回的 total
  */
-export function refreshResultHint(allFunds) {
+export function setResultHint(filteredTotal) {
   const el = document.getElementById('cf-filter-result-hint');
   if (!el) return;
   const n = countActiveFilters();
   if (n === 0) { el.textContent = ''; return; }
-  const total = allFunds.length;
-  const filtered = applyFilters(allFunds).length;
-  el.textContent = `${filtered} / ${total} 只基金符合条件`;
+  const total = cachedOptions?.total ?? '?';
+  el.textContent = `${filteredTotal} / ${total} 只基金符合条件`;
 }
 
-/* ========== 内部：UI ↔ state 同步 ========== */
+/* ========== 内部:UI ↔ state ========== */
 
-/** 把数值输入框（百分比）反序列化进 activeFilters */
 function readFiltersFromUI() {
   const pv = (id) => {
     const v = parseFloat(document.getElementById(id)?.value);
@@ -170,39 +170,34 @@ function readFiltersFromUI() {
   activeFilters.trackingTarget = (document.getElementById('cf-filter-trackingTarget')?.value || '').trim();
 }
 
-/** 重置所有筛选条件 + 清空对应输入框，重建标签按钮。 */
-function resetFilters(getAllFunds) {
+function resetFilters() {
   activeFilters = makeEmptyState();
+  managerSearchQuery = '';
+  const mgrSearch = document.getElementById('cf-filter-fundManager-search');
+  if (mgrSearch) mgrSearch.value = '';
   const ids = [
     'cf-filter-buyFee-min', 'cf-filter-buyFee-max',
     'cf-filter-annualFee-min', 'cf-filter-annualFee-max',
     'cf-filter-trackingTarget',
   ];
   ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-  refreshFilterOptions(getAllFunds());
+  renderAllTags();
   updateFilterBadge();
 }
 
-/* ========== 对外：一次性绑定 UI ========== */
+/* ========== 对外:绑定 UI ========== */
 
 /**
- * 绑定全部筛选 UI 事件（折叠 / 标签开关 / 应用 / 重置）。
- * 需要调用方提供：
- * - getAllFunds(): 返回当前完整数据集（用于重置后重建标签 / 计算结果提示）
- * - onChange():    应用 / 重置后调用，由 index.js 负责重置分页与重渲染
- *
  * @param {Object} opts
- * @param {() => Array<Record<string, any>>} opts.getAllFunds
- * @param {() => void} opts.onChange
+ * @param {() => void} opts.onChange  应用 / 重置后调用 (调用方负责重拉 API + render)
  */
-export function setupFilters({ getAllFunds, onChange }) {
+export function setupFilters({ onChange }) {
   const bar       = document.querySelector('.cf-filter-bar');
   const toggleBtn = document.getElementById('cf-filter-toggle');
   const panel     = document.getElementById('cf-filter-panel');
   const applyBtn  = document.getElementById('cf-filter-apply');
   const resetBtn  = document.getElementById('cf-filter-reset');
 
-  // 整栏的折叠 / 展开
   if (toggleBtn && panel && bar) {
     toggleBtn.addEventListener('click', () => {
       const open = panel.hidden;
@@ -211,7 +206,6 @@ export function setupFilters({ getAllFunds, onChange }) {
     });
   }
 
-  // 多选标签：点击切换
   const bindTagToggle = (containerId, filterSet) => {
     const el = document.getElementById(containerId);
     if (!el) return;
@@ -234,7 +228,6 @@ export function setupFilters({ getAllFunds, onChange }) {
   bindTagToggle('cf-filter-subscribe',   activeFilters.subscribe);
   bindTagToggle('cf-filter-redeem',      activeFilters.redeem);
 
-  // 浮动费率：单选语义（再点一次取消）
   const floatingEl = document.getElementById('cf-filter-floatingFee');
   if (floatingEl) {
     floatingEl.addEventListener('click', (e) => {
@@ -252,19 +245,30 @@ export function setupFilters({ getAllFunds, onChange }) {
     });
   }
 
+  // fundManager 搜索框 (top-50 + 关键字过滤)
+  const mgrSearch = document.getElementById('cf-filter-fundManager-search');
+  if (mgrSearch) {
+    let timer;
+    mgrSearch.addEventListener('input', () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        managerSearchQuery = mgrSearch.value || '';
+        renderManagerTags();
+      }, 120);
+    });
+  }
+
   if (applyBtn) {
     applyBtn.addEventListener('click', () => {
       readFiltersFromUI();
       updateFilterBadge();
-      refreshResultHint(getAllFunds());
       onChange();
     });
   }
 
   if (resetBtn) {
     resetBtn.addEventListener('click', () => {
-      resetFilters(getAllFunds);
-      refreshResultHint(getAllFunds());
+      resetFilters();
       onChange();
     });
   }

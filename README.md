@@ -2,10 +2,9 @@
 
 多基金费率对比工具：输入或拉取基金费率，在同一张图上展示不同基金在各持有期限下的累计费用曲线，并自动标注交叉点。
 
-**在线体验（完整）**：[https://f.z-c.me](https://f.z-c.me/)
-**在线体验（静态降级）**：[https://zivacc.github.io/FundCal/](https://zivacc.github.io/FundCal/) — 仅可用搜索 / 统计聚合卡片 / 交易日历, 单基金详情、缓存列表、NAV 比较需后端 API
+**在线体验**：[https://f.z-c.me](https://f.z-c.me/) — PC 开发机 + Cloudflare Tunnel 暴露
 
-> ⚠️ **GitHub Pages 限制说明**: 历史 75 MB 的 `allfund.json` 与 26k 个 `data/allfund/funds/<code>.json` 单基金分片已下线 (见 `archive/data-allfund/`)。GH Pages 只承载 5 个小静态索引 + 交易日历, 单基金费率详情、缓存基金列表、NAV 比较、统计明细这些功能在 GH Pages 模式下会回退或不可用。要全功能请用本地 / 服务器 API 模式 (下方"快速开始")。
+> **部署模式**: 本机 `npm run dev` 起 `localhost:3456/3457`, 由 Cloudflare Tunnel (`cloudflared`) 反代到公网域名, 零端口暴露。历史的 Oracle Cloud / 阿里云 ECS / Cloudflare Workers+KV / D1+R2 方案已归档至 [`archive/docs/`](archive/docs/)。
 
 ---
 
@@ -30,47 +29,31 @@
 
 ## 快速开始
 
-### 方式一：在线使用 (生产)
-
-[https://f.z-c.me](https://f.z-c.me/) — Oracle Cloud + Cloudflare 反代, 走完整 `/api/fund` + `/api/nav`。
-
-### 方式二：在线使用 (静态降级)
-
-[https://zivacc.github.io/FundCal/](https://zivacc.github.io/FundCal/) — 仅 5 个小静态索引 + 交易日历, 见上方 ⚠️ 限制说明。
-
-### 方式三：本地运行
-
 ```bash
-# Windows：双击 start.bat
-# Mac/Linux：
-chmod +x start.sh && ./start.sh
-# 或：
-npm run dev
+# Windows: 双击 start.bat
+# Mac / Linux: chmod +x start.sh && ./start.sh
+# 任意: npm run dev
 ```
 
-浏览器访问 `http://localhost:3456`。
-
-会同时启动静态文件服务（端口 3456）和 API 服务（端口 3457）。
+浏览器访问 `http://localhost:3456`。一次启动:
+- 静态文件服务 (3456) — 浏览器访问入口
+- API 服务 (3457) — `/api/fund/*` + `/api/nav/*` 同一进程
 
 ---
 
-## 三种部署模式
+## 部署模式
 
-本项目设计为**同一份代码**适配三种环境，前端自动检测运行环境：
+| 模式 | 数据来源 | 适用场景 |
+|---|---|---|
+| **本地开发** | `localhost:3457` API | 开发调试, 实时爬取 |
+| **CF Tunnel** | 同源 `/api/fund` + `/api/nav` (Tunnel 反代到本机) | 公网访问, 零端口暴露 |
 
+前端环境自动识别 ([`js/data/fund-api.js`](js/data/fund-api.js) `getFeeApiBase()`):
 
-| 模式               | 数据来源                            | 适用场景        |
-| ---------------- | ------------------------------- | ----------- |
-| **本地开发**          | API 服务 `localhost:3457`                       | 开发调试, 实时爬取数据                  |
-| **服务器部署**         | Nginx 反代 `/api/fund` + `/api/nav` → Node API   | 公网访问, PM2 常驻, 边缘缓存零回源        |
-| **GitHub Pages 降级** | 仓库中 5 个小静态 JSON                            | 免费托管展示, 单基金 / 列表 / 比较受限   |
+- `localhost` / `127.0.0.1` → `http://localhost:3457/api/fund`
+- 其他域名 → 同源 `/api/fund`
 
-
-检测逻辑（[`js/core/config.js`](js/core/config.js) 可通过 `window.FUND_FEE_API_BASE` 手动覆盖）：
-
-- `localhost` / `127.0.0.1` → 调用本地 API (`http://localhost:3457/api/fund`)
-- `*.github.io` → API base 设为 `null`, 仅读静态分片
-- 其他域名 → 同源 `/api/fund` (Nginx 反向代理)
+详细见 [docs/DEPLOY.md](docs/DEPLOY.md)。
 
 ---
 
@@ -168,13 +151,16 @@ FundCal/
 │       ├── replay-failed-syncs.js      重放 sync_log 失败任务
 │       └── query-nav.js                净值查询 CLI
 │
-├── archive/                            已归档 (build-allfund.js / build-search-index.js /
-│                                       check-allfund.js / upload-kv.js, 见 docs/audit-data-flow.md)
-├── nginx/fundcal.conf                  Nginx 配置模板 (含 CORS / 缓存)
-├── .github/workflows/deploy-pages.yml  GH Actions 自动部署
-├── docs/                               data-flow / audit / DEPLOY / cloudflare-migration
+├── archive/
+│   ├── scripts/                        已弃脚本 (upload-kv / build-allfund 旧 / build-search-index / check-allfund)
+│   ├── docs/                           已弃部署文档 (DEPLOY-ORACLE / cloudflare-migration)
+│   └── data-allfund/                   历史胖产物 (allfund.json 75M, funds/<code>.json 26k 个)
+├── docs/
+│   ├── data-flow.md                    数据流 + 字段裁决矩阵 + schema
+│   ├── DEPLOY.md                       PC dev + CF Tunnel 部署
+│   ├── audit-data-flow.md              数据流审计 (P0 已修历史记录)
+│   └── decisions/                      ADR 决策日志 (重大技术决策)
 ├── start.bat / start.sh                一键启动
-├── ecosystem.config.cjs                PM2 服务器配置
 └── package.json
 ```
 
@@ -246,15 +232,6 @@ npm run replay-failed -- --dry --limit 100     # 干跑前 100 个失败任务
 npm run replay-failed                          # 实际重跑近 7 天失败
 ```
 
-### 更新 GitHub Pages 数据
-
-```bash
-npm run build-all
-git add -A && git commit -m "更新基金数据" && git push
-```
-
-推送后 GitHub Actions 会自动部署，几分钟内生效。
-
 ---
 
 ## API 接口
@@ -263,15 +240,18 @@ git add -A && git commit -m "更新基金数据" && git push
 
 ### `/api/fund/*` (基金费率 / 元数据)
 
-| 接口                                      | 说明                                                  |
-| --------------------------------------- | --------------------------------------------------- |
-| `GET /api/fund/list?fields=summary\|full` | 缓存基金列表 (`?source=both,crawler,tushare` 过滤)    |
-| `GET /api/fund/codes`                   | 已缓存基金代码列表                                    |
-| `GET /api/fund/search-index`            | 搜索索引 (code / name / 拼音首字母)                   |
-| `GET /api/fund/stats`                   | 三维统计聚合 (按跟踪标的 / 基金公司 / 业绩基准)        |
-| `GET /api/fund/stats/detail?dim=&label=` | 单组明细 (替代旧 21 MB 全量 fund-stats-detail.json)   |
-| `GET /api/fund/{code}` 或 `/{code}/fee`   | 单基金完整结构 (费率 / 业绩 / 规模)                    |
-| `POST /api/fund/{code}/crawl`           | 触发爬虫直写 DB (子进程 exitCode=0 即视为成功)         |
+| 接口 | 说明 |
+|---|---|
+| `GET /api/fund/list?page=&size=&sort=&q=&fundType=&fundManager=&subscribe=&redeem=&floatingFee=&buyFeeMin=&buyFeeMax=&annualFeeMin=&annualFeeMax=&trackingTarget=` | **服务端分页列表** (新, 列表页用)。`sort` 取值见 [`scripts/list-query.js`](scripts/list-query.js) `SORT_EXPR` 白名单 |
+| `GET /api/fund/list?fields=summary\|full` | 全量列表 (旧, 灾备 / 兼容旧调用) |
+| `GET /api/fund/filter-options` | 全维度筛选 tag + 频次 (`fundType` / `fundManager` / `subscribe` / `redeem`) |
+| `GET /api/fund/codes` | 基金代码列表 |
+| `GET /api/fund/search-index` | 搜索索引 (code / name / 拼音首字母) |
+| `GET /api/fund/stats` | 三维统计聚合 (按跟踪标的 / 基金公司 / 业绩基准) |
+| `GET /api/fund/stats/detail?dim=&label=` | 单组明细 |
+| `GET /api/fund/{code}` 或 `/{code}/fee` | 单基金完整结构 |
+| `POST /api/fund/{code}/crawl` | 触发爬虫直写 DB (子进程 exitCode=0 即成功) |
+| `GET /api/fund/all-codes` | 远程拉天天基金完整代码列表 (5 min cache) |
 
 ### `/api/nav/*` (净值 / 指数)
 
@@ -301,8 +281,6 @@ git add -A && git commit -m "更新基金数据" && git push
 - 一次最多 20 只
 
 返回 `{ codes, range:{start,end}, series:[{code,kind,name,dates,navs,adjNavs,...indicators}], stats:[{code,kind,name,...statsFields}] }`。基金 `adjNavs = adj_nav ?? unit_nav` (复权优先), 指数 `navs === adjNavs === close` (无复权概念)。统计基于 `adjNavs` 日收益率序列, 由 `computeStats` 给出年化波动率 / 最大回撤 / 累计收益等。
-
-> GitHub Pages 模式下没有 `/api/nav/*` 静态兜底, 比较页与统计明细在该模式下不可用。
 
 ---
 
@@ -366,20 +344,15 @@ git add -A && git commit -m "更新基金数据" && git push
 
 ---
 
-## 部署指南
+## 部署
 
-**生产推荐**: **Oracle Cloud Always Free** (4 OCPU / 24 GB RAM / 200 GB / 永久免费) + Cloudflare 反代, 域名 `fc.ziva.cc.cd`。
-部署脚本与阿里云通用 (`scripts/aliyun-deploy.sh`), 一键部署:
-```bash
-sudo bash scripts/aliyun-deploy.sh init       # 装环境 + 配 nginx + 启 PM2
-sudo bash scripts/aliyun-deploy.sh seed-db /path/to/fundcal.db   # 导 DB
-sudo bash scripts/aliyun-deploy.sh cron       # 装定时任务
-```
+当前模式: **PC dev + Cloudflare Tunnel** → [docs/DEPLOY.md](docs/DEPLOY.md)
 
-详细文档:
-- [docs/DEPLOY-ORACLE.md](docs/DEPLOY-ORACLE.md) — **Oracle Cloud Free (主推)** 含账号注册 / VCN / iptables / ARM 调优
-- [docs/DEPLOY.md § 五](docs/DEPLOY.md#五阿里云-ecs--cloudflare-反代-推荐生产) — 阿里云 + CF (备选)
-- [docs/DEPLOY.md](docs/DEPLOY.md) — 全部部署方式 (本地 / GitHub Pages / CF Workers)
-- [docs/data-flow.md](docs/data-flow.md) — 数据流程、合并矩阵、定时同步
-- [docs/cloudflare-migration.md](docs/cloudflare-migration.md) — D1+R2 备选方案 (Free tier)
+历史方案 (Oracle Cloud / 阿里云 ECS / Workers+KV / D1+R2) 已归档至 [`archive/docs/`](archive/docs/), 不再维护。
+
+## 相关文档
+
+- [docs/data-flow.md](docs/data-flow.md) — 数据流 + 字段裁决矩阵 + schema
+- [docs/audit-data-flow.md](docs/audit-data-flow.md) — 数据流审计 (P0 已修历史)
+- [docs/decisions/](docs/decisions/) — ADR 决策日志
 

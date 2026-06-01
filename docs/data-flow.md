@@ -371,6 +371,23 @@ index_fund_tracker (index_ts_code, fund_ts_code) PK  基金跟踪关系 (派生)
 
 完整端到端协议另见 [README.md `/api/nav/compare 协议`](../README.md#apinavcompare-协议)。
 
-## 12. 部署与生产环境
+## 12. 列表服务端分页 API (2026-05 新增)
 
-参见 [DEPLOY.md](DEPLOY.md)。Cloudflare D1+R2 迁移规划见 [cloudflare-migration.md](cloudflare-migration.md)。
+`/api/fund/list` 是列表页主入口。**路由层嗅探参数自动分流**:
+
+| 调用形式 | 走向 | 用途 |
+|---|---|---|
+| `?page=&size=&sort=&q=&fundType=...` | 服务端分页 ([scripts/list-query.js](../scripts/list-query.js) SQL builder) | 列表页主用 |
+| `?fields=summary\|full` | 旧全量路径 (返回 27k 行) | 灾备 / 兼容旧调用方 |
+
+并行端点 `/api/fund/filter-options` 一次返回所有筛选维度 + 频次 (`fundType` / `fundManager` / `subscribe` / `redeem`)，前端 IDB SWR 缓存。
+
+设计决策见 [decisions/0001-server-side-pagination-not-duckdb.md](decisions/0001-server-side-pagination-not-duckdb.md)。
+
+---
+
+## 13. 部署
+
+参见 [DEPLOY.md](DEPLOY.md): PC dev + Cloudflare Tunnel。
+
+历史方案 (Oracle Cloud / 阿里云 ECS / Workers+KV / D1+R2) 已归档至 [`../archive/docs/`](../archive/docs/)。
