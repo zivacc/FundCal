@@ -7,12 +7,12 @@
  * 同时清理 .OF 的 sync_log (按 ts_code), 减少噪声.
  *
  * 用法:
- *   node scripts/nav/cleanup-redundant-of.js          # 实写
- *   node scripts/nav/cleanup-redundant-of.js --dry    # 干跑
- *   node scripts/nav/cleanup-redundant-of.js --threshold 5  # 改阈值 (.OF 行数 < N 且场内 ≥ N 才删)
+ *   node scripts/nav/oneoff/cleanup-redundant-of.js          # 实写
+ *   node scripts/nav/oneoff/cleanup-redundant-of.js --dry    # 干跑
+ *   node scripts/nav/oneoff/cleanup-redundant-of.js --threshold 5  # 改阈值 (.OF 行数 < N 且场内 ≥ N 才删)
  */
 
-import { getDb, closeDb } from './db.js';
+import { getDb, closeDb } from '../db.js';
 
 const args = process.argv.slice(2);
 const dry = args.includes('--dry');

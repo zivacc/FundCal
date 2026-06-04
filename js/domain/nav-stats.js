@@ -24,7 +24,7 @@
  *      新实现（暴露 computeUnionRange）：min(series.start), max(series.end)。
  */
 
-import { computeMA, computeDrawdown } from './nav-statistics.js';
+import { computeMA, computeDrawdown } from './nav-chart-transform.js';
 
 /* ========== 降采样 ========== */
 

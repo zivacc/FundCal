@@ -1,5 +1,5 @@
 /**
- * Unit tests for js/domain/nav-statistics.js
+ * Unit tests for js/domain/nav-chart-transform.js
  *
  * 跑：npm test
  *
@@ -19,7 +19,7 @@ import {
   transformByMode,
   computeYAxisBounds,
   pickLogBase,
-} from './nav-statistics.js';
+} from './nav-chart-transform.js';
 
 /* ============== computeMA ============== */
 

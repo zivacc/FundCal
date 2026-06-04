@@ -5,7 +5,7 @@
  * - window.echarts (CDN 全局)
  * - data/nav-api.js  ：NAV 数据接口（取数、周期换算）
  * - domain/nav-align.js     ：多基金日期并集对齐 + 前向填充
- * - domain/nav-statistics.js：MA / 回撤 / Y 轴模式变换
+ * - domain/nav-chart-transform.js：MA / 回撤 / Y 轴模式变换
  * - data/fund-api.js ：复用搜索索引接口
  */
 
@@ -22,7 +22,7 @@ import {
   transformByMode,
   computeYAxisBounds,
   pickLogBase,
-} from '../../domain/nav-statistics.js';
+} from '../../domain/nav-chart-transform.js';
 import { computeRangeStats } from '../../domain/nav-range-stats.js';
 import {
   INDICATORS_LIST,

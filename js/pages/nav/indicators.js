@@ -5,8 +5,8 @@
  * 这个文件把原本散落在 index.js 里的指标相关硬编码（MA20 / MA60 / 回撤副图）
  * 集中到两张表：
  *
- *   INDICATORS  —— 每只基金可叠加的衍生数据层（MA、未来的 EMA / Bollinger / …）
- *   SUBPLOTS    —— 独立的副图（drawdown，未来的 RSI / MACD / Volume 等）
+ *   INDICATOR_REGISTRY —— 每只基金可叠加的衍生数据层（MA、未来的 EMA / Bollinger / …）
+ *   SUBPLOTS           —— 独立的副图（drawdown，未来的 RSI / MACD / Volume 等）
  *
  * 每个指标声明自己需要什么（stateKey、UI 控件 id、panel 归属、计算方式、
  * 如何产出 ECharts series、怎么出现在区间统计 panel 里）。renderChart、
@@ -15,15 +15,15 @@
  *
  * 本模块内所有函数都是纯函数（无 DOM、无 ECharts 实例引用），方便独立单测。
  *
- * 注意：项目里另有一张同名 INDICATORS 在 js/domain/nav-stats.js —— 那是
- * **后端 API 层**用的 compute+attach 预算注册表（给 /nav/compare?indicators=...
- * 接口在返回前把 ma20/drawdown 数组塞进 series）。两套表目标层不同：
- *   - 这里是 **怎么画 + UI 行为**
- *   - 那边是 **怎么算 + 返回哪些字段**
+ * 注意：js/domain/nav-stats.js 里另有一张 INDICATORS 表 —— 那是
+ * **后端 API 层**用的 compute+attach 注册表（给 /nav/compare?indicators=...
+ * 接口在返回前把 ma20/drawdown 数组塞进 series）。两套表目标层不同（已用不同名区分）：
+ *   - 这里 INDICATOR_REGISTRY 是 **怎么画 + UI 行为**
+ *   - 那边 INDICATORS 是 **怎么算 + 返回哪些字段**
  * 目前前端还是在本地重算（不依赖后端预算的那份），所以两套表互不影响。
  */
 
-import { computeMA, computeMASingle, computeDrawdown } from '../../domain/nav-statistics.js';
+import { computeMA, computeMASingle, computeDrawdown } from '../../domain/nav-chart-transform.js';
 
 /* ========== SUBPLOTS（副图） ========== */
 
@@ -53,7 +53,7 @@ export const SUBPLOTS = {
   // rsi: { id: 'rsi', order: 2, grid: { left: 60, right: 30, top: '90%', height: '8%' }, buildYAxis: ... },
 };
 
-/* ========== INDICATORS（指标） ========== */
+/* ========== INDICATOR_REGISTRY（指标） ========== */
 
 /**
  * 指标条目字段约定：
@@ -82,7 +82,7 @@ export const SUBPLOTS = {
  *     yAxisIndex:  同上
  *   }
  */
-export const INDICATORS = {
+export const INDICATOR_REGISTRY = {
   MA20: {
     id: 'MA20',
     label: 'MA20',
@@ -180,8 +180,8 @@ export const INDICATORS = {
   },
 };
 
-/** INDICATORS 的有序数组形式 —— 用在遍历场景（persist、setupEvents 等） */
-export const INDICATORS_LIST = Object.values(INDICATORS);
+/** INDICATOR_REGISTRY 的有序数组形式 —— 用在遍历场景（persist、setupEvents 等） */
+export const INDICATORS_LIST = Object.values(INDICATOR_REGISTRY);
 
 /* ========== 辅助函数 ========== */
 

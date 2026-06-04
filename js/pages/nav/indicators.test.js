@@ -10,14 +10,14 @@
  *   - getSubplotIndexMap：main=0，副图从 1 开始
  *   - getIndicatorAxisIndex：按 panel 解析 axis index
  *   - getEnabledRangeStatsIndicators：只含有 rangeStats 定义且 enabled 的
- *   - INDICATORS.*.build：返回 ECharts series entries 的基本 shape
- *   - INDICATORS.*.rangeStats.single：与 computeMA 最后点一致
+ *   - INDICATOR_REGISTRY.*.build：返回 ECharts series entries 的基本 shape
+ *   - INDICATOR_REGISTRY.*.rangeStats.single：与 computeMA 最后点一致
  */
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  INDICATORS,
+  INDICATOR_REGISTRY,
   INDICATORS_LIST,
   SUBPLOTS,
   isIndicatorEnabled,
@@ -27,11 +27,11 @@ import {
   getIndicatorAxisIndex,
   getEnabledRangeStatsIndicators,
 } from './indicators.js';
-import { computeMA } from '../../domain/nav-statistics.js';
+import { computeMA } from '../../domain/nav-chart-transform.js';
 
 /* ============== 注册表 shape ============== */
 
-test('INDICATORS: 每个指标必须有 id / label / persist.key / ui.checkboxId / panel / build', () => {
+test('INDICATOR_REGISTRY: 每个指标必须有 id / label / persist.key / ui.checkboxId / panel / build', () => {
   for (const ind of INDICATORS_LIST) {
     assert.equal(typeof ind.id, 'string', `${ind.id}: id`);
     assert.equal(typeof ind.label, 'string', `${ind.id}: label`);
@@ -42,14 +42,14 @@ test('INDICATORS: 每个指标必须有 id / label / persist.key / ui.checkboxId
   }
 });
 
-test('INDICATORS: panel 指向 main 或存在的 subplot id', () => {
+test('INDICATOR_REGISTRY: panel 指向 main 或存在的 subplot id', () => {
   for (const ind of INDICATORS_LIST) {
     const ok = ind.panel === 'main' || !!SUBPLOTS[ind.panel];
     assert.ok(ok, `${ind.id}: panel="${ind.panel}" 既不是 main 也不在 SUBPLOTS 里`);
   }
 });
 
-test('INDICATORS: persist.key 在注册表内全局唯一（多指标共享 state 字段会互相串）', () => {
+test('INDICATOR_REGISTRY: persist.key 在注册表内全局唯一（多指标共享 state 字段会互相串）', () => {
   const seen = new Set();
   for (const ind of INDICATORS_LIST) {
     assert.ok(!seen.has(ind.persist.key), `重复 persist.key: ${ind.persist.key}`);
@@ -57,7 +57,7 @@ test('INDICATORS: persist.key 在注册表内全局唯一（多指标共享 stat
   }
 });
 
-test('INDICATORS: id 全局唯一（range stats 按 id 建 map）', () => {
+test('INDICATOR_REGISTRY: id 全局唯一（range stats 按 id 建 map）', () => {
   const seen = new Set();
   for (const ind of INDICATORS_LIST) {
     assert.ok(!seen.has(ind.id), `重复 indicator id: ${ind.id}`);
@@ -69,9 +69,9 @@ test('INDICATORS: id 全局唯一（range stats 按 id 建 map）', () => {
 
 test('isIndicatorEnabled: 按 persist.key 读 state', () => {
   const state = { showMA20: true, showMA60: false, showDD: true };
-  assert.equal(isIndicatorEnabled(state, INDICATORS.MA20), true);
-  assert.equal(isIndicatorEnabled(state, INDICATORS.MA60), false);
-  assert.equal(isIndicatorEnabled(state, INDICATORS.DRAWDOWN), true);
+  assert.equal(isIndicatorEnabled(state, INDICATOR_REGISTRY.MA20), true);
+  assert.equal(isIndicatorEnabled(state, INDICATOR_REGISTRY.MA60), false);
+  assert.equal(isIndicatorEnabled(state, INDICATOR_REGISTRY.DRAWDOWN), true);
 });
 
 test('getEnabledIndicators: 只含当前开启的', () => {
@@ -117,13 +117,13 @@ test('getSubplotIndexMap: 无副图也要有 main=0', () => {
 
 test('getIndicatorAxisIndex: main 指标永远是 0', () => {
   const map = { main: 0, drawdown: 1 };
-  assert.equal(getIndicatorAxisIndex(INDICATORS.MA20, map), 0);
-  assert.equal(getIndicatorAxisIndex(INDICATORS.MA60, map), 0);
+  assert.equal(getIndicatorAxisIndex(INDICATOR_REGISTRY.MA20, map), 0);
+  assert.equal(getIndicatorAxisIndex(INDICATOR_REGISTRY.MA60, map), 0);
 });
 
 test('getIndicatorAxisIndex: 副图指标按 panel 查表', () => {
   const map = { main: 0, drawdown: 1 };
-  assert.equal(getIndicatorAxisIndex(INDICATORS.DRAWDOWN, map), 1);
+  assert.equal(getIndicatorAxisIndex(INDICATOR_REGISTRY.DRAWDOWN, map), 1);
 });
 
 test('getIndicatorAxisIndex: 未知 panel → 回退到 0（防御，实际不应发生）', () => {
@@ -148,7 +148,7 @@ test('getEnabledRangeStatsIndicators: 只开 MA20 → 只返回 MA20', () => {
 
 /* ============== build: series entry 基本 shape ============== */
 
-test('INDICATORS.MA20.build: 返回一条 line series，xAxisIndex 跟 ctx 走', () => {
+test('INDICATOR_REGISTRY.MA20.build: 返回一条 line series，xAxisIndex 跟 ctx 走', () => {
   const ctx = {
     code: '001', name: 'A', color: '#111',
     aligned: [1, 2, 3, 4, 5, 6],
@@ -156,7 +156,7 @@ test('INDICATORS.MA20.build: 返回一条 line series，xAxisIndex 跟 ctx 走',
     winEIdx: 5, extremaStartIdx: 0,
     xAxisIndex: 0, yAxisIndex: 0,
   };
-  const out = INDICATORS.MA20.build(ctx);
+  const out = INDICATOR_REGISTRY.MA20.build(ctx);
   assert.equal(out.length, 1);
   assert.equal(out[0].type, 'line');
   assert.equal(out[0].name, '001 MA20');
@@ -166,7 +166,7 @@ test('INDICATORS.MA20.build: 返回一条 line series，xAxisIndex 跟 ctx 走',
   assert.equal(out[0].data.length, 6);
 });
 
-test('INDICATORS.DRAWDOWN.build: 返回一条副图 line series，axis 跟 ctx 走，含 markPoint（有极值时）', () => {
+test('INDICATOR_REGISTRY.DRAWDOWN.build: 返回一条副图 line series，axis 跟 ctx 走，含 markPoint（有极值时）', () => {
   const ctx = {
     code: '001', name: 'A', color: '#111',
     aligned: [1, 1.2, 0.8, 0.9, 1.1],   // peak=1.2，谷=0.8 → 回撤约 -33%
@@ -174,7 +174,7 @@ test('INDICATORS.DRAWDOWN.build: 返回一条副图 line series，axis 跟 ctx �
     winEIdx: 4, extremaStartIdx: 0,
     xAxisIndex: 1, yAxisIndex: 1,
   };
-  const out = INDICATORS.DRAWDOWN.build(ctx);
+  const out = INDICATOR_REGISTRY.DRAWDOWN.build(ctx);
   assert.equal(out.length, 1);
   assert.equal(out[0].type, 'line');
   assert.equal(out[0].xAxisIndex, 1);
@@ -184,7 +184,7 @@ test('INDICATORS.DRAWDOWN.build: 返回一条副图 line series，axis 跟 ctx �
   assert.equal(out[0].markPoint.data[0].name, '最大回撤');
 });
 
-test('INDICATORS.DRAWDOWN.build: 全 null 数组 → 无 markPoint', () => {
+test('INDICATOR_REGISTRY.DRAWDOWN.build: 全 null 数组 → 无 markPoint', () => {
   const ctx = {
     code: '001', name: 'A', color: '#111',
     aligned: [null, null, null],
@@ -192,26 +192,26 @@ test('INDICATORS.DRAWDOWN.build: 全 null 数组 → 无 markPoint', () => {
     winEIdx: 2, extremaStartIdx: 0,
     xAxisIndex: 1, yAxisIndex: 1,
   };
-  const out = INDICATORS.DRAWDOWN.build(ctx);
+  const out = INDICATOR_REGISTRY.DRAWDOWN.build(ctx);
   // computeDrawdown on all-null returns all-null; minI stays -1 → markPoint undefined
   assert.equal(out[0].markPoint, undefined);
 });
 
 /* ============== rangeStats.single：与 computeMA 最后点一致 ============== */
 
-test('INDICATORS.MA20.rangeStats.single: 与 computeMA(arr, 20).at(idx) 等价', () => {
+test('INDICATOR_REGISTRY.MA20.rangeStats.single: 与 computeMA(arr, 20).at(idx) 等价', () => {
   const arr = Array.from({ length: 30 }, (_, i) => i + 1);  // 1..30
   const full = computeMA(arr, 20);
   for (const idx of [19, 20, 25, 29]) {
     assert.equal(
-      INDICATORS.MA20.rangeStats.single(arr, idx),
+      INDICATOR_REGISTRY.MA20.rangeStats.single(arr, idx),
       full[idx],
       `idx=${idx}`,
     );
   }
 });
 
-test('INDICATORS.MA60.rangeStats.single: window 未满 → null', () => {
+test('INDICATOR_REGISTRY.MA60.rangeStats.single: window 未满 → null', () => {
   const arr = [1, 2, 3];
-  assert.equal(INDICATORS.MA60.rangeStats.single(arr, 2), null);
+  assert.equal(INDICATOR_REGISTRY.MA60.rangeStats.single(arr, 2), null);
 });
