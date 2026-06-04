@@ -128,6 +128,7 @@ index_fund_tracker (index_ts_code, fund_ts_code) 指数 ⇄ 基金跟踪关系
 ## 前端结构
 
 - 无构建框架, 纯 ES modules + 静态 HTML
+- **SPA + hash 路由**: 单一 `index.html`, [js/core/router.js](js/core/router.js) 按 `#/calc · #/list · #/index · #/nav · #/stats · #/fund` 切换 6 个页面, 对应 `pages/<route>/index.js` 模块**按需懒加载** (`import()`, 仅首次激活时拉取并初始化)。新增页面: 在 `ROUTES` 加一行 + `index.html` 加 `[data-route]` 容器/tab。
 - [js/](js/) 按职责分: `core/` 配置/路由/主题, `data/` API 适配 + nav 缓存 + 交易日历, `domain/` 业务计算 (fee/nav-stats/nav-align), `pages/` 各页面入口, `components/` 共享组件, `utils/` 工具
 - 测试用 `*.test.js` 跟实现并排, `node --test` 跑
 - 环境自动检测 ([js/data/fund-api.js](js/data/fund-api.js) `getFeeApiBase()`):
@@ -162,4 +163,4 @@ index_fund_tracker (index_ts_code, fund_ts_code) 指数 ⇄ 基金跟踪关系
 - `archive/scripts/upload-kv.js` — Cloudflare Workers + KV 全量已弃
 - `scripts/migrate-crawler-to-db.js` — 一次性迁移已完成; 仅作灾备
 - `data/funds/<code>.json` — 旧 crawler 中转; 现 crawler 直写 DB
-- `scripts/aliyun-deploy.sh` / `nginx/fundcal.conf` / `ecosystem.config.cjs` — VPS 部署遗留, 当前 CF Tunnel 模式不用
+- VPS / Cloudflare Workers 部署遗留 (`aliyun-deploy.sh` / `deploy.sh` / `nginx/` / `ecosystem.config.cjs` / `src/worker.js` / `wrangler.toml` / `build-workers.js`) **已删** — 当前只用 CF Tunnel 模式

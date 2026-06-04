@@ -126,7 +126,6 @@ FundCal/
 │   ├── build-fund-stats.js             构建三维统计聚合
 │   ├── build-trade-calendar.js         构建交易日历
 │   ├── migrate-crawler-to-db.js        [灾备] 从历史 data/funds/*.json 重建 DB
-│   ├── aliyun-deploy.sh / deploy.sh    服务器部署
 │   └── nav/
 │       ├── db.js                       SQLite 连接 + schema (含幂等迁移)
 │       ├── nav-api.js                  /api/nav/* 路由 (stats / compare /
@@ -339,7 +338,7 @@ npm run replay-failed                          # 实际重跑近 7 天失败
 | `npm run query:nav`      | 净值 / 范围 CLI 查询                          |
 | `npm run migrate:crawler`| [灾备] 从 `data/funds/*.json` 重建 DB         |
 
-> 已归档脚本 (`build-allfund.js` / `build-search-index.js` / `check-allfund.js` / `upload-kv.js`) 移到了 `archive/scripts/`, `package.json` 里以 `__legacy_` 前缀保留占位。详见 [`docs/audit-data-flow.md`](docs/audit-data-flow.md)。
+> 已归档脚本 (`build-allfund.js` / `build-search-index.js` / `check-allfund.js` / `upload-kv.js`) 移到了 `archive/scripts/` 作历史留档 (不再有 npm 入口)。详见 [`docs/audit-data-flow.md`](docs/audit-data-flow.md)。
 
 
 ---
