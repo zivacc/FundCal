@@ -38,12 +38,15 @@ npm run sync:trade-cal          # 交易日历
 npm run sync:index-basic        # Tushare 指数清单
 npm run sync:index-daily        # Tushare 指数日线
 npm run crawl:em-index          # 东财指数日线 (港股 / 美股 / 全收益)
+npm run import:custom-index     # 导入自定义指数 CSV (source=6)
 npm run replay-failed           # 重放失败任务
 npm run health-check            # 体检 (10 项)
 
 # 构建静态资源 (DB → data/allfund/*)
 npm run build-all               # allfund + search-index + feeder-index + fund-stats + trade-calendar
 ```
+
+每日自动更新的标准顺序见 [scripts/cron/fundcal-cron](scripts/cron/fundcal-cron): sync-fund-nav → replay-failed → crawl-eastmoney-nav --missing → build-all → health-check。手动补数据时按同样顺序跑。
 
 ## 架构: 双源数据 + 字段裁决 + 静态构建
 
@@ -151,7 +154,7 @@ index_fund_tracker (index_ts_code, fund_ts_code) 指数 ⇄ 基金跟踪关系
 - **新增 list 排序字段**: 在 [scripts/list-query.js](scripts/list-query.js) `SORT_EXPR` 白名单加, 同时更新前端 [js/pages/list/index.js](js/pages/list/index.js) `parseSortValue` 的 valid 集和 keyMap。
 - **更新数据源时**: 优先看 [docs/data-flow.md](docs/data-flow.md) 流程图, 不要绕开 `apply-merge-rules` 直写 fund_basic。
 - **测试**: `js/domain/*.test.js` 和 `scripts/list-query.test.js` 是纯函数单测, 加新业务函数 / SQL builder 务必带测试。
-- **新加时间序列数据 (K线/股票/复杂指标)**: 优先考虑 Parquet 列存而非塞进 SQLite, 详见未来的 ADR 0002 草案。
+- **新加时间序列数据 (K线/股票/复杂指标)**: 优先考虑 Parquet 列存而非塞进 SQLite, 详见 [docs/decisions/0002-parquet-cold-storage-DRAFT.md](docs/decisions/0002-parquet-cold-storage-DRAFT.md)。
 
 ## 已弃 / 历史
 
