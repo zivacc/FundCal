@@ -1,0 +1,85 @@
+{
+  "memoryCache": {
+    "first": {
+      "marker": "present"
+    },
+    "secondIsUndefined": true,
+    "secondSource": "memory",
+    "requests": 1
+  },
+  "sampling": {
+    "dailyRows": 100,
+    "weeklyRows": 100,
+    "annualVolatilityRatio": 0.45425676257949793
+  },
+  "cacheInternalGap": {
+    "requested": {
+      "start": "20260201",
+      "end": "20260228"
+    },
+    "reportedMissing": []
+  },
+  "htmlOutput": {
+    "unescapedNameMarkup": true
+  },
+  "ledgerStringQuantities": {
+    "CNY": {
+      "qty": "010020",
+      "cost": "010020",
+      "avgCost": 1
+    }
+  },
+  "ledgerMissingFeeAsset": {
+    "CNY": {
+      "qty": 50,
+      "cost": 50,
+      "avgCost": 1
+    },
+    "TEST": {
+      "qty": 5,
+      "cost": 50,
+      "avgCost": 10
+    }
+  },
+  "crossover": [
+    {
+      "days": 8,
+      "feeRate": 0,
+      "annualizedFeeRate": 0,
+      "fundA": "A",
+      "fundB": "B",
+      "beforeCross": "B",
+      "afterCross": "A",
+      "actualFeeA": 0,
+      "actualFeeB": 0.001
+    }
+  ],
+  "freshSchema": {
+    "hasShareClass": false,
+    "buildExit": 1,
+    "buildMissingColumn": true
+  },
+  "partialCrawlerWrite": {
+    "meta": {
+      "annual_fee": 0.01,
+      "operation_fee_total": 0.01,
+      "mgmt_fee": 0
+    },
+    "remainingKinds": [
+      "sell"
+    ]
+  },
+  "crawlerIdentity": {
+    "resolver": "999992.OF",
+    "writer": "999992.SH"
+  },
+  "malformedUrl": {
+    "uncaughtRouterRejection": "URIError",
+    "message": "URI malformed"
+  },
+  "portfolioValidation": {
+    "rows": 3,
+    "malformedAccepted": true,
+    "repeatedImportRows": 2
+  }
+}

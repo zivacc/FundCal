@@ -99,7 +99,8 @@ FundCal/
 ├── data/
 │   ├── fundcal.db                      ★ SQLite 主真相源 (fund_basic / fund_meta /
 │   │                                     fund_nav / fund_fee_segments / fund_stage_returns /
-│   │                                     index_basic / index_daily / sync_log)
+│   │                                     morningstar_fund_fee / index_basic / index_daily / sync_log)
+│   ├── morningstar_full_fund_fee/      Morningstar 综合费率半年 XLSX 快照（独立参考源）
 │   ├── allfund/                        小静态分片 (灾备 / 纯静态站点)
 │   │   ├── search-index.json           搜索索引 (code / name / 拼音首字母, 3.2 MB)
 │   │   ├── feeder-index.json           联接基金 / 母基金索引 (624 KB)
@@ -121,6 +122,7 @@ FundCal/
 │   │                                   stats / stats/detail / {code} / {code}/crawl)
 │   ├── crawl-fund-fee.js               爬虫: 单只费率 / 费用 / 业绩 (直写 DB)
 │   ├── crawl-all-fund-fee.js           爬虫: 全量
+│   ├── import-morningstar-fee.js        Morningstar XLSX 全量历史快照 → 独立参考表
 │   ├── build-allfund-from-db.js        DB → data/allfund/* 静态分片 + 索引
 │   ├── build-feeder-index.js           构建联接基金索引
 │   ├── build-fund-stats.js             构建三维统计聚合
@@ -313,7 +315,7 @@ npm run replay-failed                          # 实际重跑近 7 天失败
 | `npm run build-fund-stats`      | 三维统计聚合                                |
 | `npm run build-trade-calendar`  | 交易日历                                  |
 
-### 数据同步 (Tushare / 东财)
+### 数据同步 (Tushare / 东财 / Morningstar)
 
 | 命令                              | 说明                                       |
 | ------------------------------- | ---------------------------------------- |
@@ -326,7 +328,9 @@ npm run replay-failed                          # 实际重跑近 7 天失败
 | `npm run crawl:em-index`        | 东财指数日线 (港股 / 美股 / 全收益)               |
 | `npm run crawl:eastmoney-nav`   | 东财基金净值 (兜底 / 补全)                      |
 | `npm run crawl:all`             | 爬虫全量基金费率 (直写 DB)                     |
+| `npm run refresh:public`        | 无 Tushare 的一次性全库增量补数、构建与覆盖率报告（可重复续跑） |
 | `npm run import:custom-index`   | 导入自定义指数                              |
+| `npm run import:morningstar-fee` | 全量导入 Morningstar 综合费率历史快照（幂等）       |
 
 ### 数据治理
 
@@ -354,4 +358,3 @@ npm run replay-failed                          # 实际重跑近 7 天失败
 - [docs/data-flow.md](docs/data-flow.md) — 数据流 + 字段裁决矩阵 + schema
 - [docs/audit-data-flow.md](docs/audit-data-flow.md) — 数据流审计 (P0 已修历史)
 - [docs/decisions/](docs/decisions/) — ADR 决策日志
-

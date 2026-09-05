@@ -1,6 +1,6 @@
 {
   "description": "Feeder (联接) and master (母基金) index. feederByMasterKey: lookup by master name; codeToFeeder: lookup by fund code.",
-  "updatedAt": "2026-05-10T13:23:57.077Z",
+  "updatedAt": "2026-09-05T06:09:32.576Z",
   "feederByMasterKey": {
     "嘉实中证500ETF": {
       "masterCode": null,
@@ -453,7 +453,9 @@
       "feederCodes": [
         "004348",
         "021059",
-        "022921"
+        "022921",
+        "160119",
+        "160120"
       ]
     },
     "招商上证消费80ETF": {
@@ -680,7 +682,7 @@
         "005869"
       ]
     },
-    "建信创业板ETF": {
+    "建信创业板ETF发起": {
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
@@ -1283,14 +1285,6 @@
         "022586"
       ]
     },
-    "东财上证50ETF发起式": {
-      "masterCode": null,
-      "masterName": null,
-      "feederCodes": [
-        "008240",
-        "008241"
-      ]
-    },
     "中银证券中证500ETF": {
       "masterCode": null,
       "masterName": null,
@@ -1509,14 +1503,6 @@
         "023685"
       ]
     },
-    "东财创业板ETF发起式": {
-      "masterCode": null,
-      "masterName": null,
-      "feederCodes": [
-        "009046",
-        "009047"
-      ]
-    },
     "易方达中证红利ETF": {
       "masterCode": null,
       "masterName": null,
@@ -1636,22 +1622,6 @@
         "010770"
       ]
     },
-    "东财中证新能源车ETF发起式": {
-      "masterCode": null,
-      "masterName": null,
-      "feederCodes": [
-        "010805",
-        "010806"
-      ]
-    },
-    "东财中证500ETF发起式": {
-      "masterCode": null,
-      "masterName": null,
-      "feederCodes": [
-        "010992",
-        "010993"
-      ]
-    },
     "嘉实中证稀土产业ETF": {
       "masterCode": null,
       "masterName": null,
@@ -1713,14 +1683,21 @@
         "022945"
       ]
     },
-    "工银科创ETF": {
+    "工银科创50ETF": {
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
         "011614",
         "011615",
-        "020750",
-        "022932"
+        "020750"
+      ]
+    },
+    "天弘中证人工智能主题ETF发起": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "011839",
+        "011840"
       ]
     },
     "南方中证1000ETF发起": {
@@ -1749,7 +1726,7 @@
         "011967"
       ]
     },
-    "浦银安盛创业板ETF": {
+    "浦银创业板ETF": {
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
@@ -1789,15 +1766,6 @@
         "012362",
         "012363",
         "022509"
-      ]
-    },
-    "东财中证沪港深互联网ETF发起式": {
-      "masterCode": null,
-      "masterName": null,
-      "feederCodes": [
-        "012371",
-        "012372",
-        "021358"
       ]
     },
     "国泰中证环保产业50ETF": {
@@ -2271,9 +2239,7 @@
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
-        "013445",
-        "013446",
-        "021344"
+        "013445"
       ]
     },
     "华宝中证全指农牧渔ETF发起式": {
@@ -2471,6 +2437,14 @@
         "014565"
       ]
     },
+    "嘉实中证医疗ETF发起": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "014602",
+        "014603"
+      ]
+    },
     "嘉实中证光伏产业ETF发起": {
       "masterCode": null,
       "masterName": null,
@@ -2602,7 +2576,8 @@
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
-        "015558"
+        "015558",
+        "161907"
       ]
     },
     "国联安上证商品ETF": {
@@ -2629,7 +2604,7 @@
         "015788"
       ]
     },
-    "工银国证新能源车电池ETF发起式": {
+    "工银锂电池ETF": {
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
@@ -2708,15 +2683,6 @@
       "feederCodes": [
         "016019",
         "016020"
-      ]
-    },
-    "东财中证证券30ETF发起式": {
-      "masterCode": null,
-      "masterName": null,
-      "feederCodes": [
-        "016043",
-        "016044",
-        "026020"
       ]
     },
     "博时纳斯达克100ETF发起式": {
@@ -2995,6 +2961,14 @@
         "017162"
       ]
     },
+    "天弘国证绿色电力ETF发起": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "017174",
+        "017175"
+      ]
+    },
     "国泰疫苗与生物科技ETF": {
       "masterCode": null,
       "masterName": null,
@@ -3125,7 +3099,7 @@
         "017684"
       ]
     },
-    "浦银安盛中证证券公司30ETF": {
+    "浦银中证证券公司30ETF": {
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
@@ -3211,7 +3185,13 @@
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
-        "018027",
+        "018027"
+      ]
+    },
+    "嘉实中证智选航空航天科技ETF发起": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
         "018028"
       ]
     },
@@ -3454,6 +3434,14 @@
         "018578"
       ]
     },
+    "博时中证银行ETF": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "018591",
+        "160517"
+      ]
+    },
     "易方达中证家电龙头ETF": {
       "masterCode": null,
       "masterName": null,
@@ -3510,7 +3498,7 @@
         "018906"
       ]
     },
-    "南方储能电池ETF": {
+    "南方中证电池ETF": {
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
@@ -3537,15 +3525,21 @@
         "019002"
       ]
     },
+    "易方达绿色电力ETF": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "019058"
+      ]
+    },
     "易方达中证绿色电力ETF": {
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
-        "019058",
         "019059"
       ]
     },
-    "易方达中证软件服务ETF": {
+    "易方达软件ETF": {
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
@@ -4068,7 +4062,7 @@
         "020105"
       ]
     },
-    "富国国证信息技术创新主题ETF发起式": {
+    "富国信创ETF发起式": {
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
@@ -4290,7 +4284,8 @@
       "masterName": null,
       "feederCodes": [
         "020602",
-        "020603"
+        "020603",
+        "027261"
       ]
     },
     "南方中证机器人ETF发起": {
@@ -4310,7 +4305,7 @@
         "020622"
       ]
     },
-    "汇添富上证科创板芯片ETF发起式": {
+    "汇添富科创芯片ETF": {
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
@@ -4350,7 +4345,15 @@
         "020640"
       ]
     },
-    "富国创业板中盘200ETF发起式": {
+    "博时国证粮食产业ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "020650",
+        "020651"
+      ]
+    },
+    "富国创业板200ETF发起式": {
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
@@ -4358,7 +4361,7 @@
         "020668"
       ]
     },
-    "易方达上证科创板芯片ETF": {
+    "易方达科创芯片ETF": {
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
@@ -4414,7 +4417,7 @@
         "020730"
       ]
     },
-    "易方达创业板中盘200ETF": {
+    "易方达创业板200ETF": {
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
@@ -4455,7 +4458,7 @@
         "024545"
       ]
     },
-    "华夏创业板中盘200ETF发起式": {
+    "华夏创业板200ETF发起式": {
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
@@ -4501,6 +4504,14 @@
       "feederCodes": [
         "020972",
         "020973"
+      ]
+    },
+    "华安国证机器人产业ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "020981",
+        "020982"
       ]
     },
     "南方恒生科技ETF发起": {
@@ -4992,6 +5003,14 @@
         "021485"
       ]
     },
+    "天弘中证软件服务ETF发起": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "021535",
+        "021536"
+      ]
+    },
     "华安法国CAC40ETF发起式": {
       "masterCode": null,
       "masterName": null,
@@ -5389,7 +5408,8 @@
       "feederCodes": [
         "022442",
         "022443",
-        "022982"
+        "022982",
+        "028242"
       ]
     },
     "景顺长城中证A500ETF": {
@@ -5615,6 +5635,13 @@
         "022888"
       ]
     },
+    "工银科创ETF": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "022932"
+      ]
+    },
     "华夏科创创业50ETF发起式": {
       "masterCode": null,
       "masterName": null,
@@ -5630,7 +5657,7 @@
         "023002"
       ]
     },
-    "富国上证科创板50成份ETF": {
+    "富国科创50ETF": {
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
@@ -5960,6 +5987,14 @@
         "023554"
       ]
     },
+    "华宝深证100ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "023555",
+        "023556"
+      ]
+    },
     "易方达科创人工智能ETF": {
       "masterCode": null,
       "masterName": null,
@@ -6200,14 +6235,6 @@
         "023860"
       ]
     },
-    "东财中证A500ETF": {
-      "masterCode": null,
-      "masterName": null,
-      "feederCodes": [
-        "023863",
-        "023864"
-      ]
-    },
     "兴业中证A500ETF": {
       "masterCode": null,
       "masterName": null,
@@ -6304,7 +6331,7 @@
         "024012"
       ]
     },
-    "招商恒生港股通高股息低波动ETF发起式": {
+    "招商港股通红利低波ETF": {
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
@@ -6409,14 +6436,6 @@
         "024147"
       ]
     },
-    "东财上证科创板综指ETF": {
-      "masterCode": null,
-      "masterName": null,
-      "feederCodes": [
-        "024174",
-        "024185"
-      ]
-    },
     "富国中证500ETF发起式": {
       "masterCode": null,
       "masterName": null,
@@ -6465,7 +6484,7 @@
         "024246"
       ]
     },
-    "工银中证港股通高股息精选ETF": {
+    "工银港股红利ETF": {
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
@@ -6488,12 +6507,20 @@
         "024273"
       ]
     },
-    "浦银安盛中证A500ETF": {
+    "浦银中证A500ETF": {
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
         "024298",
         "024299"
+      ]
+    },
+    "南方中证全指家用电器ETF发起": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "024315",
+        "024316"
       ]
     },
     "易方达恒生港股通创新药ETF": {
@@ -6550,6 +6577,14 @@
       "feederCodes": [
         "024383",
         "024384"
+      ]
+    },
+    "鑫元上证科创板人工智能ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "024409",
+        "024410"
       ]
     },
     "华夏上证科创板人工智能ETF": {
@@ -6761,6 +6796,14 @@
         "024746"
       ]
     },
+    "华宝科创板综合增强策略ETF": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "024752",
+        "024753"
+      ]
+    },
     "富国中证800自由现金流ETF": {
       "masterCode": null,
       "masterName": null,
@@ -6809,6 +6852,14 @@
         "024773"
       ]
     },
+    "汇添富沪深300自由现金流ETF": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "024814",
+        "024815"
+      ]
+    },
     "博时中证全指自由现金流ETF": {
       "masterCode": null,
       "masterName": null,
@@ -6850,7 +6901,15 @@
         "024865"
       ]
     },
-    "南方创业板中盘200ETF": {
+    "嘉实上证科创板人工智能ETF发起": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "024874",
+        "024875"
+      ]
+    },
+    "南方创业板200ETF": {
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
@@ -6955,7 +7014,7 @@
         "024975"
       ]
     },
-    "易方达上证科创板200ETF": {
+    "易方达科创200ETF": {
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
@@ -6987,7 +7046,7 @@
         "024986"
       ]
     },
-    "东财上证科创50ETF": {
+    "东财科创50ETF": {
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
@@ -7211,7 +7270,7 @@
         "025681"
       ]
     },
-    "广发中证智选高股息策略ETF发起式": {
+    "广发高股息ETF": {
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
@@ -7364,12 +7423,27 @@
         "026108"
       ]
     },
+    "景顺长城恒生港股通50ETF": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "026165",
+        "026166"
+      ]
+    },
     "广发储能电池ETF": {
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
         "026265",
         "026266"
+      ]
+    },
+    "华宝创业板综合增强策略ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "026288"
       ]
     },
     "前海开源中证民企300ETF发起式": {
@@ -7386,6 +7460,14 @@
       "feederCodes": [
         "026369",
         "026370"
+      ]
+    },
+    "易方达中证细分有色金属产业主题ETF": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "026444",
+        "026445"
       ]
     },
     "银华中证有色金属ETF": {
@@ -7436,6 +7518,14 @@
         "026614"
       ]
     },
+    "招商上证科创板芯片设计主题ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "026622",
+        "026623"
+      ]
+    },
     "易方达恒生港股通汽车主题ETF": {
       "masterCode": null,
       "masterName": null,
@@ -7450,6 +7540,14 @@
       "feederCodes": [
         "026654",
         "026655"
+      ]
+    },
+    "建信国证新能源车电池ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "026664",
+        "026665"
       ]
     },
     "招商中证全指红利质量ETF发起式": {
@@ -7476,11 +7574,26 @@
         "026721"
       ]
     },
+    "摩根恒生港股通50ETF": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "026734",
+        "026735"
+      ]
+    },
     "华宝中证港股通信息技术ETF发起": {
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
         "026755"
+      ]
+    },
+    "鹏华上证科创板50成份ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "026766"
       ]
     },
     "中银证券创业板ETF": {
@@ -7505,6 +7618,14 @@
       "feederCodes": [
         "026787",
         "026788"
+      ]
+    },
+    "鹏华恒生ETF": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "026795",
+        "026796"
       ]
     },
     "富国创业板新能源ETF发起式": {
@@ -7539,7 +7660,7 @@
         "026863"
       ]
     },
-    "招商国证港股通科技ETF发起式": {
+    "招商港股通科技ETF": {
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
@@ -7554,11 +7675,27 @@
         "026922"
       ]
     },
+    "广发中证全指食品ETF": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "026931",
+        "026932"
+      ]
+    },
     "华宝中证全指电力公用事业ETF发起式": {
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
         "026949"
+      ]
+    },
+    "广发恒指港股通ETF": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "026952",
+        "026953"
       ]
     },
     "华夏中证全指食品ETF": {
@@ -7577,12 +7714,36 @@
         "027048"
       ]
     },
+    "天弘创业板新能源ETF发起": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027110",
+        "027111"
+      ]
+    },
     "易方达中证港股通医疗主题ETF": {
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
         "027113",
         "027114"
+      ]
+    },
+    "国泰中证港股通互联网ETF发起": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027127",
+        "027128"
+      ]
+    },
+    "华安恒生生物科技ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027133",
+        "027134"
       ]
     },
     "华夏上证科创板生物医药ETF发起式": {
@@ -7593,12 +7754,36 @@
         "027143"
       ]
     },
+    "易方达中证金融科技主题ETF": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027144",
+        "027145"
+      ]
+    },
     "汇添富中证金融科技主题ETF发起式": {
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
         "027166",
         "027167"
+      ]
+    },
+    "天弘中证畜牧养殖产业ETF发起": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027191",
+        "027192"
+      ]
+    },
+    "易方达中证全指食品ETF": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027213",
+        "027214"
       ]
     },
     "银华中证机器人ETF发起式": {
@@ -7609,12 +7794,560 @@
         "027234"
       ]
     },
-    "500ETF": {
+    "兴全沪深300质量ETF": {
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
-        "160119",
-        "160120"
+        "027254",
+        "027255"
+      ]
+    },
+    "华夏中证港股通互联网ETF": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027278",
+        "027279"
+      ]
+    },
+    "易方达上证综合ETF": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027291",
+        "027292"
+      ]
+    },
+    "汇添富国证港股通互联网ETF": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027319",
+        "027320"
+      ]
+    },
+    "平安上证科创板50成份ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027348",
+        "027349"
+      ]
+    },
+    "富国国证石油天然气ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027367",
+        "027368"
+      ]
+    },
+    "富国恒生生物科技ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027401",
+        "027402"
+      ]
+    },
+    "国泰恒生生物科技ETF发起": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027410",
+        "027411"
+      ]
+    },
+    "嘉实中证新能源ETF": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027434",
+        "027435"
+      ]
+    },
+    "易方达中证电池主题ETF": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027494",
+        "027495"
+      ]
+    },
+    "富国中证全指证券公司ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027508"
+      ]
+    },
+    "广发科创芯片设计ETF": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027520",
+        "027521"
+      ]
+    },
+    "富国中证工业有色金属主题ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027542",
+        "027543"
+      ]
+    },
+    "银华标普港股通低波红利ETF": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027551",
+        "027552"
+      ]
+    },
+    "天弘上证科创板芯片设计主题ETF发起": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027574",
+        "027575"
+      ]
+    },
+    "华夏中证工程机械主题ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027588",
+        "027589"
+      ]
+    },
+    "景顺长城中证有色金属矿业主题ETF": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027596",
+        "027597"
+      ]
+    },
+    "华泰柏瑞恒生生物科技ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027602",
+        "027603"
+      ]
+    },
+    "易方达中证工程机械主题ETF": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027604",
+        "027605"
+      ]
+    },
+    "易方达上证科创板芯片设计主题ETF": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027606",
+        "027607"
+      ]
+    },
+    "鹏华上证科创板芯片设计主题ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027608",
+        "027609"
+      ]
+    },
+    "富国中证工程机械主题ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027610",
+        "027611"
+      ]
+    },
+    "国泰上证科创板50成份ETF发起": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027675",
+        "027676"
+      ]
+    },
+    "华夏中证电池主题ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027694",
+        "027695"
+      ]
+    },
+    "泰康中证有色金属矿业主题ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027703",
+        "027704"
+      ]
+    },
+    "南方中证全指红利质量ETF发起": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027705",
+        "027706"
+      ]
+    },
+    "汇添富中证畜牧养殖产业ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027710",
+        "027711"
+      ]
+    },
+    "大成中证红利低波动100ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027721",
+        "027722"
+      ]
+    },
+    "银华中证全指电力公用事业ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027737",
+        "027738"
+      ]
+    },
+    "易方达中证全指红利质量ETF": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027747",
+        "027748"
+      ]
+    },
+    "广发国证粮食产业ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027761",
+        "027762"
+      ]
+    },
+    "嘉实恒生科技ETF发起": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027766"
+      ]
+    },
+    "华泰柏瑞中证全指证券公司ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027795",
+        "027796"
+      ]
+    },
+    "易方达国证成长100ETF": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027858",
+        "027859"
+      ]
+    },
+    "摩根中证科创创业人工智能ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027890",
+        "027891"
+      ]
+    },
+    "前海开源恒生港股通科技主题ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027992",
+        "027993"
+      ]
+    },
+    "天弘国证航天航空行业ETF发起": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028090",
+        "028091"
+      ]
+    },
+    "国泰上证科创板芯片设计主题ETF发起": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028149",
+        "028150"
+      ]
+    },
+    "摩根恒生生物科技ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028221",
+        "028222"
+      ]
+    },
+    "华夏国证航天航空行业ETF": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028247",
+        "028248"
+      ]
+    },
+    "平安中证A500红利低波动ETF": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028257",
+        "028258"
+      ]
+    },
+    "华夏上证综合ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028370",
+        "028371"
+      ]
+    },
+    "华宝中证全指家用电器ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028376",
+        "028377"
+      ]
+    },
+    "华夏创业板软件ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028381",
+        "028382"
+      ]
+    },
+    "汇添富中证全指电力公用事业ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028389",
+        "028390"
+      ]
+    },
+    "景顺长城创业板新能源ETF": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028393",
+        "028394"
+      ]
+    },
+    "富国中证金融科技主题ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028404",
+        "028405"
+      ]
+    },
+    "景顺长城中证全指证券公司ETF": {
+      "masterCode": "159008",
+      "masterName": "景顺长城中证全指证券公司ETF",
+      "feederCodes": [
+        "028571",
+        "028572"
+      ]
+    },
+    "鹏华中证全指公用事业ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028579",
+        "028580"
+      ]
+    },
+    "华夏国证大盘价值ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028586"
+      ]
+    },
+    "华泰柏瑞中证家居家电ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028654",
+        "028655"
+      ]
+    },
+    "广发恒生A股电网设备ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028662",
+        "028663"
+      ]
+    },
+    "易方达中证工业有色金属主题ETF": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028670",
+        "028671"
+      ]
+    },
+    "易方达恒生A股电网设备ETF": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028672",
+        "028673"
+      ]
+    },
+    "天弘中证全指电力公用事业ETF发起": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028688",
+        "028689"
+      ]
+    },
+    "华安中证全指电力公用事业ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028709",
+        "028710"
+      ]
+    },
+    "华泰柏瑞中证电池主题ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028717",
+        "028718"
+      ]
+    },
+    "易方达创业板新能源ETF": {
+      "masterCode": "159009",
+      "masterName": "易方达创业板新能源ETF",
+      "feederCodes": [
+        "028730",
+        "028731"
+      ]
+    },
+    "中银中证工业有色金属主题ETF": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028734",
+        "028735"
+      ]
+    },
+    "招商中证卫星产业ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028777",
+        "028778"
+      ]
+    },
+    "富国国证机器人产业ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028822",
+        "028823"
+      ]
+    },
+    "国泰国证粮食产业ETF发起": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028824",
+        "028825"
+      ]
+    },
+    "易方达中证全指电力公用事业ETF": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028832",
+        "028833"
+      ]
+    },
+    "华泰柏瑞中证全指航空航天ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028843"
+      ]
+    },
+    "广发中证证券公司30ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028853",
+        "028854"
+      ]
+    },
+    "银华国证新能源电池ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028898",
+        "028899"
+      ]
+    },
+    "华泰柏瑞中证工业有色金属主题ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028910",
+        "028911"
+      ]
+    },
+    "华夏中证港股通信息技术综合ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028934",
+        "028935"
+      ]
+    },
+    "华泰柏瑞中证科创创业人工智能ETF发起式": {
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028936",
+        "028937"
+      ]
+    },
+    "易方达国证粮食产业ETF": {
+      "masterCode": "159038",
+      "masterName": "易方达国证粮食产业ETF",
+      "feederCodes": [
+        "028943",
+        "028944"
       ]
     },
     "国投沪深300金融地产": {
@@ -7623,13 +8356,6 @@
       "feederCodes": [
         "161211",
         "161212"
-      ]
-    },
-    "红利ETF": {
-      "masterCode": null,
-      "masterName": null,
-      "feederCodes": [
-        "161907"
       ]
     },
     "汇添富中证中药ETF": {
@@ -7787,22 +8513,58 @@
         "110033"
       ]
     },
+    "159008": {
+      "masterKey": "景顺长城中证全指证券公司ETF",
+      "isFeeder": false,
+      "masterCode": "159008",
+      "masterName": "景顺长城中证全指证券公司ETF",
+      "feederCodes": [
+        "028571",
+        "028572"
+      ]
+    },
+    "159009": {
+      "masterKey": "易方达创业板新能源ETF",
+      "isFeeder": false,
+      "masterCode": "159009",
+      "masterName": "易方达创业板新能源ETF",
+      "feederCodes": [
+        "028730",
+        "028731"
+      ]
+    },
+    "159038": {
+      "masterKey": "易方达国证粮食产业ETF",
+      "isFeeder": false,
+      "masterCode": "159038",
+      "masterName": "易方达国证粮食产业ETF",
+      "feederCodes": [
+        "028943",
+        "028944"
+      ]
+    },
     "160119": {
-      "masterKey": "500ETF",
+      "masterKey": "南方中证500ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
+        "004348",
+        "021059",
+        "022921",
         "160119",
         "160120"
       ]
     },
     "160120": {
-      "masterKey": "500ETF",
+      "masterKey": "南方中证500ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
+        "004348",
+        "021059",
+        "022921",
         "160119",
         "160120"
       ]
@@ -7870,6 +8632,16 @@
       "feederCodes": [
         "018686",
         "160516"
+      ]
+    },
+    "160517": {
+      "masterKey": "博时中证银行ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "018591",
+        "160517"
       ]
     },
     "160615": {
@@ -7962,11 +8734,12 @@
       ]
     },
     "161907": {
-      "masterKey": "红利ETF",
+      "masterKey": "万家中证红利ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
+        "015558",
         "161907"
       ]
     },
@@ -9895,7 +10668,9 @@
       "feederCodes": [
         "004348",
         "021059",
-        "022921"
+        "022921",
+        "160119",
+        "160120"
       ]
     },
     "021059": {
@@ -9906,7 +10681,9 @@
       "feederCodes": [
         "004348",
         "021059",
-        "022921"
+        "022921",
+        "160119",
+        "160120"
       ]
     },
     "022921": {
@@ -9917,7 +10694,9 @@
       "feederCodes": [
         "004348",
         "021059",
-        "022921"
+        "022921",
+        "160119",
+        "160120"
       ]
     },
     "004407": {
@@ -10550,7 +11329,7 @@
       ]
     },
     "005873": {
-      "masterKey": "建信创业板ETF",
+      "masterKey": "建信创业板ETF发起",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -10561,7 +11340,7 @@
       ]
     },
     "005874": {
-      "masterKey": "建信创业板ETF",
+      "masterKey": "建信创业板ETF发起",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -10572,7 +11351,7 @@
       ]
     },
     "013443": {
-      "masterKey": "建信创业板ETF",
+      "masterKey": "建信创业板ETF发起",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -12409,26 +13188,6 @@
         "022586"
       ]
     },
-    "008240": {
-      "masterKey": "东财上证50ETF发起式",
-      "isFeeder": true,
-      "masterCode": null,
-      "masterName": null,
-      "feederCodes": [
-        "008240",
-        "008241"
-      ]
-    },
-    "008241": {
-      "masterKey": "东财上证50ETF发起式",
-      "isFeeder": true,
-      "masterCode": null,
-      "masterName": null,
-      "feederCodes": [
-        "008240",
-        "008241"
-      ]
-    },
     "008258": {
       "masterKey": "中银证券中证500ETF",
       "isFeeder": true,
@@ -13079,26 +13838,6 @@
         "023685"
       ]
     },
-    "009046": {
-      "masterKey": "东财创业板ETF发起式",
-      "isFeeder": true,
-      "masterCode": null,
-      "masterName": null,
-      "feederCodes": [
-        "009046",
-        "009047"
-      ]
-    },
-    "009047": {
-      "masterKey": "东财创业板ETF发起式",
-      "isFeeder": true,
-      "masterCode": null,
-      "masterName": null,
-      "feederCodes": [
-        "009046",
-        "009047"
-      ]
-    },
     "009051": {
       "masterKey": "易方达中证红利ETF",
       "isFeeder": true,
@@ -13397,46 +14136,6 @@
         "010770"
       ]
     },
-    "010805": {
-      "masterKey": "东财中证新能源车ETF发起式",
-      "isFeeder": true,
-      "masterCode": null,
-      "masterName": null,
-      "feederCodes": [
-        "010805",
-        "010806"
-      ]
-    },
-    "010806": {
-      "masterKey": "东财中证新能源车ETF发起式",
-      "isFeeder": true,
-      "masterCode": null,
-      "masterName": null,
-      "feederCodes": [
-        "010805",
-        "010806"
-      ]
-    },
-    "010992": {
-      "masterKey": "东财中证500ETF发起式",
-      "isFeeder": true,
-      "masterCode": null,
-      "masterName": null,
-      "feederCodes": [
-        "010992",
-        "010993"
-      ]
-    },
-    "010993": {
-      "masterKey": "东财中证500ETF发起式",
-      "isFeeder": true,
-      "masterCode": null,
-      "masterName": null,
-      "feederCodes": [
-        "010992",
-        "010993"
-      ]
-    },
     "011035": {
       "masterKey": "嘉实中证稀土产业ETF",
       "isFeeder": true,
@@ -13645,51 +14344,56 @@
       ]
     },
     "011614": {
-      "masterKey": "工银科创ETF",
+      "masterKey": "工银科创50ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
         "011614",
         "011615",
-        "020750",
-        "022932"
+        "020750"
       ]
     },
     "011615": {
-      "masterKey": "工银科创ETF",
+      "masterKey": "工银科创50ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
         "011614",
         "011615",
-        "020750",
-        "022932"
+        "020750"
       ]
     },
     "020750": {
-      "masterKey": "工银科创ETF",
+      "masterKey": "工银科创50ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
         "011614",
         "011615",
-        "020750",
-        "022932"
+        "020750"
       ]
     },
-    "022932": {
-      "masterKey": "工银科创ETF",
+    "011839": {
+      "masterKey": "天弘中证人工智能主题ETF发起",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
-        "011614",
-        "011615",
-        "020750",
-        "022932"
+        "011839",
+        "011840"
+      ]
+    },
+    "011840": {
+      "masterKey": "天弘中证人工智能主题ETF发起",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "011839",
+        "011840"
       ]
     },
     "011860": {
@@ -13781,7 +14485,7 @@
       ]
     },
     "012179": {
-      "masterKey": "浦银安盛创业板ETF",
+      "masterKey": "浦银创业板ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -13791,7 +14495,7 @@
       ]
     },
     "012180": {
-      "masterKey": "浦银安盛创业板ETF",
+      "masterKey": "浦银创业板ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -13894,39 +14598,6 @@
         "012362",
         "012363",
         "022509"
-      ]
-    },
-    "012371": {
-      "masterKey": "东财中证沪港深互联网ETF发起式",
-      "isFeeder": true,
-      "masterCode": null,
-      "masterName": null,
-      "feederCodes": [
-        "012371",
-        "012372",
-        "021358"
-      ]
-    },
-    "012372": {
-      "masterKey": "东财中证沪港深互联网ETF发起式",
-      "isFeeder": true,
-      "masterCode": null,
-      "masterName": null,
-      "feederCodes": [
-        "012371",
-        "012372",
-        "021358"
-      ]
-    },
-    "021358": {
-      "masterKey": "东财中证沪港深互联网ETF发起式",
-      "isFeeder": true,
-      "masterCode": null,
-      "masterName": null,
-      "feederCodes": [
-        "012371",
-        "012372",
-        "021358"
       ]
     },
     "012503": {
@@ -15375,31 +16046,7 @@
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
-        "013445",
-        "013446",
-        "021344"
-      ]
-    },
-    "013446": {
-      "masterKey": "东财中证芯片ETF发起式",
-      "isFeeder": true,
-      "masterCode": null,
-      "masterName": null,
-      "feederCodes": [
-        "013445",
-        "013446",
-        "021344"
-      ]
-    },
-    "021344": {
-      "masterKey": "东财中证芯片ETF发起式",
-      "isFeeder": true,
-      "masterCode": null,
-      "masterName": null,
-      "feederCodes": [
-        "013445",
-        "013446",
-        "021344"
+        "013445"
       ]
     },
     "013471": {
@@ -15923,6 +16570,26 @@
         "014565"
       ]
     },
+    "014602": {
+      "masterKey": "嘉实中证医疗ETF发起",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "014602",
+        "014603"
+      ]
+    },
+    "014603": {
+      "masterKey": "嘉实中证医疗ETF发起",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "014602",
+        "014603"
+      ]
+    },
     "014604": {
       "masterKey": "嘉实中证光伏产业ETF发起",
       "isFeeder": true,
@@ -16302,7 +16969,8 @@
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
-        "015558"
+        "015558",
+        "161907"
       ]
     },
     "015577": {
@@ -16356,7 +17024,7 @@
       ]
     },
     "015873": {
-      "masterKey": "工银国证新能源车电池ETF发起式",
+      "masterKey": "工银锂电池ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -16366,7 +17034,7 @@
       ]
     },
     "015874": {
-      "masterKey": "工银国证新能源车电池ETF发起式",
+      "masterKey": "工银锂电池ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -16566,39 +17234,6 @@
       "feederCodes": [
         "016019",
         "016020"
-      ]
-    },
-    "016043": {
-      "masterKey": "东财中证证券30ETF发起式",
-      "isFeeder": true,
-      "masterCode": null,
-      "masterName": null,
-      "feederCodes": [
-        "016043",
-        "016044",
-        "026020"
-      ]
-    },
-    "016044": {
-      "masterKey": "东财中证证券30ETF发起式",
-      "isFeeder": true,
-      "masterCode": null,
-      "masterName": null,
-      "feederCodes": [
-        "016043",
-        "016044",
-        "026020"
-      ]
-    },
-    "026020": {
-      "masterKey": "东财中证证券30ETF发起式",
-      "isFeeder": true,
-      "masterCode": null,
-      "masterName": null,
-      "feederCodes": [
-        "016043",
-        "016044",
-        "026020"
       ]
     },
     "016055": {
@@ -17431,6 +18066,26 @@
         "017162"
       ]
     },
+    "017174": {
+      "masterKey": "天弘国证绿色电力ETF发起",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "017174",
+        "017175"
+      ]
+    },
+    "017175": {
+      "masterKey": "天弘国证绿色电力ETF发起",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "017174",
+        "017175"
+      ]
+    },
     "017185": {
       "masterKey": "国泰疫苗与生物科技ETF",
       "isFeeder": true,
@@ -17778,7 +18433,7 @@
       ]
     },
     "017778": {
-      "masterKey": "浦银安盛中证证券公司30ETF",
+      "masterKey": "浦银中证证券公司30ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -17788,7 +18443,7 @@
       ]
     },
     "017779": {
-      "masterKey": "浦银安盛中证证券公司30ETF",
+      "masterKey": "浦银中证证券公司30ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -18011,17 +18666,15 @@
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
-        "018027",
-        "018028"
+        "018027"
       ]
     },
     "018028": {
-      "masterKey": "嘉实中证高端装备细分50ETF发起",
+      "masterKey": "嘉实中证智选航空航天科技ETF发起",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
-        "018027",
         "018028"
       ]
     },
@@ -18688,6 +19341,16 @@
         "018578"
       ]
     },
+    "018591": {
+      "masterKey": "博时中证银行ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "018591",
+        "160517"
+      ]
+    },
     "018646": {
       "masterKey": "易方达中证家电龙头ETF",
       "isFeeder": true,
@@ -18819,7 +19482,7 @@
       ]
     },
     "018926": {
-      "masterKey": "南方储能电池ETF",
+      "masterKey": "南方中证电池ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -18829,7 +19492,7 @@
       ]
     },
     "018927": {
-      "masterKey": "南方储能电池ETF",
+      "masterKey": "南方中证电池ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -18924,13 +19587,12 @@
       ]
     },
     "019058": {
-      "masterKey": "易方达中证绿色电力ETF",
+      "masterKey": "易方达绿色电力ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
-        "019058",
-        "019059"
+        "019058"
       ]
     },
     "019059": {
@@ -18939,12 +19601,11 @@
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
-        "019058",
         "019059"
       ]
     },
     "019061": {
-      "masterKey": "易方达中证软件服务ETF",
+      "masterKey": "易方达软件ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -18954,7 +19615,7 @@
       ]
     },
     "019062": {
-      "masterKey": "易方达中证软件服务ETF",
+      "masterKey": "易方达软件ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -20367,7 +21028,7 @@
       ]
     },
     "020108": {
-      "masterKey": "富国国证信息技术创新主题ETF发起式",
+      "masterKey": "富国信创ETF发起式",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -20377,7 +21038,7 @@
       ]
     },
     "020109": {
-      "masterKey": "富国国证信息技术创新主题ETF发起式",
+      "masterKey": "富国信创ETF发起式",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -20926,7 +21587,8 @@
       "masterName": null,
       "feederCodes": [
         "020602",
-        "020603"
+        "020603",
+        "027261"
       ]
     },
     "020603": {
@@ -20936,7 +21598,19 @@
       "masterName": null,
       "feederCodes": [
         "020602",
-        "020603"
+        "020603",
+        "027261"
+      ]
+    },
+    "027261": {
+      "masterKey": "易方达中证红利低波动ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "020602",
+        "020603",
+        "027261"
       ]
     },
     "020607": {
@@ -20993,7 +21667,7 @@
       ]
     },
     "020628": {
-      "masterKey": "汇添富上证科创板芯片ETF发起式",
+      "masterKey": "汇添富科创芯片ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -21003,7 +21677,7 @@
       ]
     },
     "020629": {
-      "masterKey": "汇添富上证科创板芯片ETF发起式",
+      "masterKey": "汇添富科创芯片ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -21092,8 +21766,28 @@
         "020640"
       ]
     },
+    "020650": {
+      "masterKey": "博时国证粮食产业ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "020650",
+        "020651"
+      ]
+    },
+    "020651": {
+      "masterKey": "博时国证粮食产业ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "020650",
+        "020651"
+      ]
+    },
     "020667": {
-      "masterKey": "富国创业板中盘200ETF发起式",
+      "masterKey": "富国创业板200ETF发起式",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -21103,7 +21797,7 @@
       ]
     },
     "020668": {
-      "masterKey": "富国创业板中盘200ETF发起式",
+      "masterKey": "富国创业板200ETF发起式",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -21113,7 +21807,7 @@
       ]
     },
     "020670": {
-      "masterKey": "易方达上证科创板芯片ETF",
+      "masterKey": "易方达科创芯片ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -21123,7 +21817,7 @@
       ]
     },
     "020671": {
-      "masterKey": "易方达上证科创板芯片ETF",
+      "masterKey": "易方达科创芯片ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -21253,7 +21947,7 @@
       ]
     },
     "020732": {
-      "masterKey": "易方达创业板中盘200ETF",
+      "masterKey": "易方达创业板200ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -21263,7 +21957,7 @@
       ]
     },
     "020733": {
-      "masterKey": "易方达创业板中盘200ETF",
+      "masterKey": "易方达创业板200ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -21366,7 +22060,7 @@
       ]
     },
     "020837": {
-      "masterKey": "华夏创业板中盘200ETF发起式",
+      "masterKey": "华夏创业板200ETF发起式",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -21376,7 +22070,7 @@
       ]
     },
     "020838": {
-      "masterKey": "华夏创业板中盘200ETF发起式",
+      "masterKey": "华夏创业板200ETF发起式",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -21483,6 +22177,26 @@
       "feederCodes": [
         "020972",
         "020973"
+      ]
+    },
+    "020981": {
+      "masterKey": "华安国证机器人产业ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "020981",
+        "020982"
+      ]
+    },
+    "020982": {
+      "masterKey": "华安国证机器人产业ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "020981",
+        "020982"
       ]
     },
     "020988": {
@@ -22888,6 +23602,26 @@
         "021485"
       ]
     },
+    "021535": {
+      "masterKey": "天弘中证软件服务ETF发起",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "021535",
+        "021536"
+      ]
+    },
+    "021536": {
+      "masterKey": "天弘中证软件服务ETF发起",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "021535",
+        "021536"
+      ]
+    },
     "021539": {
       "masterKey": "华安法国CAC40ETF发起式",
       "isFeeder": true,
@@ -24017,7 +24751,8 @@
       "feederCodes": [
         "022442",
         "022443",
-        "022982"
+        "022982",
+        "028242"
       ]
     },
     "022443": {
@@ -24028,7 +24763,8 @@
       "feederCodes": [
         "022442",
         "022443",
-        "022982"
+        "022982",
+        "028242"
       ]
     },
     "022982": {
@@ -24039,7 +24775,20 @@
       "feederCodes": [
         "022442",
         "022443",
-        "022982"
+        "022982",
+        "028242"
+      ]
+    },
+    "028242": {
+      "masterKey": "工银中证A500ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "022442",
+        "022443",
+        "022982",
+        "028242"
       ]
     },
     "022444": {
@@ -24721,6 +25470,15 @@
         "022888"
       ]
     },
+    "022932": {
+      "masterKey": "工银科创ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "022932"
+      ]
+    },
     "022939": {
       "masterKey": "华夏科创创业50ETF发起式",
       "isFeeder": true,
@@ -24751,7 +25509,7 @@
       ]
     },
     "023055": {
-      "masterKey": "富国上证科创板50成份ETF",
+      "masterKey": "富国科创50ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -24761,7 +25519,7 @@
       ]
     },
     "023056": {
-      "masterKey": "富国上证科创板50成份ETF",
+      "masterKey": "富国科创50ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -25680,6 +26438,26 @@
         "023554"
       ]
     },
+    "023555": {
+      "masterKey": "华宝深证100ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "023555",
+        "023556"
+      ]
+    },
+    "023556": {
+      "masterKey": "华宝深证100ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "023555",
+        "023556"
+      ]
+    },
     "023564": {
       "masterKey": "易方达科创人工智能ETF",
       "isFeeder": true,
@@ -26282,26 +27060,6 @@
         "023860"
       ]
     },
-    "023863": {
-      "masterKey": "东财中证A500ETF",
-      "isFeeder": true,
-      "masterCode": null,
-      "masterName": null,
-      "feederCodes": [
-        "023863",
-        "023864"
-      ]
-    },
-    "023864": {
-      "masterKey": "东财中证A500ETF",
-      "isFeeder": true,
-      "masterCode": null,
-      "masterName": null,
-      "feederCodes": [
-        "023863",
-        "023864"
-      ]
-    },
     "023865": {
       "masterKey": "兴业中证A500ETF",
       "isFeeder": true,
@@ -26543,7 +27301,7 @@
       ]
     },
     "024029": {
-      "masterKey": "招商恒生港股通高股息低波动ETF发起式",
+      "masterKey": "招商港股通红利低波ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -26553,7 +27311,7 @@
       ]
     },
     "024030": {
-      "masterKey": "招商恒生港股通高股息低波动ETF发起式",
+      "masterKey": "招商港股通红利低波ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -26815,26 +27573,6 @@
         "024147"
       ]
     },
-    "024174": {
-      "masterKey": "东财上证科创板综指ETF",
-      "isFeeder": true,
-      "masterCode": null,
-      "masterName": null,
-      "feederCodes": [
-        "024174",
-        "024185"
-      ]
-    },
-    "024185": {
-      "masterKey": "东财上证科创板综指ETF",
-      "isFeeder": true,
-      "masterCode": null,
-      "masterName": null,
-      "feederCodes": [
-        "024174",
-        "024185"
-      ]
-    },
     "024179": {
       "masterKey": "富国中证500ETF发起式",
       "isFeeder": true,
@@ -26956,7 +27694,7 @@
       ]
     },
     "024247": {
-      "masterKey": "工银中证港股通高股息精选ETF",
+      "masterKey": "工银港股红利ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -26966,7 +27704,7 @@
       ]
     },
     "024248": {
-      "masterKey": "工银中证港股通高股息精选ETF",
+      "masterKey": "工银港股红利ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -27005,7 +27743,7 @@
       ]
     },
     "024298": {
-      "masterKey": "浦银安盛中证A500ETF",
+      "masterKey": "浦银中证A500ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -27015,13 +27753,33 @@
       ]
     },
     "024299": {
-      "masterKey": "浦银安盛中证A500ETF",
+      "masterKey": "浦银中证A500ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
       "feederCodes": [
         "024298",
         "024299"
+      ]
+    },
+    "024315": {
+      "masterKey": "南方中证全指家用电器ETF发起",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "024315",
+        "024316"
+      ]
+    },
+    "024316": {
+      "masterKey": "南方中证全指家用电器ETF发起",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "024315",
+        "024316"
       ]
     },
     "024328": {
@@ -27162,6 +27920,26 @@
       "feederCodes": [
         "024383",
         "024384"
+      ]
+    },
+    "024409": {
+      "masterKey": "鑫元上证科创板人工智能ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "024409",
+        "024410"
+      ]
+    },
+    "024410": {
+      "masterKey": "鑫元上证科创板人工智能ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "024409",
+        "024410"
       ]
     },
     "024411": {
@@ -27699,6 +28477,26 @@
         "024746"
       ]
     },
+    "024752": {
+      "masterKey": "华宝科创板综合增强策略ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "024752",
+        "024753"
+      ]
+    },
+    "024753": {
+      "masterKey": "华宝科创板综合增强策略ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "024752",
+        "024753"
+      ]
+    },
     "024761": {
       "masterKey": "富国中证800自由现金流ETF",
       "isFeeder": true,
@@ -27819,6 +28617,26 @@
         "024773"
       ]
     },
+    "024814": {
+      "masterKey": "汇添富沪深300自由现金流ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "024814",
+        "024815"
+      ]
+    },
+    "024815": {
+      "masterKey": "汇添富沪深300自由现金流ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "024814",
+        "024815"
+      ]
+    },
     "024833": {
       "masterKey": "博时中证全指自由现金流ETF",
       "isFeeder": true,
@@ -27932,8 +28750,28 @@
         "024865"
       ]
     },
+    "024874": {
+      "masterKey": "嘉实上证科创板人工智能ETF发起",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "024874",
+        "024875"
+      ]
+    },
+    "024875": {
+      "masterKey": "嘉实上证科创板人工智能ETF发起",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "024874",
+        "024875"
+      ]
+    },
     "024881": {
-      "masterKey": "南方创业板中盘200ETF",
+      "masterKey": "南方创业板200ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -27943,7 +28781,7 @@
       ]
     },
     "024882": {
-      "masterKey": "南方创业板中盘200ETF",
+      "masterKey": "南方创业板200ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -28206,7 +29044,7 @@
       ]
     },
     "024978": {
-      "masterKey": "易方达上证科创板200ETF",
+      "masterKey": "易方达科创200ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -28216,7 +29054,7 @@
       ]
     },
     "024979": {
-      "masterKey": "易方达上证科创板200ETF",
+      "masterKey": "易方达科创200ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -28286,7 +29124,7 @@
       ]
     },
     "025027": {
-      "masterKey": "东财上证科创50ETF",
+      "masterKey": "东财科创50ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -28296,7 +29134,7 @@
       ]
     },
     "025028": {
-      "masterKey": "东财上证科创50ETF",
+      "masterKey": "东财科创50ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -28846,7 +29684,7 @@
       ]
     },
     "025682": {
-      "masterKey": "广发中证智选高股息策略ETF发起式",
+      "masterKey": "广发高股息ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -28856,7 +29694,7 @@
       ]
     },
     "025683": {
-      "masterKey": "广发中证智选高股息策略ETF发起式",
+      "masterKey": "广发高股息ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -29238,6 +30076,26 @@
         "026108"
       ]
     },
+    "026165": {
+      "masterKey": "景顺长城恒生港股通50ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "026165",
+        "026166"
+      ]
+    },
+    "026166": {
+      "masterKey": "景顺长城恒生港股通50ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "026165",
+        "026166"
+      ]
+    },
     "026265": {
       "masterKey": "广发储能电池ETF",
       "isFeeder": true,
@@ -29256,6 +30114,15 @@
       "feederCodes": [
         "026265",
         "026266"
+      ]
+    },
+    "026288": {
+      "masterKey": "华宝创业板综合增强策略ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "026288"
       ]
     },
     "026295": {
@@ -29296,6 +30163,26 @@
       "feederCodes": [
         "026369",
         "026370"
+      ]
+    },
+    "026444": {
+      "masterKey": "易方达中证细分有色金属产业主题ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "026444",
+        "026445"
+      ]
+    },
+    "026445": {
+      "masterKey": "易方达中证细分有色金属产业主题ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "026444",
+        "026445"
       ]
     },
     "026458": {
@@ -29418,6 +30305,26 @@
         "026614"
       ]
     },
+    "026622": {
+      "masterKey": "招商上证科创板芯片设计主题ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "026622",
+        "026623"
+      ]
+    },
+    "026623": {
+      "masterKey": "招商上证科创板芯片设计主题ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "026622",
+        "026623"
+      ]
+    },
     "026646": {
       "masterKey": "易方达恒生港股通汽车主题ETF",
       "isFeeder": true,
@@ -29456,6 +30363,26 @@
       "feederCodes": [
         "026654",
         "026655"
+      ]
+    },
+    "026664": {
+      "masterKey": "建信国证新能源车电池ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "026664",
+        "026665"
+      ]
+    },
+    "026665": {
+      "masterKey": "建信国证新能源车电池ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "026664",
+        "026665"
       ]
     },
     "026671": {
@@ -29518,6 +30445,26 @@
         "026721"
       ]
     },
+    "026734": {
+      "masterKey": "摩根恒生港股通50ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "026734",
+        "026735"
+      ]
+    },
+    "026735": {
+      "masterKey": "摩根恒生港股通50ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "026734",
+        "026735"
+      ]
+    },
     "026755": {
       "masterKey": "华宝中证港股通信息技术ETF发起",
       "isFeeder": true,
@@ -29525,6 +30472,15 @@
       "masterName": null,
       "feederCodes": [
         "026755"
+      ]
+    },
+    "026766": {
+      "masterKey": "鹏华上证科创板50成份ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "026766"
       ]
     },
     "026772": {
@@ -29585,6 +30541,26 @@
       "feederCodes": [
         "026787",
         "026788"
+      ]
+    },
+    "026795": {
+      "masterKey": "鹏华恒生ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "026795",
+        "026796"
+      ]
+    },
+    "026796": {
+      "masterKey": "鹏华恒生ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "026795",
+        "026796"
       ]
     },
     "026816": {
@@ -29668,7 +30644,7 @@
       ]
     },
     "026884": {
-      "masterKey": "招商国证港股通科技ETF发起式",
+      "masterKey": "招商港股通科技ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -29678,7 +30654,7 @@
       ]
     },
     "026885": {
-      "masterKey": "招商国证港股通科技ETF发起式",
+      "masterKey": "招商港股通科技ETF",
       "isFeeder": true,
       "masterCode": null,
       "masterName": null,
@@ -29696,6 +30672,26 @@
         "026922"
       ]
     },
+    "026931": {
+      "masterKey": "广发中证全指食品ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "026931",
+        "026932"
+      ]
+    },
+    "026932": {
+      "masterKey": "广发中证全指食品ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "026931",
+        "026932"
+      ]
+    },
     "026949": {
       "masterKey": "华宝中证全指电力公用事业ETF发起式",
       "isFeeder": true,
@@ -29703,6 +30699,26 @@
       "masterName": null,
       "feederCodes": [
         "026949"
+      ]
+    },
+    "026952": {
+      "masterKey": "广发恒指港股通ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "026952",
+        "026953"
+      ]
+    },
+    "026953": {
+      "masterKey": "广发恒指港股通ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "026952",
+        "026953"
       ]
     },
     "026954": {
@@ -29745,6 +30761,26 @@
         "027048"
       ]
     },
+    "027110": {
+      "masterKey": "天弘创业板新能源ETF发起",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027110",
+        "027111"
+      ]
+    },
+    "027111": {
+      "masterKey": "天弘创业板新能源ETF发起",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027110",
+        "027111"
+      ]
+    },
     "027113": {
       "masterKey": "易方达中证港股通医疗主题ETF",
       "isFeeder": true,
@@ -29763,6 +30799,46 @@
       "feederCodes": [
         "027113",
         "027114"
+      ]
+    },
+    "027127": {
+      "masterKey": "国泰中证港股通互联网ETF发起",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027127",
+        "027128"
+      ]
+    },
+    "027128": {
+      "masterKey": "国泰中证港股通互联网ETF发起",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027127",
+        "027128"
+      ]
+    },
+    "027133": {
+      "masterKey": "华安恒生生物科技ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027133",
+        "027134"
+      ]
+    },
+    "027134": {
+      "masterKey": "华安恒生生物科技ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027133",
+        "027134"
       ]
     },
     "027142": {
@@ -29785,6 +30861,26 @@
         "027143"
       ]
     },
+    "027144": {
+      "masterKey": "易方达中证金融科技主题ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027144",
+        "027145"
+      ]
+    },
+    "027145": {
+      "masterKey": "易方达中证金融科技主题ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027144",
+        "027145"
+      ]
+    },
     "027166": {
       "masterKey": "汇添富中证金融科技主题ETF发起式",
       "isFeeder": true,
@@ -29805,6 +30901,46 @@
         "027167"
       ]
     },
+    "027191": {
+      "masterKey": "天弘中证畜牧养殖产业ETF发起",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027191",
+        "027192"
+      ]
+    },
+    "027192": {
+      "masterKey": "天弘中证畜牧养殖产业ETF发起",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027191",
+        "027192"
+      ]
+    },
+    "027213": {
+      "masterKey": "易方达中证全指食品ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027213",
+        "027214"
+      ]
+    },
+    "027214": {
+      "masterKey": "易方达中证全指食品ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027213",
+        "027214"
+      ]
+    },
     "027233": {
       "masterKey": "银华中证机器人ETF发起式",
       "isFeeder": true,
@@ -29823,6 +30959,1362 @@
       "feederCodes": [
         "027233",
         "027234"
+      ]
+    },
+    "027254": {
+      "masterKey": "兴全沪深300质量ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027254",
+        "027255"
+      ]
+    },
+    "027255": {
+      "masterKey": "兴全沪深300质量ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027254",
+        "027255"
+      ]
+    },
+    "027278": {
+      "masterKey": "华夏中证港股通互联网ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027278",
+        "027279"
+      ]
+    },
+    "027279": {
+      "masterKey": "华夏中证港股通互联网ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027278",
+        "027279"
+      ]
+    },
+    "027291": {
+      "masterKey": "易方达上证综合ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027291",
+        "027292"
+      ]
+    },
+    "027292": {
+      "masterKey": "易方达上证综合ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027291",
+        "027292"
+      ]
+    },
+    "027319": {
+      "masterKey": "汇添富国证港股通互联网ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027319",
+        "027320"
+      ]
+    },
+    "027320": {
+      "masterKey": "汇添富国证港股通互联网ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027319",
+        "027320"
+      ]
+    },
+    "027348": {
+      "masterKey": "平安上证科创板50成份ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027348",
+        "027349"
+      ]
+    },
+    "027349": {
+      "masterKey": "平安上证科创板50成份ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027348",
+        "027349"
+      ]
+    },
+    "027367": {
+      "masterKey": "富国国证石油天然气ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027367",
+        "027368"
+      ]
+    },
+    "027368": {
+      "masterKey": "富国国证石油天然气ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027367",
+        "027368"
+      ]
+    },
+    "027401": {
+      "masterKey": "富国恒生生物科技ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027401",
+        "027402"
+      ]
+    },
+    "027402": {
+      "masterKey": "富国恒生生物科技ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027401",
+        "027402"
+      ]
+    },
+    "027410": {
+      "masterKey": "国泰恒生生物科技ETF发起",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027410",
+        "027411"
+      ]
+    },
+    "027411": {
+      "masterKey": "国泰恒生生物科技ETF发起",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027410",
+        "027411"
+      ]
+    },
+    "027434": {
+      "masterKey": "嘉实中证新能源ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027434",
+        "027435"
+      ]
+    },
+    "027435": {
+      "masterKey": "嘉实中证新能源ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027434",
+        "027435"
+      ]
+    },
+    "027494": {
+      "masterKey": "易方达中证电池主题ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027494",
+        "027495"
+      ]
+    },
+    "027495": {
+      "masterKey": "易方达中证电池主题ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027494",
+        "027495"
+      ]
+    },
+    "027508": {
+      "masterKey": "富国中证全指证券公司ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027508"
+      ]
+    },
+    "027520": {
+      "masterKey": "广发科创芯片设计ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027520",
+        "027521"
+      ]
+    },
+    "027521": {
+      "masterKey": "广发科创芯片设计ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027520",
+        "027521"
+      ]
+    },
+    "027542": {
+      "masterKey": "富国中证工业有色金属主题ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027542",
+        "027543"
+      ]
+    },
+    "027543": {
+      "masterKey": "富国中证工业有色金属主题ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027542",
+        "027543"
+      ]
+    },
+    "027551": {
+      "masterKey": "银华标普港股通低波红利ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027551",
+        "027552"
+      ]
+    },
+    "027552": {
+      "masterKey": "银华标普港股通低波红利ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027551",
+        "027552"
+      ]
+    },
+    "027574": {
+      "masterKey": "天弘上证科创板芯片设计主题ETF发起",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027574",
+        "027575"
+      ]
+    },
+    "027575": {
+      "masterKey": "天弘上证科创板芯片设计主题ETF发起",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027574",
+        "027575"
+      ]
+    },
+    "027588": {
+      "masterKey": "华夏中证工程机械主题ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027588",
+        "027589"
+      ]
+    },
+    "027589": {
+      "masterKey": "华夏中证工程机械主题ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027588",
+        "027589"
+      ]
+    },
+    "027596": {
+      "masterKey": "景顺长城中证有色金属矿业主题ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027596",
+        "027597"
+      ]
+    },
+    "027597": {
+      "masterKey": "景顺长城中证有色金属矿业主题ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027596",
+        "027597"
+      ]
+    },
+    "027602": {
+      "masterKey": "华泰柏瑞恒生生物科技ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027602",
+        "027603"
+      ]
+    },
+    "027603": {
+      "masterKey": "华泰柏瑞恒生生物科技ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027602",
+        "027603"
+      ]
+    },
+    "027604": {
+      "masterKey": "易方达中证工程机械主题ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027604",
+        "027605"
+      ]
+    },
+    "027605": {
+      "masterKey": "易方达中证工程机械主题ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027604",
+        "027605"
+      ]
+    },
+    "027606": {
+      "masterKey": "易方达上证科创板芯片设计主题ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027606",
+        "027607"
+      ]
+    },
+    "027607": {
+      "masterKey": "易方达上证科创板芯片设计主题ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027606",
+        "027607"
+      ]
+    },
+    "027608": {
+      "masterKey": "鹏华上证科创板芯片设计主题ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027608",
+        "027609"
+      ]
+    },
+    "027609": {
+      "masterKey": "鹏华上证科创板芯片设计主题ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027608",
+        "027609"
+      ]
+    },
+    "027610": {
+      "masterKey": "富国中证工程机械主题ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027610",
+        "027611"
+      ]
+    },
+    "027611": {
+      "masterKey": "富国中证工程机械主题ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027610",
+        "027611"
+      ]
+    },
+    "027675": {
+      "masterKey": "国泰上证科创板50成份ETF发起",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027675",
+        "027676"
+      ]
+    },
+    "027676": {
+      "masterKey": "国泰上证科创板50成份ETF发起",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027675",
+        "027676"
+      ]
+    },
+    "027694": {
+      "masterKey": "华夏中证电池主题ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027694",
+        "027695"
+      ]
+    },
+    "027695": {
+      "masterKey": "华夏中证电池主题ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027694",
+        "027695"
+      ]
+    },
+    "027703": {
+      "masterKey": "泰康中证有色金属矿业主题ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027703",
+        "027704"
+      ]
+    },
+    "027704": {
+      "masterKey": "泰康中证有色金属矿业主题ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027703",
+        "027704"
+      ]
+    },
+    "027705": {
+      "masterKey": "南方中证全指红利质量ETF发起",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027705",
+        "027706"
+      ]
+    },
+    "027706": {
+      "masterKey": "南方中证全指红利质量ETF发起",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027705",
+        "027706"
+      ]
+    },
+    "027710": {
+      "masterKey": "汇添富中证畜牧养殖产业ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027710",
+        "027711"
+      ]
+    },
+    "027711": {
+      "masterKey": "汇添富中证畜牧养殖产业ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027710",
+        "027711"
+      ]
+    },
+    "027721": {
+      "masterKey": "大成中证红利低波动100ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027721",
+        "027722"
+      ]
+    },
+    "027722": {
+      "masterKey": "大成中证红利低波动100ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027721",
+        "027722"
+      ]
+    },
+    "027737": {
+      "masterKey": "银华中证全指电力公用事业ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027737",
+        "027738"
+      ]
+    },
+    "027738": {
+      "masterKey": "银华中证全指电力公用事业ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027737",
+        "027738"
+      ]
+    },
+    "027747": {
+      "masterKey": "易方达中证全指红利质量ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027747",
+        "027748"
+      ]
+    },
+    "027748": {
+      "masterKey": "易方达中证全指红利质量ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027747",
+        "027748"
+      ]
+    },
+    "027761": {
+      "masterKey": "广发国证粮食产业ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027761",
+        "027762"
+      ]
+    },
+    "027762": {
+      "masterKey": "广发国证粮食产业ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027761",
+        "027762"
+      ]
+    },
+    "027766": {
+      "masterKey": "嘉实恒生科技ETF发起",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027766"
+      ]
+    },
+    "027795": {
+      "masterKey": "华泰柏瑞中证全指证券公司ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027795",
+        "027796"
+      ]
+    },
+    "027796": {
+      "masterKey": "华泰柏瑞中证全指证券公司ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027795",
+        "027796"
+      ]
+    },
+    "027858": {
+      "masterKey": "易方达国证成长100ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027858",
+        "027859"
+      ]
+    },
+    "027859": {
+      "masterKey": "易方达国证成长100ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027858",
+        "027859"
+      ]
+    },
+    "027890": {
+      "masterKey": "摩根中证科创创业人工智能ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027890",
+        "027891"
+      ]
+    },
+    "027891": {
+      "masterKey": "摩根中证科创创业人工智能ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027890",
+        "027891"
+      ]
+    },
+    "027992": {
+      "masterKey": "前海开源恒生港股通科技主题ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027992",
+        "027993"
+      ]
+    },
+    "027993": {
+      "masterKey": "前海开源恒生港股通科技主题ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "027992",
+        "027993"
+      ]
+    },
+    "028090": {
+      "masterKey": "天弘国证航天航空行业ETF发起",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028090",
+        "028091"
+      ]
+    },
+    "028091": {
+      "masterKey": "天弘国证航天航空行业ETF发起",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028090",
+        "028091"
+      ]
+    },
+    "028149": {
+      "masterKey": "国泰上证科创板芯片设计主题ETF发起",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028149",
+        "028150"
+      ]
+    },
+    "028150": {
+      "masterKey": "国泰上证科创板芯片设计主题ETF发起",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028149",
+        "028150"
+      ]
+    },
+    "028221": {
+      "masterKey": "摩根恒生生物科技ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028221",
+        "028222"
+      ]
+    },
+    "028222": {
+      "masterKey": "摩根恒生生物科技ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028221",
+        "028222"
+      ]
+    },
+    "028247": {
+      "masterKey": "华夏国证航天航空行业ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028247",
+        "028248"
+      ]
+    },
+    "028248": {
+      "masterKey": "华夏国证航天航空行业ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028247",
+        "028248"
+      ]
+    },
+    "028257": {
+      "masterKey": "平安中证A500红利低波动ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028257",
+        "028258"
+      ]
+    },
+    "028258": {
+      "masterKey": "平安中证A500红利低波动ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028257",
+        "028258"
+      ]
+    },
+    "028370": {
+      "masterKey": "华夏上证综合ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028370",
+        "028371"
+      ]
+    },
+    "028371": {
+      "masterKey": "华夏上证综合ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028370",
+        "028371"
+      ]
+    },
+    "028376": {
+      "masterKey": "华宝中证全指家用电器ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028376",
+        "028377"
+      ]
+    },
+    "028377": {
+      "masterKey": "华宝中证全指家用电器ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028376",
+        "028377"
+      ]
+    },
+    "028381": {
+      "masterKey": "华夏创业板软件ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028381",
+        "028382"
+      ]
+    },
+    "028382": {
+      "masterKey": "华夏创业板软件ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028381",
+        "028382"
+      ]
+    },
+    "028389": {
+      "masterKey": "汇添富中证全指电力公用事业ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028389",
+        "028390"
+      ]
+    },
+    "028390": {
+      "masterKey": "汇添富中证全指电力公用事业ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028389",
+        "028390"
+      ]
+    },
+    "028393": {
+      "masterKey": "景顺长城创业板新能源ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028393",
+        "028394"
+      ]
+    },
+    "028394": {
+      "masterKey": "景顺长城创业板新能源ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028393",
+        "028394"
+      ]
+    },
+    "028404": {
+      "masterKey": "富国中证金融科技主题ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028404",
+        "028405"
+      ]
+    },
+    "028405": {
+      "masterKey": "富国中证金融科技主题ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028404",
+        "028405"
+      ]
+    },
+    "028571": {
+      "masterKey": "景顺长城中证全指证券公司ETF",
+      "isFeeder": true,
+      "masterCode": "159008",
+      "masterName": "景顺长城中证全指证券公司ETF",
+      "feederCodes": [
+        "028571",
+        "028572"
+      ]
+    },
+    "028572": {
+      "masterKey": "景顺长城中证全指证券公司ETF",
+      "isFeeder": true,
+      "masterCode": "159008",
+      "masterName": "景顺长城中证全指证券公司ETF",
+      "feederCodes": [
+        "028571",
+        "028572"
+      ]
+    },
+    "028579": {
+      "masterKey": "鹏华中证全指公用事业ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028579",
+        "028580"
+      ]
+    },
+    "028580": {
+      "masterKey": "鹏华中证全指公用事业ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028579",
+        "028580"
+      ]
+    },
+    "028586": {
+      "masterKey": "华夏国证大盘价值ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028586"
+      ]
+    },
+    "028654": {
+      "masterKey": "华泰柏瑞中证家居家电ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028654",
+        "028655"
+      ]
+    },
+    "028655": {
+      "masterKey": "华泰柏瑞中证家居家电ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028654",
+        "028655"
+      ]
+    },
+    "028662": {
+      "masterKey": "广发恒生A股电网设备ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028662",
+        "028663"
+      ]
+    },
+    "028663": {
+      "masterKey": "广发恒生A股电网设备ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028662",
+        "028663"
+      ]
+    },
+    "028670": {
+      "masterKey": "易方达中证工业有色金属主题ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028670",
+        "028671"
+      ]
+    },
+    "028671": {
+      "masterKey": "易方达中证工业有色金属主题ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028670",
+        "028671"
+      ]
+    },
+    "028672": {
+      "masterKey": "易方达恒生A股电网设备ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028672",
+        "028673"
+      ]
+    },
+    "028673": {
+      "masterKey": "易方达恒生A股电网设备ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028672",
+        "028673"
+      ]
+    },
+    "028688": {
+      "masterKey": "天弘中证全指电力公用事业ETF发起",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028688",
+        "028689"
+      ]
+    },
+    "028689": {
+      "masterKey": "天弘中证全指电力公用事业ETF发起",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028688",
+        "028689"
+      ]
+    },
+    "028709": {
+      "masterKey": "华安中证全指电力公用事业ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028709",
+        "028710"
+      ]
+    },
+    "028710": {
+      "masterKey": "华安中证全指电力公用事业ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028709",
+        "028710"
+      ]
+    },
+    "028717": {
+      "masterKey": "华泰柏瑞中证电池主题ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028717",
+        "028718"
+      ]
+    },
+    "028718": {
+      "masterKey": "华泰柏瑞中证电池主题ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028717",
+        "028718"
+      ]
+    },
+    "028730": {
+      "masterKey": "易方达创业板新能源ETF",
+      "isFeeder": true,
+      "masterCode": "159009",
+      "masterName": "易方达创业板新能源ETF",
+      "feederCodes": [
+        "028730",
+        "028731"
+      ]
+    },
+    "028731": {
+      "masterKey": "易方达创业板新能源ETF",
+      "isFeeder": true,
+      "masterCode": "159009",
+      "masterName": "易方达创业板新能源ETF",
+      "feederCodes": [
+        "028730",
+        "028731"
+      ]
+    },
+    "028734": {
+      "masterKey": "中银中证工业有色金属主题ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028734",
+        "028735"
+      ]
+    },
+    "028735": {
+      "masterKey": "中银中证工业有色金属主题ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028734",
+        "028735"
+      ]
+    },
+    "028777": {
+      "masterKey": "招商中证卫星产业ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028777",
+        "028778"
+      ]
+    },
+    "028778": {
+      "masterKey": "招商中证卫星产业ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028777",
+        "028778"
+      ]
+    },
+    "028822": {
+      "masterKey": "富国国证机器人产业ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028822",
+        "028823"
+      ]
+    },
+    "028823": {
+      "masterKey": "富国国证机器人产业ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028822",
+        "028823"
+      ]
+    },
+    "028824": {
+      "masterKey": "国泰国证粮食产业ETF发起",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028824",
+        "028825"
+      ]
+    },
+    "028825": {
+      "masterKey": "国泰国证粮食产业ETF发起",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028824",
+        "028825"
+      ]
+    },
+    "028832": {
+      "masterKey": "易方达中证全指电力公用事业ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028832",
+        "028833"
+      ]
+    },
+    "028833": {
+      "masterKey": "易方达中证全指电力公用事业ETF",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028832",
+        "028833"
+      ]
+    },
+    "028843": {
+      "masterKey": "华泰柏瑞中证全指航空航天ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028843"
+      ]
+    },
+    "028853": {
+      "masterKey": "广发中证证券公司30ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028853",
+        "028854"
+      ]
+    },
+    "028854": {
+      "masterKey": "广发中证证券公司30ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028853",
+        "028854"
+      ]
+    },
+    "028898": {
+      "masterKey": "银华国证新能源电池ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028898",
+        "028899"
+      ]
+    },
+    "028899": {
+      "masterKey": "银华国证新能源电池ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028898",
+        "028899"
+      ]
+    },
+    "028910": {
+      "masterKey": "华泰柏瑞中证工业有色金属主题ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028910",
+        "028911"
+      ]
+    },
+    "028911": {
+      "masterKey": "华泰柏瑞中证工业有色金属主题ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028910",
+        "028911"
+      ]
+    },
+    "028934": {
+      "masterKey": "华夏中证港股通信息技术综合ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028934",
+        "028935"
+      ]
+    },
+    "028935": {
+      "masterKey": "华夏中证港股通信息技术综合ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028934",
+        "028935"
+      ]
+    },
+    "028936": {
+      "masterKey": "华泰柏瑞中证科创创业人工智能ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028936",
+        "028937"
+      ]
+    },
+    "028937": {
+      "masterKey": "华泰柏瑞中证科创创业人工智能ETF发起式",
+      "isFeeder": true,
+      "masterCode": null,
+      "masterName": null,
+      "feederCodes": [
+        "028936",
+        "028937"
+      ]
+    },
+    "028943": {
+      "masterKey": "易方达国证粮食产业ETF",
+      "isFeeder": true,
+      "masterCode": "159038",
+      "masterName": "易方达国证粮食产业ETF",
+      "feederCodes": [
+        "028943",
+        "028944"
+      ]
+    },
+    "028944": {
+      "masterKey": "易方达国证粮食产业ETF",
+      "isFeeder": true,
+      "masterCode": "159038",
+      "masterName": "易方达国证粮食产业ETF",
+      "feederCodes": [
+        "028943",
+        "028944"
       ]
     }
   }

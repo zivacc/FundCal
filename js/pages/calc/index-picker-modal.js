@@ -3,6 +3,7 @@
  */
 
 import { escapeHtml } from '../../utils/format.js';
+import { filterSearchIndex } from '../../utils/search.js';
 import { openModal, closeModal } from '../../utils/dom.js';
 import { fetchFundStatsFromAPI, fetchFundFeeFromAPI } from '../../data/fund-api.js';
 
@@ -64,16 +65,7 @@ export function setupIndexPickerModal({ addFundCard }) {
     const s = String(query || '').trim().toLowerCase();
     let filtered = items || [];
     if (s) {
-      const numOnly = s.replace(/\D/g, '');
-      filtered = items.filter(item => {
-        const label = String(item.label || '').trim();
-        const lower = label.toLowerCase();
-        if (!lower) return false;
-        if (numOnly && lower.includes(numOnly)) return true;
-        if (lower.includes(s)) return true;
-        if (item.initials && String(item.initials).toLowerCase().startsWith(s)) return true;
-        return false;
-      });
+      filtered = filterSearchIndex(items, s, { limit: Infinity });
     }
     filtered.forEach(item => {
       const div = document.createElement('div');

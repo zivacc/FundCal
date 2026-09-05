@@ -9,6 +9,7 @@
  */
 
 import { getDb, codeToTsCode } from './db.js';
+import { pinyin } from 'pinyin-pro';
 import {
   downsample,
   computeStats,
@@ -291,6 +292,7 @@ function handleIndexSearchIndex(req, res) {
       code: r.ts_code,
       name: r.name || r.ts_code,
       fullname: r.fullname || '',
+      initials: pinyin(r.name || '', { pattern: 'first', toneType: 'none', type: 'array' }).join('').toLowerCase(),
       kind: 'index',
       isPrice: !/全收益/.test(r.fullname || ''),
     }));

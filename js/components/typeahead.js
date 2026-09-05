@@ -70,8 +70,11 @@ export function createTypeahead(options) {
   let highlight = -1;
   let debounceTimer = null;
   let lastQueryToken = 0;
+  let composing = false;
 
   function close() {
+    ++lastQueryToken;
+    clearTimeout(debounceTimer);
     items = [];
     highlight = -1;
     dropdownEl.innerHTML = '';
@@ -125,6 +128,7 @@ export function createTypeahead(options) {
   }
 
   async function runSearch() {
+    if (composing) return;
     const q = inputEl.value || '';
     const token = ++lastQueryToken;
     let result;
@@ -135,14 +139,18 @@ export function createTypeahead(options) {
       result = [];
     }
     // 抢占：只渲染最新一次请求
-    if (token !== lastQueryToken) return;
+    if (token !== lastQueryToken || q !== inputEl.value || composing) return;
     renderInternal(result);
   }
 
   function onInput() {
+    ++lastQueryToken;
     clearTimeout(debounceTimer);
+    if (composing) return;
     debounceTimer = setTimeout(runSearch, debounceMs);
   }
+  function onCompositionStart() { composing = true; ++lastQueryToken; clearTimeout(debounceTimer); }
+  function onCompositionEnd() { composing = false; onInput(); }
 
   function onFocus() {
     if (!openOnFocus) return;
@@ -150,7 +158,7 @@ export function createTypeahead(options) {
   }
 
   function onKeydown(e) {
-    if (!enableKeyboard) return;
+    if (!enableKeyboard || composing || e.isComposing) return;
     const opts = dropdownEl.querySelectorAll('[role="option"]');
     if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -186,6 +194,8 @@ export function createTypeahead(options) {
   }
 
   inputEl.addEventListener('input', onInput);
+  inputEl.addEventListener('compositionstart', onCompositionStart);
+  inputEl.addEventListener('compositionend', onCompositionEnd);
   inputEl.addEventListener('focus', onFocus);
   inputEl.addEventListener('keydown', onKeydown);
   dropdownEl.addEventListener('mousedown', onDropdownMouseDown);
@@ -198,6 +208,8 @@ export function createTypeahead(options) {
     destroy() {
       clearTimeout(debounceTimer);
       inputEl.removeEventListener('input', onInput);
+      inputEl.removeEventListener('compositionstart', onCompositionStart);
+      inputEl.removeEventListener('compositionend', onCompositionEnd);
       inputEl.removeEventListener('focus', onFocus);
       inputEl.removeEventListener('keydown', onKeydown);
       dropdownEl.removeEventListener('mousedown', onDropdownMouseDown);

@@ -14,7 +14,8 @@
  *
  * 用法 (前提: index_source_map 已有 source='eastmoney' 的映射):
  *   node scripts/nav/crawl-em-index.js --codes 100.NDX,100.SPX,100.HSI    # 直接 secid
- *   node scripts/nav/crawl-em-index.js --tracked       # 仅同步被基金跟踪 + tushare 无覆盖的
+ *   node scripts/nav/crawl-em-index.js --tracked       # 被基金跟踪或已有日线的指数
+ *   node scripts/nav/crawl-em-index.js --tracked --resume # 跳过当日成功项
  *   node scripts/nav/crawl-em-index.js --all-em        # source_map 中所有 eastmoney 源
  *   node scripts/nav/crawl-em-index.js --full          # 全量
  *
@@ -31,7 +32,7 @@ import {
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0';
 const HEADERS = { 'User-Agent': UA, 'Referer': 'https://quote.eastmoney.com/' };
-const REQUEST_GAP_MS = parseInt(process.env.EASTMONEY_GAP_MS || '50', 10);
+const REQUEST_GAP_MS = parseInt(process.env.EASTMONEY_INDEX_GAP_MS || '1000', 10);
 const MAX_RETRIES = 3;
 
 let nextSlotAt = 0;
@@ -45,13 +46,14 @@ async function reserveSlot() {
 
 function parseArgs() {
   const args = process.argv.slice(2);
-  const opts = { secids: [], tracked: false, allEm: false, full: false, concurrency: 3 };
+  const opts = { secids: [], tracked: false, allEm: false, full: false, resume: false, concurrency: 1 };
   for (let i = 0; i < args.length; i++) {
     switch (args[i]) {
       case '--codes': opts.secids = (args[++i] || '').split(',').map(c => c.trim()).filter(Boolean); break;
       case '--tracked': opts.tracked = true; break;
       case '--all-em': opts.allEm = true; break;
       case '--full': opts.full = true; break;
+      case '--resume': opts.resume = true; break;
       case '--concurrency':
       case '-c': opts.concurrency = Math.max(1, parseInt(args[++i], 10) || 3); break;
     }
@@ -63,15 +65,23 @@ function resolveSourceCodes(opts) {
   const db = getDb();
   if (opts.secids.length) {
     // 用户直接给 secid; 假设已在 source_map 注册或将动态绑定
-    return opts.secids.map(secid => ({ source_code: secid, ts_code: null }));
+    return opts.secids.map(secid => db.prepare("SELECT ts_code, source_code FROM index_source_map WHERE source='eastmoney' AND source_code=?").get(secid)
+      || { source_code: secid, ts_code: null });
   }
   if (opts.tracked) {
     const rows = db.prepare(`
-      SELECT m.ts_code, m.source_code FROM index_source_map m
-      JOIN index_fund_tracker t ON t.index_ts_code = m.ts_code
-      WHERE m.source = 'eastmoney' AND m.is_active = 1
+      SELECT DISTINCT b.ts_code, m.source_code FROM index_basic b
+      LEFT JOIN index_source_map m ON m.ts_code=b.ts_code AND m.source='eastmoney' AND m.is_active=1
+      WHERE EXISTS (SELECT 1 FROM index_fund_tracker t WHERE t.index_ts_code=b.ts_code)
+        OR EXISTS (SELECT 1 FROM index_daily d WHERE d.ts_code=b.ts_code)
     `).all();
-    return rows;
+    return rows.map(r => {
+      if (r.source_code) return r;
+      const [code, suffix] = r.ts_code.split('.');
+      const market = suffix === 'SH' ? '1' : /^(SZ|BJ)$/.test(suffix) ? '0'
+        : suffix === 'CSI' ? (code.startsWith('000') ? '1' : code.startsWith('399') ? '0' : '2') : null;
+      return { ...r, source_code: market ? `${market}.${code}` : null };
+    });
   }
   if (opts.allEm) {
     const rows = db.prepare(`
@@ -95,11 +105,14 @@ async function fetchEm(secid, beg, end) {
       const res = await fetch(url, { headers: HEADERS, signal: AbortSignal.timeout(30000) });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
+      if (json.rc !== 0 || !json.data || !Array.isArray(json.data.klines)) throw new Error(`Eastmoney ${secid}: rc=${json.rc}, no data`);
+      if (json.data.code !== secid.split('.').slice(1).join('.')) throw new Error(`Index code mismatch: ${secid}`);
       const klines = json?.data?.klines || [];
       return klines;
     } catch (e) {
       lastErr = e;
-      if (attempt < MAX_RETRIES) await new Promise(r => setTimeout(r, 500 * attempt));
+      if (/rc=100/.test(e.message)) break;
+      nextSlotAt = Math.max(nextSlotAt, Date.now() + 5000 * 2 ** (attempt - 1));
     }
   }
   throw lastErr;
@@ -134,10 +147,10 @@ function parseKline(line) {
 
 async function syncOne(item, idx, total, fullMode) {
   const { ts_code, source_code: secid } = item;
+  if (!secid) throw new Error(`No public index mapping: ${ts_code}`);
   const prefix = `[${String(idx + 1).padStart(String(total).length, ' ')}/${total}]`;
   if (!ts_code) {
-    console.warn(`${prefix} ${secid} — 无 ts_code 绑定 (跳过, 请先 INSERT index_basic + register source_map)`);
-    return 0;
+    throw new Error(`${secid} — 无 ts_code 绑定，请先注册 index_basic + source_map`);
   }
 
   let beg = '19900101';
@@ -177,6 +190,9 @@ async function syncOne(item, idx, total, fullMode) {
       return { ts_code, ...parsed };
     }).filter(Boolean);
     upsertIndexDailyRecords(records, 2);
+    getDb().prepare(`INSERT INTO index_source_map(ts_code,source,source_code,is_active,notes)
+      VALUES(?,'eastmoney',?,1,'Validated code against Eastmoney response')
+      ON CONFLICT(ts_code,source) DO NOTHING`).run(ts_code, secid);
     logSync({
       ts_code, api_name: 'eastmoney_kline', status: 'success',
       record_count: records.length, started_at: startedAt, finished_at: new Date().toISOString(),
@@ -189,20 +205,25 @@ async function syncOne(item, idx, total, fullMode) {
       ts_code, api_name: 'eastmoney_kline', status: 'error',
       started_at: startedAt, finished_at: new Date().toISOString(), error_message: e.message,
     });
-    return 0;
+    throw e;
   }
 }
 
 async function main() {
   const opts = parseArgs();
-  const items = resolveSourceCodes(opts);
+  let items = resolveSourceCodes(opts);
+  if (opts.resume) {
+    const done = new Set(getDb().prepare(`SELECT DISTINCT ts_code FROM sync_log
+      WHERE api_name='eastmoney_kline' AND status='success' AND finished_at >= ?`).all(new Date().toISOString().slice(0,10)).map(r => r.ts_code));
+    items = items.filter(item => !done.has(item.ts_code));
+  }
 
   console.log(`🌐 东财指数日线兜底 (push2his)`);
   console.log(`   指数: ${items.length}, 并发: ${opts.concurrency}, 模式: ${opts.full ? '全量' : '增量'}`);
 
   if (!items.length) { closeDb(); return; }
 
-  let total = 0, success = 0, error = 0;
+  let total = 0, success = 0, error = 0, consecutiveFailures = 0;
   const start = Date.now();
   let cursor = 0;
   async function worker() {
@@ -211,17 +232,26 @@ async function main() {
       try {
         const n = await syncOne(items[i], i, items.length, opts.full);
         total += n; success++;
+        consecutiveFailures = 0;
       } catch (e) {
         error++;
         console.error(`worker error: ${e.message}`);
+        if (!items[i].source_code) logSync({ts_code: items[i].ts_code, api_name: 'eastmoney_kline', status: 'error',
+          finished_at: new Date().toISOString(), error_message: e.message});
+        if (/fetch failed|timeout|429/i.test(e.message) && ++consecutiveFailures >= 3) {
+          console.error('连续网络失败，停止请求。可稍后使用 --resume 续传。');
+          cursor = items.length;
+          return;
+        }
       }
     }
   }
   await Promise.all(Array.from({ length: opts.concurrency }, worker));
 
   const elapsed = ((Date.now() - start) / 1000).toFixed(1);
-  console.log(`\n✅ 完成: 成功 ${success} / 失败 ${error}, +${total} 行, 耗时 ${elapsed}s`);
+  console.log(`\n${error ? '⚠️ 部分完成' : '✅ 完成'}: 成功 ${success} / 失败 ${error}, 未处理 ${items.length - success - error}, +${total} 行, 耗时 ${elapsed}s`);
   closeDb();
+  if (error) process.exitCode = 1;
 }
 
 main().catch(e => { console.error('💥', e); closeDb(); process.exit(1); });

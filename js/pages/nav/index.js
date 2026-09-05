@@ -41,6 +41,11 @@ import {
   resolveRef,
   excessModeForValueMode,
 } from './derived-indicators.js';
+import { getMinZoomValueSpan, clampZoomIndices } from './zoom-limits.js';
+import { computeStats } from '../../domain/nav-stats.js';
+import { chartLayout, niceAxisBounds } from './chart-layout.js';
+import { filterSearchIndex } from '../../utils/search.js';
+import { resizeRangeBoundary } from './range-selection.js';
 
 const COLORS = ['#c47a3d', '#2a8e6c', '#3f6cc4', '#b8732d', '#c0412d', '#7e6cc4', '#5d8aa8', '#9b6b3f'];
 
@@ -303,8 +308,9 @@ function viewToZoomPct(allDatesYMD, sISO, eISO) {
     }
     eIdx = Math.max(sIdx, last);
   }
-  const startPct = (sIdx / (len - 1)) * 100;
-  const endPct = (eIdx / (len - 1)) * 100;
+  const window = clampZoomIndices(sIdx, eIdx, len);
+  const startPct = (window.start / (len - 1)) * 100;
+  const endPct = (window.end / (len - 1)) * 100;
   return { start: startPct, end: endPct };
 }
 
@@ -339,28 +345,7 @@ async function loadSearchIndex() {
 }
 
 function filterIndex(list, q) {
-  const s = String(q || '').trim().toLowerCase();
-  if (!s) return [];
-  const num = s.replace(/\D/g, '');
-  const score = (r) => {
-    const code = (r.code || '').toLowerCase();
-    const nm = (r.name || '').toLowerCase();
-    const fnm = (r.fullname || '').toLowerCase();
-    const init = (r.initials || '').toLowerCase();
-    if (num && code.startsWith(num)) return 0;
-    if (num && code.includes(num)) return 1;
-    if (nm.startsWith(s)) return 2;
-    if (init.startsWith(s)) return 3;
-    if (nm.includes(s)) return 4;
-    if (fnm.includes(s)) return 5;
-    return 99;
-  };
-  return list
-    .map(r => ({ r, s: score(r) }))
-    .filter(x => x.s < 99 && !x.r.needsCrawl)
-    .sort((a, b) => a.s - b.s)
-    .slice(0, 12)
-    .map(x => x.r);
+  return filterSearchIndex(list, q, { limit: 30, kinds: ['fund', 'index'], predicate: r => !r.needsCrawl });
 }
 
 /* ========== UI ========== */
@@ -659,7 +644,6 @@ async function fetchAndRender() {
     }
 
     renderChart();
-    renderStatsTable(state.data.stats || []);
   } catch (e) {
     console.error('compare 请求失败', e);
     alert('数据请求失败：' + e.message);
@@ -712,12 +696,16 @@ function ensureChart() {
   const canvas = document.getElementById('nav-chart-canvas');
   if (!canvas || !window.echarts) return null;
   state.chart = window.echarts.init(canvas, null, { renderer: 'canvas' });
-  // 容器尺寸变化：先 resize 再重渲染（baseline panel 走绝对像素）
-  window.addEventListener('resize', () => {
-    if (!state.chart) return;
-    state.chart.resize();
-    if (state.data) renderChart();
+  let resizeFrame = 0;
+  const resizeObserver = new ResizeObserver(() => {
+    if (resizeFrame || !canvas.clientWidth || !canvas.clientHeight) return;
+    resizeFrame = requestAnimationFrame(() => {
+      resizeFrame = 0;
+      state.chart.resize();
+      if (state.data) renderChart();
+    });
   });
+  resizeObserver.observe(canvas);
   ensureBaselinePanel();
   setupRangeSelection();
   // 注：dataZoom 事件不在这里挂；那是 renderChart 内的 'datazoom' 处理器的活，
@@ -764,27 +752,17 @@ function yAxisLabelFormatter(valueMode) {
 
 function yAxisName(valueMode, axisScale) {
   const base = valueMode === 'pct' ? '累计收益' : '净值';
-  // 用 '·' 作为对数标注前缀：toVerticalName 按字符拆分时会单独占一行，
-  // 比 '(对数)' 更利于竖排（原先括号段被整体保留会导致横排混入竖排）。
   return axisScale === 'log' ? `${base}·对数` : base;
 }
 
-/**
- * 把字符串按字符堆叠成竖排显示（ECharts name 支持 \n 换行）。
- * 先去掉所有空白避免产生空行，然后逐字符拆。
- */
-function toVerticalName(str) {
-  return String(str || '').replace(/\s+/g, '').split('').join('\n');
-}
-
-function renderChart() {
+function renderChart({ interaction = false } = {}) {
   const chart = ensureChart();
   if (!chart || !state.data) return;
   const { series } = state.data;
   if (!series || !series.length) { chart.clear(); return; }
 
   // 派生指标 select 的 options 跟 selected/valueMode 走，这里统一刷
-  refreshExcessSelects();
+  if (!interaction) refreshExcessSelects();
 
   const theme = readThemeColors();
   const valueMode = state.valueMode;
@@ -798,16 +776,22 @@ function renderChart() {
 
   // 公共日期轴 = union of trading days across series（collectAllDatesYMD 内已
   // 按交易日历过滤），然后把每只基金的净值前向填充对齐到这条轴上。
-  const allDates = collectAllDatesYMD(state.data);
-  const allDatesYMD = allDates.slice();
-  const alignedByCode = new Map();
-  for (const s of series) {
-    if (!s || !s.code) continue;
-    alignedByCode.set(s.code, alignSeriesToDates(allDates, s));
+  if (state._alignedData !== state.data) {
+    const dates = collectAllDatesYMD(state.data);
+    state._alignedCache = { dates, byCode: new Map(series.filter(s => s?.code)
+      .map(s => [s.code, alignSeriesToDates(dates, s)])) };
+    state._alignedData = state.data;
+  }
+  const { dates: allDates, byCode: alignedByCode } = state._alignedCache;
+  const allDatesYMD = allDates;
+  if (!interaction) {
+    const zoom = viewToZoomPct(allDatesYMD, state.viewStart, state.viewEnd);
+    const window = zoomPctToView(allDatesYMD, zoom.start, zoom.end);
+    state.viewStart = window.start; state.viewEnd = window.end;
+    syncRangeInputs();
   }
   const mainSeries = [];
   const subplotSeries = [];
-  const transformedAll = []; // 用于推算 yAxis bounds
 
   // 基准日决策：
   //   1) 用户手动拖过 (state.baseline 非空)
@@ -859,7 +843,6 @@ function renderChart() {
     const color = sel?.color || COLORS[i % COLORS.length];
     const aligned = alignedByCode.get(s.code) || new Array(allDates.length).fill(null);
     const transformed = transformByMode(allDates, aligned, valueMode, effectiveBaseline);
-    transformedAll.push(transformed);
 
     // 当前视图窗口内的 max/min 显式索引；避开 ECharts type:'max' 在
     // 前向填充平台上落点不准、且不受窗口约束的两个老坑。
@@ -874,16 +857,18 @@ function renderChart() {
     // 显式 value，避免 ECharts 解析成 undefined 导致 formatter 算 NaN。
     // 每个点自带 label.position：最高在曲线上方，最低在曲线下方。
     const markPointData = [];
+    const pointPosition = (index, fallback) => index > eIdx - (eIdx - sIdx) * 0.04 ? 'left'
+      : index < sIdx + (eIdx - sIdx) * 0.04 ? 'right' : fallback;
     if (maxI >= 0) {
       markPointData.push({
         name: '最高', coord: [maxI, maxV], value: maxV,
-        label: { position: 'top' },
+        label: { position: pointPosition(maxI, 'top') },
       });
     }
     if (minI >= 0 && minI !== maxI) {
       markPointData.push({
         name: '最低', coord: [minI, minV], value: minV,
-        label: { position: 'bottom' },
+        label: { position: pointPosition(minI, 'bottom') },
       });
     }
 
@@ -960,64 +945,76 @@ function renderChart() {
 
   // 主图 Y 轴边界：仅按 *可视窗口内* 的值算 → 任何缩放级别都"撑满"
   // 之前用 transformedAll 全集，导致 1Y/3Y 视图下曲线挤在 y 轴中间一小段。
-  const transformedInView = transformedAll.map(arr => arr.slice(sIdx, eIdx + 1));
+  const transformedInView = mainSeries.map(s => s.data.slice(sIdx, eIdx + 1));
   const { min: yMin, max: yMax } = computeYAxisBounds(transformedInView, axisScale);
 
   // 布局：无副图时主图占满；有副图时主图压缩到 56%，副图由自己的 grid 声明接下来。
   // 多副图不调主图高度（进一步的分配算法留到实际需要第二个副图时再做，YAGNI）。
-  const grids = hasSubplot
-    ? [
-        { left: 72, right: 30, top: 50, height: '56%' },
-        ...activeSubplots.map(sp => ({ ...sp.grid })),
-      ]
-    : [{ left: 72, right: 30, top: 50, bottom: 72 }];
+  const { grids, left, right, fontSize } = chartLayout(chart.getWidth(), chart.getHeight(), activeSubplots.length);
+  const shortRange = eIdx - sIdx < 260;
 
   // 主图 X 轴在 DD 副图打开时不显示日期，避免与下方 "回撤" 轴名碰撞
   // axisLabel 只展示 YYYY-MM；tooltip 仍用完整 YYYY-MM-DD（数据未改）。
   const xAxisCommon = (gridIndex, showLabel) => ({
     type: 'category',
+    boundaryGap: false,
     data: allDates.map(formatDate),
     gridIndex,
     axisLabel: {
-      color: theme.text2, fontSize: 13, show: showLabel,
-      formatter: (val) => String(val).slice(2, 7),
+      color: theme.text2, fontSize, show: showLabel,
+      hideOverlap: true, showMinLabel: true, showMaxLabel: true, margin: 12,
+      interval: Math.max(0, Math.ceil((eIdx - sIdx) / Math.max(2, Math.floor((chart.getWidth() - left - right) / 90))) - 1),
+      formatter: (val) => shortRange ? String(val).slice(5) : String(val).slice(0, 7),
     },
     axisLine: { lineStyle: { color: theme.rule } },
+    axisPointer: { label: { show: showLabel } },
     axisTick: { lineStyle: { color: theme.rule }, show: showLabel },
     splitLine: { show: false },
   });
-  // 主图 X 轴在任何副图打开时不显示日期（避免和副图上方的轴名碰撞）；副图都显示。
+  // 只有最下方的图显示日期，主副图使用相同的时间像素。
   const xAxes = hasSubplot
-    ? [xAxisCommon(0, false), ...activeSubplots.map((_, i) => xAxisCommon(i + 1, true))]
+    ? [xAxisCommon(0, false), ...activeSubplots.map((_, i) => xAxisCommon(i + 1, i === activeSubplots.length - 1))]
     : [xAxisCommon(0, true)];
 
   const yMain = {
     type: axisScale === 'log' ? 'log' : 'value',
-    name: toVerticalName(yAxisName(valueMode, axisScale)),
-    nameTextStyle: { color: theme.text2, fontSize: 13, lineHeight: 14 },
-    nameLocation: 'middle',
-    nameGap: 54,
+    name: yAxisName(valueMode, axisScale),
+    nameTextStyle: { color: theme.text2, fontSize, align: 'left', padding: [0, 0, 0, 0] },
+    nameLocation: 'end',
+    nameGap: 6,
     nameRotate: 0,
     gridIndex: 0,
-    axisLabel: { color: theme.text2, fontSize: 13, formatter: yAxisLabelFormatter(valueMode) },
+    axisLabel: { color: theme.text2, fontSize, hideOverlap: true, margin: 10,
+      formatter: valueMode === 'pct' ? v => `${Number(((v - 1) * 100).toFixed(2))}%` : navFormatter },
+    axisPointer: { label: { formatter: p => yAxisLabelFormatter(valueMode)(p.value) } },
     axisLine: { lineStyle: { color: theme.rule } },
     splitLine: { lineStyle: { color: theme.rule, opacity: 0.5 } },
     scale: axisScale !== 'log',
     min: yMin, max: yMax,
+    ...(axisScale === 'linear' ? niceAxisBounds(yMin, yMax, valueMode) : {}),
+    splitNumber: 5,
     // 对数轴密度自适应：默认 logBase=10 在金融净值范围（0.5..3）只有 1 个 split；
     // pickLogBase 按 ratio 选 base 让 tick 数 ≈ 6，与线性观感一致。
     ...(axisScale === 'log' ? { logBase: pickLogBase(transformedInView) } : {}),
   };
-  // 副图 yAxis 由 SUBPLOTS 条目的 buildYAxis 生成；名称样式在这里统一套（用 toVerticalName 竖排）
+  // 副图使用横排轴名，给坐标标签和主图之间保留独立空间。
   const subplotYAxes = activeSubplots.map((sp, i) => ({
-    name: sp.yAxisName ? toVerticalName(sp.yAxisName) : undefined,
-    nameTextStyle: { color: theme.text2, fontSize: 13, lineHeight: 14 },
-    nameLocation: 'middle',
-    nameGap: 54,
+    name: sp.yAxisName,
+    nameTextStyle: { color: theme.text2, fontSize, align: 'left' },
+    nameLocation: 'end',
+    nameGap: 12,
     nameRotate: 0,
     ...sp.buildYAxis(theme, i + 1),
+    splitNumber: 3,
+    axisLabel: { color: theme.text2, fontSize, hideOverlap: true, margin: 10, formatter: v => `${Number(v.toFixed(1))}%` },
+    axisPointer: { label: { formatter: p => `${Number(p.value).toFixed(1)}%` } },
   }));
   const yAxes = hasSubplot ? [yMain, ...subplotYAxes] : [yMain];
+  subplotYAxes.forEach((axis, i) => {
+    const values = subplotSeries.filter(s => s.yAxisIndex === i + 1).map(s => s.data.slice(sIdx, eIdx + 1));
+    const bounds = computeYAxisBounds(values, 'linear');
+    Object.assign(axis, niceAxisBounds(bounds.min, 0, 'nav', 3));
+  });
 
   const option = {
     backgroundColor: 'transparent',
@@ -1058,15 +1055,23 @@ function renderChart() {
     axisPointer: { link: hasSubplot ? [{ xAxisIndex: 'all' }] : undefined },
     dataZoom: (() => {
       const { start: startPct, end: endPct } = viewToZoomPct(allDatesYMD, state.viewStart, state.viewEnd);
+      const minValueSpan = getMinZoomValueSpan(allDatesYMD.length);
       const dzAxisIndices = hasSubplot
         ? [0, ...activeSubplots.map((_, i) => i + 1)]
         : [0];
       return [
-        { type: 'inside', xAxisIndex: dzAxisIndices, filterMode: 'none', start: startPct, end: endPct },
+        {
+          type: 'inside', xAxisIndex: dzAxisIndices,
+          throttle: 32,
+          filterMode: 'none', start: startPct, end: endPct,
+          minValueSpan,
+        },
         {
           type: 'slider', xAxisIndex: dzAxisIndices,
+          realtime: true, throttle: 32, left, right, showDetail: false,
           start: startPct, end: endPct,
-          height: 18, bottom: 6, filterMode: 'none',
+          minValueSpan,
+          height: 22, bottom: 12, filterMode: 'none',
           backgroundColor: theme.bgSubtle,
           dataBackground: { lineStyle: { color: theme.text3, opacity: 0.5 }, areaStyle: { color: theme.text3, opacity: 0.15 } },
           selectedDataBackground: { lineStyle: { color: theme.accent }, areaStyle: { color: theme.accent, opacity: 0.25 } },
@@ -1080,19 +1085,20 @@ function renderChart() {
     })(),
     // ECharts toolbox 移除：改用 .nav-chart-toolbar 里的自定义 DOM 按钮（见 index.html 和 setupChartToolbar）。
     // 原因：ECharts toolbox 只能画在 canvas 内，会和 markPoint 标签重叠。
-    series: [...mainSeries, ...subplotSeries],
+    series: [...mainSeries, ...subplotSeries].map((s, i) => ({ ...s, id: `nav-series-${i}`, animation: false, sampling: 'lttb', clip: true,
+      ...(s.markPoint ? { markPoint: { ...s.markPoint, label: { ...s.markPoint.label, fontSize,
+        backgroundColor: theme.bgRaised, borderRadius: 3, padding: [2, 3] } } } : {}) })),
   };
 
   // dataZoom 拖动 / 滚轮缩放 → 反向同步到 state.viewStart/End + 区间输入框
-  // 并且 debounce 触发 renderChart：让 markPoint 极值跟随可视窗口刷新。
+  // 按帧刷新坐标和极值，交互期间不重建 dataZoom 组件。
   chart.off('datazoom');
-  chart.on('datazoom', () => {
+  chart.on('datazoom', (event) => {
     if (state._suppressZoomSync) return;
-    const opt = chart.getOption();
-    const dz = opt.dataZoom && opt.dataZoom[0];
+    const dz = event.batch?.[0] || event;
     if (!dz) return;
-    const startPct = typeof dz.start === 'number' ? dz.start : 0;
-    const endPct = typeof dz.end === 'number' ? dz.end : 100;
+    const startPct = typeof dz.start === 'number' ? dz.start : state._currentDataZoom.startPct;
+    const endPct = typeof dz.end === 'number' ? dz.end : state._currentDataZoom.endPct;
     // 维护 mousemove 快照 + 让持久区间在滑块拖动期间实时跟手（不等 200ms debounce）
     state._currentDataZoom = { startPct, endPct };
     syncPersistentRange();
@@ -1103,19 +1109,21 @@ function renderChart() {
     state.period = null;
     document.querySelectorAll('.nav-period-btn').forEach(b => b.classList.remove('nav-period-btn-active'));
 
-    // 200ms debounce：拖动期间不重渲染，停下后再算极值
-    if (state._zoomDebounceTimer) clearTimeout(state._zoomDebounceTimer);
-    state._zoomDebounceTimer = setTimeout(() => {
-      state._zoomDebounceTimer = null;
-      state._suppressZoomSync = true;
-      try { renderChart(); } finally {
-        // renderChart -> setOption 会再触发 datazoom 事件；下一帧再放开
-        setTimeout(() => { state._suppressZoomSync = false; }, 0);
-      }
-    }, 200);
+    // Coalesce events once per frame; preserve ECharts' live drag/zoom component.
+    if (!state._zoomFrame) state._zoomFrame = requestAnimationFrame(() => {
+      state._zoomFrame = 0;
+      renderChart({ interaction: true });
+    });
   });
 
-  chart.setOption(option, true);
+  if (interaction) {
+    chart.setOption({ series: option.series, yAxis: option.yAxis,
+      xAxis: option.xAxis.map(x => ({ axisLabel: x.axisLabel })) }, { silent: true });
+  } else {
+    if (state._zoomFrame) cancelAnimationFrame(state._zoomFrame);
+    state._zoomFrame = 0;
+    chart.setOption(option, { notMerge: true, silent: true });
+  }
 
   // 基准日 marker：在 setOption 之后用 graphic 实现一根可拖动的竖线（仅 pct 模式）
   attachBaselineMarker(chart, allDatesYMD, effectiveBaseline, theme);
@@ -1131,12 +1139,29 @@ function renderChart() {
 
   // 自定义 legend 的"当日净值"文字位：默认显示最新；悬停时由 tooltip.formatter 切换为当日值
   // 首次数据到达时 legend 可能还没建（selection 添加时是第一次建），这里再确保一次
-  renderChartLegend();
+  if (!interaction) renderChartLegend();
 
   // 持久区间选择 overlay/控制 panel/统计 panel —— 轴变了要跟着动
   syncPersistentRange();
 
   // 任何能走到这里的 state 变更都会被 debounce 保存
+  // Range table follows the visible dates, throttled separately from painting.
+  const refreshStats = () => {
+    state._statsFrameTimer = null;
+    const start = isoToYMD(state.viewStart), end = isoToYMD(state.viewEnd);
+    renderStatsTable((state.data?.series || []).map(s => {
+      const found = s.dates.findIndex(d => d >= start);
+      const a = found < 0 ? s.dates.length : found;
+      let b = s.dates.length;
+      while (b > a && s.dates[b - 1] > end) b--;
+      return { code: s.code, name: s.name,
+        ...computeStats(s.dates.slice(a, b), (s.adjNavs || s.navs).slice(a, b), { interval: 'daily' }) };
+    }));
+  };
+  if (!interaction) {
+    if (state._statsFrameTimer) clearTimeout(state._statsFrameTimer);
+    refreshStats();
+  } else if (!state._statsFrameTimer) state._statsFrameTimer = setTimeout(refreshStats, 100);
   persist();
 }
 
@@ -1178,6 +1203,7 @@ function attachBaselineMarker(chart, allDatesYMD, effectiveBaseline, theme) {
     gridRect = chart.getModel().getComponent('grid', 0).coordinateSystem.getRect();
   } catch (_) { return; }
   if (!Number.isFinite(pxX) || !gridRect) return;
+  const visible = pxX >= gridRect.x - 1 && pxX <= gridRect.x + gridRect.width + 1;
 
   // 图表里只画一根被动虚线
   try {
@@ -1189,6 +1215,7 @@ function attachBaselineMarker(chart, allDatesYMD, effectiveBaseline, theme) {
         shape: { x1: 0, y1: 0, x2: 0, y2: gridRect.height },
         style: { stroke: theme.accent, lineWidth: 1.2, lineDash: [4, 4], opacity: 0.85 },
         silent: true, z: 100,
+        invisible: !visible,
       }],
     });
   } catch (_) {}
@@ -1201,11 +1228,16 @@ function attachBaselineMarker(chart, allDatesYMD, effectiveBaseline, theme) {
       const cR = canvas.getBoundingClientRect();
       const wR = wrap.getBoundingClientRect();
       const offsetX = cR.left - wR.left;
-      panel.style.left = `${offsetX + pxX}px`;
-      panel.style.top = `${(cR.top - wR.top) + Math.max(0, gridRect.y - 26)}px`;
+      panel.hidden = !visible;
+      const halfWidth = (panel.offsetWidth || 160) / 2;
+      const panelX = Math.max(halfWidth + 8, Math.min(wR.width - halfWidth - 8, offsetX + pxX));
+      panel.style.left = `${panelX}px`;
+      panel.dataset.markerX = String(offsetX + pxX);
+      panel.style.setProperty('--baseline-tip-x', `${offsetX + pxX - panelX + halfWidth}px`);
+      panel.style.top = `${(cR.top - wR.top) + Math.max(0, gridRect.y - 52)}px`;
       const label = panel.querySelector('.nav-baseline-panel-label');
       if (label) label.textContent = `基准 ${formatDate(allDatesYMD[idx] || '')}`;
-      panel.hidden = false;
+      panel.hidden = !visible;
     }
   }
 }
@@ -1287,7 +1319,7 @@ function ensureBaselinePanel() {
   panel.addEventListener('mousedown', (e) => {
     dragging = true;
     dragStartClientX = e.clientX;
-    dragStartLeft = parseFloat(panel.style.left || '0');
+    dragStartLeft = Number(panel.dataset.markerX || panel.style.left.replace('px', ''));
     dragBounds = getBounds();   // 一次性测量，拖动期间复用
     panel.classList.add('is-dragging');
     // 关掉当前可能还在显示的 tooltip —— panel mousedown 在 canvas 之外，
@@ -1305,6 +1337,8 @@ function ensureBaselinePanel() {
     const newLeft = Math.max(b.leftLimit, Math.min(b.rightLimit, dragStartLeft + dx));
     // CSS left 立刻应用 —— DOM 更新本身廉价，视觉跟手
     panel.style.left = `${newLeft}px`;
+    panel.dataset.markerX = String(newLeft);
+    panel.style.setProperty('--baseline-tip-x', '50%');
     // 图表竖线同步走 rAF 节流：120Hz 鼠标也只跑 ~60 次/秒 setOption
     pendingNewLeft = newLeft;
     if (!rafId) rafId = requestAnimationFrame(flushDragFrame);
@@ -1324,13 +1358,10 @@ function ensureBaselinePanel() {
 
     // canvas 像素 → 数据 idx：手算，绕开 convertFromPixel
     // （后者在某些 zoom 状态下会静默返回 NaN，是上一版没起作用的真凶）
-    const pxX = parseFloat(panel.style.left || '0') - b.offsetX;
+    const pxX = Number(panel.dataset.markerX || panel.style.left.replace('px', '')) - b.offsetX;
     const ratio = Math.max(0, Math.min(1, (pxX - b.gridRect.x) / b.gridRect.width));
 
-    const opt = state.chart.getOption();
-    const dz = (opt && opt.dataZoom && opt.dataZoom[0]) || {};
-    const startPct = typeof dz.start === 'number' ? dz.start : 0;
-    const endPct = typeof dz.end === 'number' ? dz.end : 100;
+    const { startPct, endPct } = state._currentDataZoom;
 
     const allDatesYMD = collectAllDatesYMD(state.data);
     const len = allDatesYMD.length;
@@ -1564,7 +1595,7 @@ function setupEvents() {
  */
 
 const rangeSel = {
-  phase: 'idle',  // 'idle' | 'creating' | 'resting' | 'moving' | 'panel-dragging'
+  phase: 'idle',  // 'idle' | 'creating' | 'resting' | 'resizing' | 'moving' | 'panel-dragging'
   sIx: null, eIx: null,  // 数据空间锚点（持久）
   startPx: 0, curPx: 0,  // creating 阶段 transient
   canvasOffsetX: 0, canvasOffsetY: 0, canvasH: 0,
@@ -1598,10 +1629,15 @@ function rangeGetZoomWindow() {
   return state._currentDataZoom;
 }
 
+function rangeDates() {
+  return state._alignedData === state.data && state._alignedCache
+    ? state._alignedCache.dates : collectAllDatesYMD(state.data);
+}
+
 function rangePxToDataIdx(pxCanvas) {
   const b = rangeGetBounds();
   if (!b) return null;
-  const dates = collectAllDatesYMD(state.data);
+  const dates = rangeDates();
   if (!dates || dates.length < 2) return null;
   const dz = rangeGetZoomWindow();
   if (!dz) return null;
@@ -1615,7 +1651,7 @@ function rangePxToDataIdx(pxCanvas) {
 function rangeDataIdxToPx(dataIdx) {
   const b = rangeGetBounds();
   if (!b) return null;
-  const dates = collectAllDatesYMD(state.data);
+  const dates = rangeDates();
   if (!dates || dates.length < 2) return null;
   const dz = rangeGetZoomWindow();
   if (!dz) return null;
@@ -1635,8 +1671,82 @@ function ensureRangeOverlay() {
   el.id = 'nav-range-select-overlay';
   el.className = 'nav-range-select-overlay';
   el.hidden = true;
+  for (const edge of ['start', 'end']) {
+    const handle = document.createElement('button');
+    handle.type = 'button';
+    handle.className = `nav-range-edge nav-range-edge-${edge}`;
+    handle.dataset.edge = edge;
+    handle.setAttribute('role', 'slider');
+    handle.setAttribute('aria-label', edge === 'start' ? '调整区间起点' : '调整区间终点');
+    handle.title = `${edge === 'start' ? '起点' : '终点'}：拖动修改，方向键微调`;
+    handle.hidden = true;
+    el.appendChild(handle);
+    setupRangeBoundary(handle, edge);
+  }
   wrap.appendChild(el);
   return el;
+}
+
+function setupRangeBoundary(handle, edge) {
+  let pointer = null, frame = 0, lastX = 0, original;
+  const applyTarget = target => {
+    const dates = state._renderCache?.allDates || collectAllDatesYMD(state.data);
+    const next = resizeRangeBoundary(rangeSel.sIx, rangeSel.eIx, edge, target, dates?.length || 0);
+    if (!next || next.sIx === rangeSel.sIx && next.eIx === rangeSel.eIx) return;
+    Object.assign(rangeSel, next);
+    syncPersistentRange();
+    showPersistentRangeStats();
+  };
+  const applyPointer = x => {
+    const canvas = document.getElementById('nav-chart-canvas');
+    if (!canvas) return;
+    const target = rangePxToDataIdx(x - canvas.getBoundingClientRect().left);
+    if (target != null) applyTarget(target);
+  };
+  handle.addEventListener('pointerdown', e => {
+    if (e.button !== 0 || rangeSel.sIx == null || pointer != null) return;
+    e.preventDefault(); e.stopPropagation();
+    original = { sIx: rangeSel.sIx, eIx: rangeSel.eIx };
+    pointer = e.pointerId; lastX = e.clientX;
+    rangeSel.phase = 'resizing';
+    handle.setPointerCapture(pointer);
+    handle.focus({ preventScroll: true });
+    handle.classList.add('is-dragging');
+    state.chart?.dispatchAction({ type: 'hideTip' });
+  });
+  handle.addEventListener('pointermove', e => {
+    if (e.pointerId !== pointer) return;
+    lastX = e.clientX;
+    if (!frame) frame = requestAnimationFrame(() => { frame = 0; if (pointer != null) applyPointer(lastX); });
+  });
+  const finish = (e, cancel = false) => {
+    if (e.pointerId !== pointer) return;
+    if (frame) cancelAnimationFrame(frame);
+    frame = 0;
+    // Flush mouseup coordinates even if the final animation frame has not run yet.
+    if (rangeSel.phase === 'resizing') {
+      if (cancel) Object.assign(rangeSel, original);
+      else applyPointer(e.clientX);
+      rangeSel.phase = 'resting';
+      syncPersistentRange(); showPersistentRangeStats();
+    }
+    pointer = null;
+    handle.classList.remove('is-dragging');
+    if (handle.hasPointerCapture(e.pointerId)) handle.releasePointerCapture(e.pointerId);
+  };
+  handle.addEventListener('pointerup', e => finish(e));
+  handle.addEventListener('pointercancel', e => finish(e, true));
+  handle.addEventListener('lostpointercapture', e => finish(e, true));
+  handle.addEventListener('contextmenu', e => e.preventDefault());
+  handle.addEventListener('keydown', e => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+    e.preventDefault(); e.stopPropagation();
+    const dates = state._renderCache?.allDates || [];
+    const current = edge === 'start' ? rangeSel.sIx : rangeSel.eIx;
+    const target = e.key === 'Home' ? 0 : e.key === 'End' ? dates.length - 1
+      : current + (e.key === 'ArrowLeft' ? -1 : 1) * (e.shiftKey ? 10 : 1);
+    applyTarget(target);
+  });
 }
 
 function ensureRangeControlPanel() {
@@ -1731,6 +1841,21 @@ function setupRangeSelection() {
   ensureRangeControlPanel();
   ensureRangeStatsPanel();
 
+  // Keyboard equivalent for users without a secondary-button drag (Shift+F10).
+  canvas.tabIndex = 0;
+  canvas.setAttribute('aria-label', '净值比较图；右键拖选区间，或按 Shift+F10 创建区间后调整边界');
+  canvas.addEventListener('keydown', e => {
+    if (e.key !== 'ContextMenu' && !(e.shiftKey && e.key === 'F10')) return;
+    const b = rangeGetBounds();
+    if (!b) return;
+    e.preventDefault();
+    clearPersistentRange();
+    rangeSel.startPx = b.gridRect.x + b.gridRect.width * 0.25;
+    rangeSel.curPx = b.gridRect.x + b.gridRect.width * 0.75;
+    finalizeCreation();
+    document.querySelector('.nav-range-edge-start')?.focus({ preventScroll: true });
+  });
+
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
   // 初始右键拖选：开始
@@ -1802,6 +1927,7 @@ function drawCreatingOverlay() {
   el.style.width = `${Math.max(0, maxPx - minPx)}px`;
   el.style.height = `${rangeSel.canvasH}px`;
   el.hidden = false;
+  el.querySelectorAll('.nav-range-edge').forEach(h => { h.hidden = true; });
 }
 
 function finalizeCreation() {
@@ -1810,7 +1936,7 @@ function finalizeCreation() {
   const maxPx = Math.max(rangeSel.startPx, rangeSel.curPx);
   const sF = rangePxToDataIdx(minPx);
   const eF = rangePxToDataIdx(maxPx);
-  const dates = collectAllDatesYMD(state.data);
+  const dates = rangeDates();
   if (sF == null || eF == null || !dates || dates.length < 2) {
     clearPersistentRange(); rangeSel.phase = 'idle'; return;
   }
@@ -1830,7 +1956,7 @@ function finalizeCreation() {
 function onControlPanelMove(e) {
   const b = rangeGetBounds();
   if (!b) return;
-  const dates = collectAllDatesYMD(state.data);
+  const dates = rangeDates();
   if (!dates || dates.length < 2) return;
   const dz = rangeGetZoomWindow();
   if (!dz) return;
@@ -1874,7 +2000,7 @@ function syncPersistentRange() {
   if (rangeSel.phase === 'idle' || rangeSel.sIx == null || rangeSel.eIx == null) return;
   const b = rangeGetBounds();
   if (!b) return;
-  const dates = collectAllDatesYMD(state.data);
+  const dates = rangeDates();
   if (!dates || dates.length < 2) return;
   const sPx = rangeDataIdxToPx(rangeSel.sIx);
   const ePx = rangeDataIdxToPx(rangeSel.eIx);
@@ -1899,6 +2025,18 @@ function syncPersistentRange() {
       overlay.style.width = `${width}px`;
       overlay.style.height = `${b.gridRect.height}px`;
       overlay.hidden = false;
+      for (const edge of ['start', 'end']) {
+        const h = overlay.querySelector(`[data-edge="${edge}"]`);
+        const px = edge === 'start' ? sPx : ePx;
+        const ix = edge === 'start' ? rangeSel.sIx : rangeSel.eIx;
+        if (!h) continue;
+        // A clipped edge is not the actual endpoint; don't offer a misleading drag target.
+        h.hidden = px < gLeft - 0.5 || px > gRight + 0.5;
+        h.setAttribute('aria-valuemin', String(edge === 'start' ? 0 : rangeSel.sIx + 1));
+        h.setAttribute('aria-valuemax', String(edge === 'start' ? rangeSel.eIx - 1 : dates.length - 1));
+        h.setAttribute('aria-valuenow', String(ix));
+        h.setAttribute('aria-valuetext', ymdToISO(dates[ix]));
+      }
     }
     if (control) {
       control.hidden = false;
@@ -1940,7 +2078,7 @@ function clearPersistentRange() {
 
 function zoomToPersistentRange() {
   if (rangeSel.sIx == null || rangeSel.eIx == null) return;
-  const dates = collectAllDatesYMD(state.data);
+  const dates = rangeDates();
   if (!dates || dates.length < 2) return;
   state.viewStart = ymdToISO(dates[rangeSel.sIx]);
   state.viewEnd = ymdToISO(dates[rangeSel.eIx]);

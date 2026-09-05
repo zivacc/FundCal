@@ -15,6 +15,7 @@
  */
 
 import { escapeHtml } from '../../utils/format.js';
+import { filterSearchIndex } from '../../utils/search.js';
 
 const MANAGER_TOP_N = 50;
 
@@ -113,7 +114,7 @@ function renderManagerTags() {
   const q = managerSearchQuery.trim().toLowerCase();
   let items;
   if (q) {
-    items = all.filter(it => it.label.toLowerCase().includes(q));
+    items = filterSearchIndex(all, q, { limit: Infinity });
   } else {
     // 默认 top-N + 已选中的(若未在 top-N) 都展示, 避免选中态消失
     const top = all.slice(0, MANAGER_TOP_N);

@@ -1,0 +1,84 @@
+{
+  "generatedAt": "2026-09-05T08:49:26.094Z",
+  "note": "Loopback only. No credentials or private response bodies saved. Single sample per public GET; HEAD for private files.",
+  "checks": [
+    {
+      "path": "/api/fund/list?page=1&size=100",
+      "status": 200,
+      "ms": 56.77,
+      "bytes": 72941,
+      "etag": "W/\"6a707948\""
+    },
+    {
+      "path": "/api/fund/list?page=1&q=000001",
+      "status": 200,
+      "ms": 83.4,
+      "bytes": 678,
+      "etag": "W/\"0390fc29\""
+    },
+    {
+      "path": "/api/fund/search-index",
+      "status": 200,
+      "ms": 48.4,
+      "bytes": 2333723,
+      "etag": "W/\"e6033e98\""
+    },
+    {
+      "path": "/api/nav/index-search-index",
+      "status": 200,
+      "ms": 20.42,
+      "bytes": 20685,
+      "etag": "W/\"e7164d2f\""
+    },
+    {
+      "path": "/api/index-search-index",
+      "status": 404,
+      "ms": 0.45,
+      "bytes": 21,
+      "etag": null
+    },
+    {
+      "path": "/api/fund/feeder-index",
+      "status": 404,
+      "ms": 0.39,
+      "bytes": 21,
+      "etag": null
+    },
+    {
+      "method": "HEAD",
+      "path": "/scripts/nav/db.js",
+      "status": 200,
+      "bytes": "33407"
+    },
+    {
+      "method": "HEAD",
+      "path": "/data/portfolio.db",
+      "status": 200,
+      "bytes": "4096"
+    },
+    {
+      "method": "HEAD",
+      "path": "/data/portfolio.db-wal",
+      "status": 200,
+      "bytes": "1635672"
+    },
+    {
+      "method": "HEAD",
+      "path": "/.env",
+      "status": 404,
+      "bytes": null
+    },
+    {
+      "method": "HEAD",
+      "path": "/.git/config",
+      "status": 200,
+      "bytes": "336"
+    },
+    {
+      "path": "/api/portfolio/settings",
+      "status": 200,
+      "cors": "*",
+      "cache": null
+    }
+  ]
+}

@@ -499,6 +499,9 @@
    ═══════════════════════════════════════════════════════════════ */
 
 .page-index {
+  position: relative;
+  isolation: isolate;
+  overflow: clip;
   background: var(--bg-base);
 }
 
@@ -508,7 +511,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  overflow: hidden;
+  /* 光晕跨过 hero 与结果区的边界自然衰减；整页边缘由 .page-index 裁切。 */
+  overflow: visible;
 }
 
 .ix-hero-glow {
@@ -762,6 +766,8 @@
 
 /* 结果区容器 - 与 hero 区分隔 */
 .ix-results-wrap {
+  position: relative;
+  z-index: 1;
   max-width: 1280px;
   margin: 0 auto;
   padding: 0 32px 40px;

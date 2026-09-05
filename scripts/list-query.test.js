@@ -61,17 +61,17 @@ test('buildListQuery: default has no WHERE bind, defaults source', () => {
   assert.match(countSql, /SELECT COUNT\(\*\)/);
 });
 
-test('buildListQuery: q numeric → code prefix', () => {
-  const { sql, params } = buildListQuery(parseListParams({ q: '510' }));
-  assert.match(sql, /m\.code LIKE \?/);
-  assert.deepEqual(params, ['510%']);
+test('buildListQuery: numeric matches are resolved before SQL pagination', () => {
+  const { sql, params } = buildListQuery({ ...parseListParams({ q: '510' }), searchIndex: [{code:'510001',name:'测试'}] });
+  assert.match(sql, /JOIN json_each\(\?\)/);
+  assert.deepEqual(params, ['["510001"]']);
 });
 
-test('buildListQuery: q text → name LIKE + code prefix OR', () => {
-  const { sql, params } = buildListQuery(parseListParams({ q: '易方达' }));
-  assert.match(sql, /OR m\.code LIKE \?/);
-  assert.equal(params[0], '%易方达%');
-  assert.equal(params[1], '易方达%');
+test('buildListQuery: uses shared middle-initial matching, deduplicates and ranks', () => {
+  const item = {code:'001564',name:'东方红京东大数据混合A',initials:'dfhjddsjhha'};
+  const { sql, params } = buildListQuery({ ...parseListParams({ q: 'jd' }), searchIndex: [item,item] });
+  assert.match(sql, /ORDER BY CAST\(search_match.key AS INTEGER\)/);
+  assert.deepEqual(params, ['["001564"]']);
 });
 
 test('buildListQuery: multi-select IN with placeholders', () => {

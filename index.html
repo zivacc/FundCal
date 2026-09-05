@@ -67,7 +67,7 @@
 
       <div class="actions actions-above-cards">
         <div class="fund-search-wrap">
-          <input type="text" id="fund-search-input" class="fund-search-input" placeholder="输入基金代码 / 名称 / 拼音首字母" autocomplete="off" aria-autocomplete="list" aria-controls="fund-search-dropdown">
+          <input type="text" id="fund-search-input" class="fund-search-input" placeholder="代码 / 名称 / 拼音片段（如 jd）" autocomplete="off" aria-autocomplete="list" aria-controls="fund-search-dropdown">
           <ul id="fund-search-dropdown" class="fund-search-dropdown" role="listbox" aria-hidden="true"></ul>
         </div>
         <div class="actions-above-cards-center">
@@ -484,7 +484,7 @@
         <div class="nav-toolbar-row">
           <div class="fund-search-wrap nav-search-wrap">
             <input type="text" id="nav-fund-search" class="fund-search-input"
-              placeholder="添加基金/指数（代码 / 名称 / 拼音首字母）" autocomplete="off">
+              placeholder="基金/指数：代码、名称、拼音片段（jd / NDX）" autocomplete="off">
             <ul id="nav-fund-search-dropdown" class="fund-search-dropdown" role="listbox" aria-hidden="true"></ul>
           </div>
           <button type="button" class="btn btn-sm btn-secondary" id="nav-clear-funds">清空</button>
@@ -714,6 +714,8 @@
             <div class="fd-card-body" id="fd-fees-body"></div>
           </div>
         </div>
+
+        <div id="fd-morningstar" class="fd-morningstar"></div>
 
         <!-- 第二行：买入分段 + 卖出/赎回分段 -->
         <div class="fd-grid fd-grid-2">

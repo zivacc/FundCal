@@ -5,6 +5,8 @@
  * 路由层 (fund-api.js) 负责拼接 + 执行 + 取 fee_segments。
  */
 
+import { filterSearchIndex } from '../js/utils/search.js';
+
 /** sort key 白名单 → SQL 表达式 (用于 ORDER BY) */
 const SORT_EXPR = {
   code:                 'm.code',
@@ -74,15 +76,13 @@ export function buildListQuery(params) {
   const where = [];
   const bind  = [];
 
-  // 搜索: 数字 → code prefix; 中英文 → name LIKE %x%
+  // Resolve matches with the same engine as browser suggestions, then paginate in SQL.
+  let searchJoin = '';
   if (q) {
-    if (/^\d+$/.test(q)) {
-      where.push('m.code LIKE ?');
-      bind.push(q + '%');
-    } else {
-      where.push("(COALESCE(NULLIF(b.name,''), m.name_crawler) LIKE ? OR m.code LIKE ?)");
-      bind.push('%' + q + '%', q + '%');
-    }
+    if (!Array.isArray(params.searchIndex)) throw new Error('Search queries require a searchIndex');
+    const codes = [...new Set(filterSearchIndex(params.searchIndex, q, { limit: Infinity, kinds: ['fund'] }).map(r => r.code))];
+    searchJoin = 'JOIN json_each(?) search_match ON search_match.value = m.code';
+    bind.push(JSON.stringify(codes));
   }
 
   // 多选筛选
@@ -123,12 +123,14 @@ export function buildListQuery(params) {
   const orderExpr   = SORT_EXPR[sort.key] || SORT_EXPR.code;
   const orderDir    = sort.dir === 'desc' ? 'DESC' : 'ASC';
   // NULLS LAST (SQLite 默认 ASC NULL 在前): 用 IS NULL 第二级排序
-  const orderClause = `ORDER BY (${orderExpr}) IS NULL, ${orderExpr} ${orderDir}, m.code ASC`;
+  const relevance = q && sort.key === 'code' && sort.dir === 'asc' ? 'CAST(search_match.key AS INTEGER), ' : '';
+  const orderClause = `ORDER BY ${relevance}(${orderExpr}) IS NULL, ${orderExpr} ${orderDir}, m.code ASC`;
 
   const offset = (page - 1) * size;
 
   const baseFrom = `
     FROM fund_meta m
+    ${searchJoin}
     LEFT JOIN fund_basic b ON b.ts_code = m.ts_code
     LEFT JOIN (
       SELECT ts_code, rate FROM fund_fee_segments WHERE kind='sell' AND seq=0

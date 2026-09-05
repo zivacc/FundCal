@@ -21,6 +21,7 @@ import { pinyin } from 'pinyin-pro';
 import { getDb } from './nav/db.js';
 import { jsonCached } from './nav/http-cache.js';
 import { parseListParams, buildListQuery } from './list-query.js';
+import { loadMorningstarHistory } from './morningstar-history.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
@@ -238,17 +239,22 @@ function loadList(db, fields, sourceFilter) {
   ));
 }
 
-function loadSearchIndex(db) {
+const searchItemsByCode = new Map();
+function loadSearchIndex(db, includePlaceholders = false) {
   // 仅 crawler-having（needsCrawl=false）的进搜索索引；占位行不参与搜索
   const rows = db.prepare(`
-    SELECT m.code, m.name_crawler, b.name
+    SELECT m.ts_code, m.code, m.source, m.name_crawler, b.name
     FROM fund_meta m LEFT JOIN fund_basic b ON b.ts_code = m.ts_code
-    WHERE m.source IN ('both','crawler')
+    WHERE (? OR m.source IN ('both','crawler'))
     ORDER BY m.code
-  `).all();
+  `).all(includePlaceholders ? 1 : 0);
   return rows.map(r => {
     const name = smartPick(r.name, r.name_crawler) || '';
-    return { code: r.code, name, initials: getInitials(name) };
+    const old = searchItemsByCode.get(r.ts_code);
+    if (old?.name === name) return old;
+    const item = { code: r.code, name, initials: getInitials(name) };
+    searchItemsByCode.set(r.ts_code, item);
+    return item;
   });
 }
 
@@ -372,6 +378,7 @@ function loadStatsDetail(db, dim, label) {
  */
 function loadListPaged(db, qs) {
   const params = parseListParams(qs);
+  if (params.q) params.searchIndex = loadSearchIndex(db, true);
   const { sql, countSql, params: bind } = buildListQuery(params);
 
   const total = db.prepare(countSql).get(...bind).n || 0;
@@ -461,7 +468,7 @@ function loadFilterOptions(db) {
 
   const toSorted = (m) =>
     [...m.entries()]
-      .map(([label, count]) => ({ label, count }))
+      .map(([label, count]) => ({ label, count, initials: getInitials(label) }))
       .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, 'zh-CN'));
 
   return {
@@ -537,6 +544,13 @@ export function createFundRouter() {
     }
 
     if (req.method !== 'GET') return false;
+
+    const morningstarMatch = urlPath.match(/^\/api\/fund\/(\d{6})\/morningstar\/?$/);
+    if (morningstarMatch) {
+      try { jsonCached(req, res, loadMorningstarHistory(db, morningstarMatch[1]), { maxAge: 300, scope: 'public' }); }
+      catch (e) { json(res, 500, { error: e.message }); }
+      return true;
+    }
 
     // GET /api/fund/list
     //   page 参数存在 → 服务端分页/排序/筛选 (新, 列表页用)

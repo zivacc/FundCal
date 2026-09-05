@@ -2,6 +2,7 @@
 // search-index 同时被 fund-api.js 通过 IndexedDB 缓存，所以这里复用它派生 code→name 映射，
 // 而不是再去拉一份从未产出的 data/allfund/code-name-map.json（P1 #3）。
 import { getFeeApiBase, fetchSearchIndexFromAPI } from '../../data/fund-api.js';
+import { filterSearchIndex } from '../../utils/search.js';
 
 const STATS_PAGE_SIZE = 100;
 const COMPARE_SESSION_KEY = 'fundCalCompareFromCache';
@@ -45,9 +46,6 @@ async function ensureCodeNameMap() {
   })();
   return codeNameMapLoading;
 }
-
-// 跟踪指数搜索时复用 name 的拼音首字母索引：code -> initials
-let searchIndexInitialsMap = null;
 
 function setStatus(msg, isError = false) {
   const el = document.getElementById('fund-stats-status');
@@ -171,73 +169,12 @@ function renderSection(containerId, items, total, titleForEmpty, metaSuffix, vie
  * @param {string} q
  * @returns {Array<{label:string,count:number,codes:string[]}>}
  */
-async function ensureSearchIndexInitialsMap() {
-  if (searchIndexInitialsMap) return searchIndexInitialsMap;
-  searchIndexInitialsMap = new Map();
-  let list = null;
-  const base = getFeeApiBase();
-  if (base) {
-    try {
-      const url = base.endsWith('/') ? `${base}search-index` : `${base}/search-index`;
-      const res = await fetch(url);
-      if (res.ok) list = await res.json();
-    } catch { /* 尝试静态文件 */ }
-  }
-  if (!list) {
-    try {
-      const res = await fetch('data/allfund/search-index.json');
-      if (res.ok) list = await res.json();
-    } catch { /* 忽略 */ }
-  }
-  if (Array.isArray(list)) {
-    for (const item of list) {
-      const code = String(item.code || '').trim();
-      if (!code) continue;
-      const initials = String(item.initials || '').toLowerCase();
-      if (!initials) continue;
-      searchIndexInitialsMap.set(code, initials);
-    }
-  }
-  return searchIndexInitialsMap;
-}
-
 async function filterTrackingItems(q) {
   if (!statsViews || !statsViews.tracking) return [];
   const list = statsViews.tracking.items || [];
   const s = String(q || '').trim().toLowerCase();
   if (!s) return list;
-  // 支持纯数字直接按子串匹配（如「500」「300」）
-  const numOnly = s.replace(/\D/g, '');
-  const initialsMap = await ensureSearchIndexInitialsMap();
-
-  const filtered = list.filter(item => {
-    const label = String(item.label || '').trim();
-    const lower = label.toLowerCase();
-    if (!lower) return false;
-    if (numOnly && (lower.includes(numOnly))) return true;
-    if (lower.includes(s)) return true;
-    // 1) 预留：如果后端为跟踪标的补充了拼音首字母，可直接利用
-    if (item.initials && String(item.initials).toLowerCase().startsWith(s)) return true;
-    // 2) 回退：如果本条 tracking 没有 initials，则看其成分基金名称的首字母
-    if (Array.isArray(item.codes) && item.codes.length && initialsMap.size) {
-      for (const code of item.codes) {
-        const key = String(code || '').trim();
-        if (!key) continue;
-        const initials = initialsMap.get(key);
-        if (initials && initials.startsWith(s)) return true;
-      }
-    }
-    return false;
-  });
-  // 简单排序：名称前缀匹配优先，其次包含匹配，其余保持原顺序
-  const score = (item) => {
-    const lower = String(item.label || '').trim().toLowerCase();
-    if (lower.startsWith(s)) return 0;
-    if (numOnly && lower.includes(numOnly)) return 1;
-    if (lower.includes(s)) return 2;
-    return 3;
-  };
-  return filtered.slice().sort((a, b) => score(a) - score(b));
+  return filterSearchIndex(list, s, { limit: Infinity });
 }
 
 function ensureObserver() {
@@ -669,18 +606,6 @@ async function loadStats() {
 
     setProgress(50);
 
-    // 3. 加载首字母索引 (用于搜索)
-    try {
-      const idxRes = await fetch('data/allfund/search-index.json');
-      if (idxRes.ok) {
-        const idx = await idxRes.json();
-        searchIndexInitialsMap = new Map();
-        idx.forEach(item => {
-          if (item.code) searchIndexInitialsMap.set(String(item.code), (item.initials || '').toLowerCase());
-        });
-      }
-    } catch { /* ignore */ }
-    
     const { total = 0, trackingFundCount = 0, tracking = [], manager = [], benchmark = [], fundType, fundtype, fundtpye } = statsData;
     renderSummary(total);
     const summaryExtraEl = document.getElementById('fund-stats-summary-extra');
@@ -819,4 +744,3 @@ export function pageInit() {
   renderFundDetailPlaceholder();
   bindCardInteractions();
 }
-

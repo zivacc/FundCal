@@ -1,6 +1,6 @@
 /**
  * 批量拉取全部基金费率与基础信息：
- * 先从天天基金 fundcode_search.js 获取基金代码列表，再并发抓取并写入 data/funds/
+ * 先从天天基金 fundcode_search.js 获取基金代码列表，再并发抓取并直写 DB。
  * 单只数据结构与 crawl-fund-fee.js 保持一致（含跟踪标的、基金管理人、业绩比较基准、净资产规模、阶段涨幅明细等扩展字段）。
  * 使用：node scripts/crawl-all-fund-fee.js [--force] [--concurrency=N] [--delay=N] [--retry=N] [--limit=N]
  *   --force         不跳过已缓存的基金，全部重新抓取
@@ -27,33 +27,36 @@ const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
 function parseArgs() {
   const args = process.argv.slice(2);
   let force = false;
-  let concurrency = 100;
+  let resume = false;
+  let concurrency = 10;
   let delayMs = 50;
-  let retry = 10;
+  let retry = 2;
   let limit = 0;
   let keepJson = false;
   for (const a of args) {
     if (a === '--force') force = true;
+    else if (a === '--resume') resume = true;
     else if (a === '--keep-json') keepJson = true;
     else if (a.startsWith('--concurrency=')) concurrency = Math.max(1, Math.min(50, parseInt(a.slice(14), 10) || 10));
     else if (a.startsWith('--delay=')) delayMs = Math.max(0, parseInt(a.slice(8), 10) || 0);
     else if (a.startsWith('--retry=')) retry = Math.max(0, Math.min(10, parseInt(a.slice(7), 10) || 2));
     else if (a.startsWith('--limit=')) limit = Math.max(0, parseInt(a.slice(8), 10) || 0);
   }
-  return { force, concurrency, delayMs, retry, limit, keepJson };
+  return { force, resume, concurrency, delayMs, retry, limit, keepJson };
 }
 
 /**
  * 从 fundcode_search.js 获取全部境内公募基金代码（去重、6 位）
  */
 async function fetchDomesticFundCodes() {
-  const res = await fetch(FUND_LIST_URL, { headers: { 'User-Agent': UA } });
+  const res = await fetch(FUND_LIST_URL, { signal: AbortSignal.timeout(30000), headers: { 'User-Agent': UA } });
   if (!res.ok) throw new Error(`获取基金列表失败: ${res.status}`);
   const text = await res.text();
   const codeSet = new Set();
   const re = /"(\d{6})"/g;
   let m;
   while ((m = re.exec(text)) !== null) codeSet.add(m[1]);
+  if (!codeSet.size) throw new Error('基金列表为空，停止本轮抓取');
   return [...codeSet].sort();
 }
 
@@ -95,7 +98,7 @@ async function fetchOverseasFundCodes() {
     if (visited.has(url)) continue;
     visited.add(url);
     try {
-      const res = await fetch(url, { headers: { 'User-Agent': UA } });
+      const res = await fetch(url, { signal: AbortSignal.timeout(30000), headers: { 'User-Agent': UA } });
       if (!res.ok) continue;
       const html = await res.text();
       // 提取 968 开头的 6 位基金代码
@@ -168,7 +171,7 @@ async function fetchWithRetry(code, retryCount, retryDelayMs) {
 }
 
 async function main() {
-  const { force, concurrency, delayMs, retry, limit, keepJson } = parseArgs();
+  const { force, resume, concurrency, delayMs, retry, limit, keepJson } = parseArgs();
   console.log('正在获取基金代码列表…');
   const domesticCodes = await fetchDomesticFundCodes();
   console.log(`境内公募基金 ${domesticCodes.length} 只`);
@@ -191,7 +194,7 @@ async function main() {
   let dedSet = new Set();
   try {
     const db = getDb();
-    const dRows = db.prepare("SELECT code FROM fund_basic WHERE status = 'D'").all();
+    const dRows = db.prepare("SELECT code FROM fund_basic WHERE status = 'D' AND ts_code LIKE '%.OF'").all();
     dedSet = new Set(dRows.map(r => r.code));
   } catch (_) {}
   const beforeFilter = allCodes.length;
@@ -202,6 +205,11 @@ async function main() {
 
   const existing = loadExistingCodes();
   let toCrawl = force ? liveCodes : liveCodes.filter(c => !existing.includes(c));
+  if (resume) {
+    const done = new Set(getDb().prepare('SELECT code FROM fund_meta WHERE crawler_updated_at >= ?')
+      .all(new Date().toISOString().slice(0,10)).map(r => r.code));
+    toCrawl = toCrawl.filter(c => !done.has(c));
+  }
   if (limit > 0) {
     toCrawl = toCrawl.slice(0, limit);
     console.log(`--limit=${limit}，实际抓取 ${toCrawl.length} 只`);
@@ -274,6 +282,7 @@ async function main() {
   console.log(`${'─'.repeat(60)}`);
   console.log(`完成：成功 ${ok}，失败 ${fail}，耗时 ${elapsed}s`);
   if (failedCodes.length) {
+    fs.writeFileSync(path.join(ALLFUND_DIR, 'crawl-failures.json'), JSON.stringify({ updatedAt: new Date().toISOString(), codes: failedCodes }, null, 2));
     const show = failedCodes.length > 20 ? failedCodes.slice(0, 20).join('  ') + `  …共${failedCodes.length}只` : failedCodes.join('  ');
     console.log(`⚠ 失败代码：${show}`);
   }
@@ -281,6 +290,7 @@ async function main() {
   // 关闭 DB 连接 (新流程不再聚合 JSON; 由 build-allfund-from-db.js 单独负责)
   try { closeDb(); } catch (_) {}
   console.log('💡 提示: 抓取完成. 后续静态资源由 `node scripts/build-allfund-from-db.js` 生成.');
+  if (fail) process.exitCode = 1;
 }
 
 main().catch(e => {

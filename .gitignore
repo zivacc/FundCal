@@ -34,6 +34,16 @@ npm-debug.log*
 data/fundcal.db
 data/fundcal.db-wal
 data/fundcal.db-shm
+# 私人账本已退役，防止旧数据被重新加入版本库
+data/portfolio.db*
+# 本地原始导入快照与工具记忆，不属于代码发布内容
+data/morningstar_full_fund_fee/
+.workbuddy/
+data/public-refresh-status.json
+data/public-refresh-coverage.json
+data/public-refresh-health.md
+data/public-refresh.lock
+data/allfund/crawl-failures.json
 
 # Cloudflare Workers
 dist/

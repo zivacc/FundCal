@@ -12,6 +12,7 @@
  * 调用方需自己处理 AbortController (用 params.signal) 防止竞态。
  */
 
+import { filterSearchIndex } from '../../utils/search.js';
 import {
   fetchFundListPageFromAPI,
   fetchFilterOptionsFromAPI,
@@ -41,7 +42,7 @@ export async function loadFundsPage(p) {
   const rows = Array.isArray(idx) ? idx : [];
   const q = (p.q || '').trim().toLowerCase();
   const filtered = q
-    ? rows.filter(r => (r.code || '').toLowerCase().includes(q) || (r.name || '').toLowerCase().includes(q) || (r.initials || '').toLowerCase().includes(q))
+    ? filterSearchIndex(rows, q, { limit: Infinity, kinds: ['fund'] })
     : rows;
   const start = (p.page - 1) * p.size;
   const pageRows = filtered.slice(start, start + p.size).map(it => ({

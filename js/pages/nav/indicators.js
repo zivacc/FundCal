@@ -24,6 +24,7 @@
  */
 
 import { computeMA, computeMASingle, computeDrawdown } from '../../domain/nav-chart-transform.js';
+const drawdownCache = new WeakMap();
 
 /* ========== SUBPLOTS（副图） ========== */
 
@@ -139,7 +140,8 @@ export const INDICATOR_REGISTRY = {
     ui: { checkboxId: 'nav-ind-dd' },
     panel: 'drawdown',
     build(ctx) {
-      const ddArr = computeDrawdown(ctx.aligned);
+      let ddArr = drawdownCache.get(ctx.aligned);
+      if (!ddArr) { ddArr = computeDrawdown(ctx.aligned); drawdownCache.set(ctx.aligned, ddArr); }
       // 视图窗口 × 基准后区间内的最大回撤（最小值）
       let minI = -1, minV = Infinity;
       for (let k = ctx.extremaStartIdx; k <= ctx.winEIdx; k++) {
@@ -148,7 +150,7 @@ export const INDICATOR_REGISTRY = {
         if (v < minV) { minV = v; minI = k; }
       }
       const markData = minI >= 0
-        ? [{ name: '最大回撤', coord: [minI, minV], value: minV, label: { position: 'bottom' } }]
+        ? [{ name: '最大回撤', coord: [minI, minV], value: minV, label: { position: 'top' } }]
         : [];
       return [{
         // 与主线同名 —— 即便自定义 legend 不依赖这一点，tooltip.formatter 里的

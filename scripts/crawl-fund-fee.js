@@ -162,7 +162,7 @@ function parseJdzfStageReturnsHtml(fragment) {
 async function fetchSohuOperationFees(code) {
   const url = `https://q.fund.sohu.com/c/gt.php?code=${code}`;
   try {
-    const res = await fetch(url, { headers: { 'User-Agent': UA, 'Referer': 'https://q.fund.sohu.com/' } });
+    const res = await fetch(url, { signal: AbortSignal.timeout(30000), headers: { 'User-Agent': UA, 'Referer': 'https://q.fund.sohu.com/' } });
     if (!res.ok) return null;
     const html = await res.text();
 
@@ -213,7 +213,7 @@ async function fetchSohuOperationFees(code) {
 async function fetchFundBasicInfo(code) {
   const url = `https://fundf10.eastmoney.com/jbgk_${code}.html`;
   try {
-    const res = await fetch(url, { headers: { 'User-Agent': UA } });
+    const res = await fetch(url, { signal: AbortSignal.timeout(30000), headers: { 'User-Agent': UA } });
     if (!res.ok) {
       return {
         trackingTarget: '',
@@ -297,8 +297,8 @@ async function fetchFundStageReturnsInfo(code) {
   const pageUrl = `https://fundf10.eastmoney.com/jdzf_${encodeURIComponent(code)}.html`;
   try {
     const [apiRes, pageRes] = await Promise.all([
-      fetch(apiUrl, { headers: { 'User-Agent': UA, Referer: pageUrl } }),
-      fetch(pageUrl, { headers: { 'User-Agent': UA } })
+      fetch(apiUrl, { signal: AbortSignal.timeout(30000), headers: { 'User-Agent': UA, Referer: pageUrl } }),
+      fetch(pageUrl, { signal: AbortSignal.timeout(30000), headers: { 'User-Agent': UA } })
     ]);
     let stageReturnsAsOf = '';
     if (pageRes.ok) {
@@ -325,7 +325,7 @@ async function fetchFundStageReturnsInfo(code) {
 async function fetchOverseasFundBaseInfo(code) {
   const url = `https://overseas.1234567.com.cn/f10/FundBaseInfo/${code}`;
   try {
-    const res = await fetch(url, { headers: { 'User-Agent': UA } });
+    const res = await fetch(url, { signal: AbortSignal.timeout(30000), headers: { 'User-Agent': UA } });
     if (!res.ok) return { name: '' };
     const html = await res.text();
     const rows = parseTableRows(html);
@@ -353,9 +353,10 @@ async function fetchOverseasFundFee(code) {
   const url = `https://overseas.1234567.com.cn/f10/FundSaleInfo/${code}`;
   let html;
   try {
-    const res = await fetch(url, { headers: { 'User-Agent': UA } });
+    const res = await fetch(url, { signal: AbortSignal.timeout(30000), headers: { 'User-Agent': UA } });
     if (!res.ok) return null;
     html = await res.text();
+    if (!html.trim() || !/费率|管理费|托管费/.test(html)) return null;
   } catch (e) {
     console.error(`[${code}] 海外费率页请求失败:`, e.message);
     return null;
@@ -484,9 +485,10 @@ async function fetchFundFee(code) {
   const url = `https://fundf10.eastmoney.com/jjfl_${code}.html`;
   let html;
   try {
-    const res = await fetch(url, { headers: { 'User-Agent': UA } });
+    const res = await fetch(url, { signal: AbortSignal.timeout(30000), headers: { 'User-Agent': UA } });
     if (!res.ok) return null;
     html = await res.text();
+    if (!html.trim() || !/管理费|托管费/.test(html)) return null;
   } catch (e) {
     console.error(`[${code}] 请求失败:`, e.message);
     return null;

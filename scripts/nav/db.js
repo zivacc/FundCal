@@ -167,6 +167,57 @@ function initSchema(db) {
       PRIMARY KEY (ts_code, period)
     );
 
+    -- ─── Morningstar 综合费率历史快照（独立权威参考源，不参与字段裁决）───
+    CREATE TABLE IF NOT EXISTS morningstar_fee_snapshot (
+      as_of_date    TEXT PRIMARY KEY,
+      source_file   TEXT NOT NULL UNIQUE,
+      source_sha256 TEXT NOT NULL,
+      generated_at  TEXT,
+      row_count     INTEGER NOT NULL CHECK(row_count >= 0),
+      notes_json    TEXT NOT NULL DEFAULT '[]',
+      imported_at   TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS morningstar_fund_fee (
+      as_of_date                       TEXT NOT NULL REFERENCES morningstar_fee_snapshot(as_of_date) ON DELETE CASCADE,
+      code                             TEXT NOT NULL,
+      name                             TEXT,
+      inception_date                   TEXT,
+      morningstar_category             TEXT,
+      total_fee_pct                    REAL,
+      total_fee_rank_pct               REAL,
+      explicit_fee_pct                 REAL,
+      explicit_fee_rank_pct            REAL,
+      management_fee_pct               REAL,
+      custody_fee_pct                  REAL,
+      sales_service_fee_pct            REAL,
+      implicit_fee_pct                 REAL,
+      implicit_fee_rank_pct            REAL,
+      estimated_transaction_cost_pct   REAL,
+      estimated_other_expense_pct      REAL,
+      average_net_assets_billion       REAL,
+      turnover_pct                     REAL,
+      category_median_turnover_pct     REAL,
+      return_1y_pct                    REAL,
+      return_3y_pct                    REAL,
+      return_5y_pct                    REAL,
+      max_drawdown_1y_pct              REAL,
+      max_drawdown_3y_pct              REAL,
+      max_drawdown_5y_pct              REAL,
+      fund_company                     TEXT,
+      is_etf                           INTEGER CHECK(is_etf IN (0, 1) OR is_etf IS NULL),
+      is_fof                           INTEGER CHECK(is_fof IN (0, 1) OR is_fof IS NULL),
+      is_index                         INTEGER CHECK(is_index IN (0, 1) OR is_index IS NULL),
+      is_enhanced_index                INTEGER CHECK(is_enhanced_index IN (0, 1) OR is_enhanced_index IS NULL),
+      PRIMARY KEY (as_of_date, code)
+    ) WITHOUT ROWID;
+    CREATE INDEX IF NOT EXISTS idx_morningstar_fund_fee_code
+      ON morningstar_fund_fee(code, as_of_date DESC);
+    CREATE INDEX IF NOT EXISTS idx_morningstar_fund_fee_category
+      ON morningstar_fund_fee(morningstar_category, as_of_date);
+    CREATE INDEX IF NOT EXISTS idx_morningstar_fund_fee_company
+      ON morningstar_fund_fee(fund_company, as_of_date);
+
     CREATE TABLE IF NOT EXISTS trade_calendar (
       cal_date      TEXT PRIMARY KEY,
       is_open       INTEGER NOT NULL,

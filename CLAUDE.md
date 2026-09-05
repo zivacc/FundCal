@@ -15,6 +15,20 @@ Stack: Node.js 18+ (ES modules), better-sqlite3, vanilla JS frontend (no build f
 - [docs/DEPLOY.md](docs/DEPLOY.md) — PC dev + CF Tunnel 部署
 - [docs/decisions/](docs/decisions/) — ADR 决策日志 (重大技术决策)
 
+## 环境配置
+
+- **Node.js 18+**, 纯 ES modules (`"type": "module"`); 运行时唯一依赖是 `better-sqlite3` (原生模块, 首次 `npm install` 需编译环境), devDependency 只有 `pinyin-pro`。
+- **`.env` 文件** (项目根目录, 不入库): 由 [scripts/nav/env.js](scripts/nav/env.js) 轻量加载 (不覆盖已有环境变量)。Tushare 相关脚本**必需** `TUSHARE_TOKEN=xxx`, 缺失时直接报错退出; 只跑前端/爬虫不需要。
+- 可调环境变量: `STATIC_PORT` / `API_PORT` (默认 3456/3457), `TUSHARE_GAP_MS` / `TUSHARE_MAX_GAP_MS` / `TUSHARE_MAX_RETRIES` / `TUSHARE_RETRY_BASE_MS` / `TUSHARE_RATE_LIMIT_BASE_MS`, `EASTMONEY_GAP_MS` (默认 50ms)。
+- **没有 lint / formatter 工具链** (无 eslint/prettier 配置); 风格靠既有代码保持一致, 测试即质量门禁。
+
+## 代码约定
+
+- 全部 ESM: `import/export`, 脚本内取目录用 `path.dirname(fileURLToPath(import.meta.url))`, 禁止 `require` / `module.exports`。
+- 注释与文档用中文, 风格简洁口语化; 文件头常有简短块注释说明职责与动机 (见 `db.js` / `list-query.js`)。
+- `js/domain/` 与 `scripts/list-query.js` 是**纯函数层** (不碰 DB/DOM), 新业务逻辑优先放这里以便 `node --test` 单测。
+- 前端无框架无构建: 静态 HTML + 原生 ES modules, 样式在 `css/` (深色主题), 组件内部直接操作 DOM。
+
 ## 常用命令
 
 ```bash

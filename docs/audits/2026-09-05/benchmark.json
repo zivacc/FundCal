@@ -1,0 +1,202 @@
+{
+  "generatedAt": "2026-09-05T08:48:47.816Z",
+  "node": "v24.16.0",
+  "note": "Five serial samples per query; local OS/SQLite caches may already be warm. Not HTTP p95 or browser timing.",
+  "counts": {
+    "fund_basic": 34948,
+    "fund_meta": 34948,
+    "fund_nav": 36859679,
+    "fund_fee_segments": 156919,
+    "fund_stage_returns": 274550,
+    "index_basic": 12468,
+    "index_daily": 590186,
+    "index_fund_tracker": 4841,
+    "sync_log": 128814,
+    "morningstar_fee_snapshot": 8,
+    "morningstar_fund_fee": 155013
+  },
+  "queries": [
+    {
+      "name": "listDefault",
+      "ms": [
+        19.92,
+        17.94,
+        18.04,
+        17.66,
+        17.76
+      ],
+      "medianMs": 17.94,
+      "plan": [
+        "SEARCH m USING INDEX idx_fund_meta_source (source=?)",
+        "SEARCH b USING INDEX sqlite_autoindex_fund_basic_1 (ts_code=?) LEFT-JOIN",
+        "USE TEMP B-TREE FOR ORDER BY"
+      ]
+    },
+    {
+      "name": "listAnnualFee",
+      "ms": [
+        18.23,
+        18.65,
+        19.27,
+        18.5,
+        18.52
+      ],
+      "medianMs": 18.52,
+      "plan": [
+        "SEARCH m USING INDEX idx_fund_meta_source (source=?)",
+        "SEARCH b USING INDEX sqlite_autoindex_fund_basic_1 (ts_code=?) LEFT-JOIN",
+        "USE TEMP B-TREE FOR ORDER BY"
+      ]
+    },
+    {
+      "name": "searchCode",
+      "ms": [
+        16.35,
+        14.07,
+        14.87,
+        13.82,
+        13.97
+      ],
+      "medianMs": 14.07,
+      "plan": [
+        "SEARCH m USING INDEX idx_fund_meta_source (source=?)",
+        "SCAN search_match VIRTUAL TABLE INDEX 1:",
+        "SEARCH b USING INDEX sqlite_autoindex_fund_basic_1 (ts_code=?) LEFT-JOIN",
+        "USE TEMP B-TREE FOR ORDER BY"
+      ]
+    },
+    {
+      "name": "searchInitials",
+      "ms": [
+        603.99,
+        589.7,
+        591.43,
+        589.98,
+        583.76
+      ],
+      "medianMs": 589.98,
+      "plan": [
+        "SEARCH m USING INDEX idx_fund_meta_source (source=?)",
+        "SCAN search_match VIRTUAL TABLE INDEX 1:",
+        "SEARCH b USING INDEX sqlite_autoindex_fund_basic_1 (ts_code=?) LEFT-JOIN",
+        "USE TEMP B-TREE FOR ORDER BY"
+      ]
+    },
+    {
+      "name": "searchBroad",
+      "ms": [
+        372.09,
+        377.52,
+        374.06,
+        427.61,
+        392.66
+      ],
+      "medianMs": 377.52,
+      "plan": [
+        "SEARCH m USING INDEX idx_fund_meta_source (source=?)",
+        "SCAN search_match VIRTUAL TABLE INDEX 1:",
+        "SEARCH b USING INDEX sqlite_autoindex_fund_basic_1 (ts_code=?) LEFT-JOIN",
+        "USE TEMP B-TREE FOR ORDER BY"
+      ]
+    },
+    {
+      "name": "navStatsDistinct",
+      "ms": [
+        3794.81,
+        727.24,
+        870.21,
+        991.06,
+        929.08
+      ],
+      "medianMs": 929.08,
+      "plan": [
+        "SCAN fund_nav USING COVERING INDEX sqlite_autoindex_fund_nav_1"
+      ]
+    },
+    {
+      "name": "oneFullNavHistory",
+      "ms": [
+        4.15,
+        1.11,
+        1.08,
+        1.05,
+        1.04
+      ],
+      "medianMs": 1.08,
+      "plan": [
+        "SEARCH fund_nav USING INDEX sqlite_autoindex_fund_nav_1 (ts_code=?)"
+      ]
+    },
+    {
+      "name": "crossovers20Funds7300Days",
+      "ms": [
+        201.06,
+        153.25,
+        153.58,
+        155.51,
+        152.89
+      ],
+      "medianMs": 153.58
+    }
+  ],
+  "suffix": [
+    {
+      "suffix": ".OF",
+      "n": 32388
+    },
+    {
+      "suffix": ".SH",
+      "n": 1175
+    },
+    {
+      "suffix": ".SZ",
+      "n": 1385
+    }
+  ],
+  "metaDuplicates": 1953,
+  "crawlerDuplicateCodes": 0,
+  "crawlerOnExchange": 0,
+  "feeMissing": {
+    "total": 28188,
+    "missingBuy": 0,
+    "missingAnnual": 0
+  },
+  "feeTotalMismatch": 0,
+  "arbitrationMismatch": {
+    "name": 0,
+    "type": 0
+  },
+  "navRange": {
+    "first": "20000107",
+    "last": "20260904"
+  },
+  "liveNonMoneyCoverage": {
+    "cutoff": "20260829",
+    "total": 25430,
+    "missing": 375,
+    "stale": 429,
+    "latestFromEastmoney": 24917,
+    "staleLatestFromEastmoney": 291
+  },
+  "crawlerAge": {
+    "total": 28188,
+    "olderThan30Days": 1196,
+    "oldest": "2026-02-24T09:48:40.708Z",
+    "latest": "2026-09-05T06:07:19.769Z"
+  },
+  "calendarRange": {
+    "first": "19901219",
+    "last": "20261231"
+  },
+  "untrackedDataIndices": 4,
+  "schemaIndexes": [
+    {
+      "name": "sqlite_autoindex_fund_nav_1",
+      "tbl_name": "fund_nav"
+    },
+    {
+      "name": "idx_fund_nav_date",
+      "tbl_name": "fund_nav"
+    }
+  ]
+}

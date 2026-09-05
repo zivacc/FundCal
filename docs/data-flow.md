@@ -13,8 +13,13 @@
 | **天天基金 / 东方财富网页** | HTML 抓取 (`crawl-fund-fee.js`) | `fund_meta`, `fund_fee_segments`, `fund_stage_returns` | 每周 |
 | **搜狐基金 (浮动费率覆盖)** | HTML (`fetchSohuOperationFees`) | `fund_meta.mgmt_fee` 等 | 跟随 crawler |
 | **海外 1234567 (中港互认 968)** | HTML | `fund_meta` | 跟随 crawler |
+| **Morningstar 晨星综合费率** | 半年 XLSX 快照 (`import-morningstar-fee.js`) | `morningstar_fee_snapshot`, `morningstar_fund_fee` | 新文件到达时手动导入 |
 
 > **不再使用**：`data/funds/<code>.json` 中转文件。爬虫现已直写 DB，旧 JSON 文件保留作灾备 / 审计。
+>
+> Morningstar 是独立权威参考源：保留完整历史快照和文件哈希，不写入 `fund_basic` / `fund_meta`，也不参与 `apply-merge-rules`。基金详情页通过 `GET /api/fund/:code/morningstar` 展示历史费率与换手率，不覆盖现行合同费率。
+>
+> 费率同类排名百分比沿用晨星原值；换手率百分位按每期晨星分类独立计算：`100 × (低于该值的样本数 + 同值样本数 / 2) / 有效样本数`，代码/份额为样本单位，包含本基金，排除缺失和负值，少于两样本返回空值。数值越高表示换手越高，并非业绩评价。此统计为本站计算，不宣称晨星官方排名。缺失快照保留断点，分类变更不回填历史。接口只返回历史摘要，不发送全市场明细到浏览器。
 
 ---
 
@@ -42,6 +47,14 @@ fund_fee_segments (ts_code, kind, seq) PK  分段费率 (crawler)
 
 fund_stage_returns (ts_code, period) PK    阶段涨幅 (crawler)
   period ∈ {今年来, 近1周, 近1月, 近3月, 近6月, 近1年, 近2年, 近3年, 近5年, 成立来}
+
+morningstar_fee_snapshot (as_of_date PK)   Morningstar 快照来源清单
+  └─ source_file, source_sha256, generated_at, row_count, notes_json
+
+morningstar_fund_fee (as_of_date, code) PK Morningstar 29 列综合费率历史明细
+  ├─ 综合 / 显性 / 隐性费率及同类排名、管理 / 托管 / 销售服务费
+  ├─ 交易成本、其他费用、规模、换手率、收益与最大回撤
+  └─ 分类、基金公司、ETF / FOF / 指数 / 指数增强标记
 
 sync_log         同步日志 (审计 + 失败重放游标)
 ```
@@ -127,13 +140,15 @@ sync_log         同步日志 (审计 + 失败重放游标)
 | [scripts/nav/sync-fund-nav.js](../scripts/nav/sync-fund-nav.js) | 拉 Tushare 场外净值 (`fund_nav` API, 增量) | `--codes`, `--type`, `--all`, `--all --include-dead`, `--full`, `--concurrency` |
 | [scripts/nav/sync-fund-daily.js](../scripts/nav/sync-fund-daily.js) | 拉 Tushare 场内日线 (`fund_daily` API, 用于 ETF/LOF; close→unit_nav) | `--codes`, `--all`, `--all --include-dead`, `--full`, `--concurrency` |
 | [scripts/nav/sync-trade-calendar.js](../scripts/nav/sync-trade-calendar.js) | 拉 Tushare 交易日历 (`trade_cal` API, SSE) → `trade_calendar` 表 | `--full`, `--start`, `--end` |
-| [scripts/nav/crawl-eastmoney-nav.js](../scripts/nav/crawl-eastmoney-nav.js) | 天天基金 lsjz 接口补 nav (LOF / Reits / 子类 — tushare 给 0 行的场外基金) | `--codes`, `--missing`, `--full`, `--concurrency`, `--limit` |
+| [scripts/nav/crawl-eastmoney-nav.js](../scripts/nav/crawl-eastmoney-nav.js) | 天天基金 lsjz 接口补场外非货币基金净值，支持全库增量续接 | `--codes`, `--missing`, `--all`, `--resume`, `--full`, `--concurrency`, `--limit` |
 | [scripts/nav/sync-index-basic.js](../scripts/nav/sync-index-basic.js) | 拉 Tushare `index_basic` (SSE/SZSE/CSI/SW/MSCI/CICC/OTH) → `index_basic` + `index_source_map` | `--market`, `--markets` |
 | [scripts/nav/sync-index-daily.js](../scripts/nav/sync-index-daily.js) | 拉 Tushare `index_daily` 日线 → `index_daily` (source=1) | `--codes`, `--tracked`, `--all`, `--full`, `-c` |
 | [scripts/nav/crawl-em-index.js](../scripts/nav/crawl-em-index.js) | 东财 push2his 兜底拉指数日线 → `index_daily` (source=2) | `--codes` (secid), `--tracked`, `--all-em`, `--full` |
 | [scripts/nav/import-custom-index.js](../scripts/nav/import-custom-index.js) | 自定义源 (CSV/JSON) 导入指数日线 → `index_daily` (source=6) | `--ts-code`, `--file`, `--format` |
+| [scripts/import-morningstar-fee.js](../scripts/import-morningstar-fee.js) | 全量导入 Morningstar 半年综合费率 XLSX 快照；按 SHA-256 幂等跳过 | `--dry-run`, `--force`, `--dir` |
 | [scripts/crawl-fund-fee.js](../scripts/crawl-fund-fee.js) | 爬单只基金费率 (直写 DB) | `<code> [--keep-json]` |
 | [scripts/crawl-all-fund-fee.js](../scripts/crawl-all-fund-fee.js) | 爬全量基金费率 | `--force`, `--concurrency=N`, `--limit=N`, `--keep-json` |
+| [scripts/refresh-public-data.js](../scripts/refresh-public-data.js) | 一次性公开源补数 → 字段裁决 → 净值 → 静态构建 → 体检和缺失清单（无需 Tushare） | `npm run refresh:public`；自动跳过当日成功项 |
 
 ### 合并 / 审计层
 
@@ -253,19 +268,24 @@ TUSHARE_RETRY_BASE_MS=2000       # 普通错误退避基数
 | 维度 | Tushare `fund_nav` | Eastmoney `lsjz` |
 |---|---|---|
 | 响应速度 | 200-500ms | ~16ms |
-| 限流 | 严格 (429 频繁) | 几乎无 |
+| 限流 | 有频率/权限限制 | 无稳定承诺；须节流、重试并记录失败 |
 | 认证 | 需 token | 无 |
-| 复权 (adj_nav) | ✅ | ❌ (用 LJJZ 累计净值近似) |
+| 复权 (adj_nav) | 提供复权净值 | 无独立字段；按单位净值、现金分红及拆分日涨幅推导 |
 | LOF 场外 | ❌ 整段 0 行 | ✅ 完整 |
 | Reits / 子类 | ⚠️ 部分 | ✅ 较完整 |
-| 协议保证 | 官方 SLA | 网页接口, 可能改 |
+| 协议保证 | 依服务授权和条款 | 网页接口, 可能改 |
 | 单页 | 全量 / 分段 (10000 上限) | 固定 20 行/页 |
 
 ### 策略
 
 - **主源 = tushare** (`sync-fund-nav.js`): 普通 OF 公募, 含复权
 - **兜底 = eastmoney** (`crawl-eastmoney-nav.js --missing`): tushare 给 0 行的基金 (LOF / Reits / 部分子类)
-- **fund_nav.source 列**: 1=tushare, 2=eastmoney; 数据完全一致 (经实测对比)
+- **Tushare 不可用时**: `crawl-eastmoney-nav.js --all --resume` 增量续接全部存续 `.OF` 非货币基金；新爬取且状态未知的基金也尝试取数，但不伪造 Tushare 状态字段。不覆盖已有日期；`--full` 是显式重抓选项。
+- **fund_nav.source 列**: 1=tushare, 2=eastmoney。单位净值可交叉核对，不能宣称不同源的复权口径完全一致。
+- **2026-09 续接口径**: 保持 DB 最后一天的 `adj_nav` 基数，普通交易日按精确单位净值比率（含现金分红）延续，拆分等差异日使用接口公布的日涨幅。后者有四舍五入误差；历史 `source=2` 累计净值近似记录不会被本次增量任务自动重算。
+- **货币基金排除**: `DWJZ/LJJZ` 对货币基金表示万份收益/七日年化，不是普通单位/累计净值，不能混入净值比较。
+- **完整性报告**: `refresh:public` 生成 `data/public-refresh-status.json`、`public-refresh-coverage.json` 和 `public-refresh-health.md`。缺失或超过七天未更新会列明；这不等于所有基金每天必须披露。公开源不可得时标记 `finished_with_gaps`，不以插值冒充原始数据。
+- **指数请求保护**: `crawl-em-index.js --tracked --resume` 默认单并发、1 秒间隔（`EASTMONEY_INDEX_GAP_MS` 可调）；连续三次网络失败即停止。候选代码须与响应代码匹配后才能登记来源映射。
 
 ### 场内基金 (.SH/.SZ) 不入库
 

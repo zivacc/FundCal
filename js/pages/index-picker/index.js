@@ -4,6 +4,7 @@ import { getColorForIndex } from '../../utils/color.js';
 import { getChartTheme } from '../../core/theme.js';
 import { renderFundDetailTable } from '../../components/fund-detail-table.js';
 import { createTypeahead } from '../../components/typeahead.js';
+import { filterSearchIndex } from '../../utils/search.js';
 
 const MAX_DROPDOWN_ITEMS = 30;
 const MAX_FUNDS_LOAD = 220;
@@ -62,27 +63,13 @@ function setLoadingStatus(text) {
   if (els.loadingStatus) els.loadingStatus.textContent = text || '';
 }
 
-function matchesQuery(item, query) {
-  const s = String(query || '').trim().toLowerCase();
-  if (!s) return false;
-  const label = String(item.label || '').toLowerCase();
-  const initials = String(item.initials || '').toLowerCase();
-  const numOnly = s.replace(/\D/g, '');
-  if (label.includes(s)) return true;
-  if (initials.startsWith(s)) return true;
-  if (numOnly && label.includes(numOnly)) return true;
-  return false;
-}
-
 function searchTracking(query) {
   const tracking = state.stats?.tracking || [];
   const q = String(query || '').trim();
   if (!q) return [];
   const selectedLabels = new Set(state.selectedIndexes.map(i => i.label));
-  return tracking
-    .filter(item => matchesQuery(item, q) && !selectedLabels.has(item.label))
-    .sort((a, b) => (b.count || 0) - (a.count || 0))
-    .slice(0, MAX_DROPDOWN_ITEMS);
+  return filterSearchIndex(tracking, q, { limit: MAX_DROPDOWN_ITEMS,
+    predicate: item => !selectedLabels.has(item.label) });
 }
 
 function parseScaleValue(scale) {

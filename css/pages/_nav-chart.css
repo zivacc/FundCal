@@ -548,7 +548,7 @@ body.is-fullscreen-nav .page-nav .nav-chart-canvas {
 .nav-baseline-panel::after {
   content: '';
   position: absolute;
-  left: 50%;
+  left: var(--baseline-tip-x, 50%);
   bottom: -5px;
   transform: translateX(-50%);
   width: 0;
@@ -686,6 +686,36 @@ body.is-fullscreen-nav .page-nav .nav-chart-canvas {
 }
 
 .nav-range-select-overlay[hidden] { display: none !important; }
+
+.nav-range-edge {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 18px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  pointer-events: auto;
+  touch-action: none;
+  cursor: ew-resize;
+}
+.nav-range-edge[hidden] { display: none !important; }
+.nav-range-edge-start { left: -9px; }
+.nav-range-edge-end { right: -9px; }
+.nav-range-edge::after {
+  content: '';
+  position: absolute;
+  top: calc(50% - 14px);
+  left: 5px;
+  width: 8px;
+  height: 28px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: var(--bg-raised);
+}
+.nav-range-edge:hover::after, .nav-range-edge.is-dragging::after { background: var(--accent-subtle); }
+.nav-range-edge:focus-visible { outline: none; }
+.nav-range-edge:focus-visible::after { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* 贴在 overlay 顶部居中的控制 panel：左侧拖动把手 + ⊞/× 按钮。
    外框 accent 主题色 —— 与基准 marker 同款，提示这是"互动浮层"。
@@ -909,7 +939,7 @@ body.is-fullscreen-nav .page-nav .nav-chart-canvas {
 /* 窄屏 */
 @media (max-width: 768px) {
   .page-nav .container { padding: 16px; }
-  .nav-chart-canvas { height: 420px; }
+  .nav-chart-canvas { height: 500px; }
   .nav-controls { gap: 0.5rem; padding: 8px; }
   .nav-stats-table { min-width: 720px; }
 }

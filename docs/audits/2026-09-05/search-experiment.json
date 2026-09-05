@@ -1,0 +1,17 @@
+{
+  "note": "Read-only SQL experiment, already-built search matches; excludes JS search and DB loadSearchIndex cost. One query/page equivalence checked only.",
+  "sameRows": true,
+  "plan": [
+    "SCAN search_match VIRTUAL TABLE INDEX 1:",
+    "SEARCH m USING INDEX idx_fund_meta_code (code=?)",
+    "SEARCH b USING INDEX sqlite_autoindex_fund_basic_1 (ts_code=?) LEFT-JOIN",
+    "USE TEMP B-TREE FOR ORDER BY"
+  ],
+  "timesMs": [
+    1.7,
+    0.67,
+    0.62,
+    0.59,
+    0.58
+  ]
+}

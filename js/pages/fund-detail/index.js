@@ -8,8 +8,14 @@
  */
 
 import { createTypeahead } from '../../components/typeahead.js';
+import { filterSearchIndex } from '../../utils/search.js';
 import { fetchSearchIndexFromAPI, fetchFundRawFromAPI, fetchStatsDetailFromAPI } from '../../data/fund-api.js';
 import { fetchNavCompareCached, periodToRange, pickInterval } from '../../data/nav-api.js';
+import { createMorningstarHistory } from './morningstar.js';
+import { formatRate } from '../../utils/format.js';
+
+let morningstarHistory;
+let fundLoadVersion = 0;
 
 const els = {};
 const state = {
@@ -42,9 +48,10 @@ function fmtPct(v, digits = 2) {
   return `${Number(v).toFixed(digits)}%`;
 }
 
-function fmtRate(v, digits = 3) {
+function fmtRate(v) {
   if (v == null || Number.isNaN(Number(v))) return '—';
-  return `${Number(v).toFixed(digits)}%`;
+  // Existing fee API stores fractional rates; Morningstar *_pct already stores percent units.
+  return formatRate(Number(v));
 }
 
 function fmtText(v) {
@@ -74,24 +81,7 @@ function setupSearch() {
     dropdownEl: dropdown,
     search: async (q) => {
       const idx = await ensureSearchIndex();
-      const query = q.trim().toLowerCase();
-      if (!query) return [];
-      const matches = [];
-      for (const it of idx) {
-        if (!it) continue;
-        const code = String(it.code || '');
-        const name = String(it.name || '');
-        const initials = String(it.initials || '');
-        if (
-          code.includes(query) ||
-          name.toLowerCase().includes(query) ||
-          initials.toLowerCase().includes(query)
-        ) {
-          matches.push(it);
-          if (matches.length >= 30) break;
-        }
-      }
-      return matches;
+      return filterSearchIndex(idx, q, { limit: 30, kinds: ['fund'] });
     },
     renderItem: (item) => `
       <span class="fund-search-item-code">${escapeHtml(item.code)}</span>
@@ -432,6 +422,8 @@ function setupRawActions() {
 /* ========== 主加载流程 ========== */
 
 async function loadFund(code) {
+  const version = ++fundLoadVersion;
+  morningstarHistory.load(code);
   if (!code) {
     $('fd-empty').hidden = false;
     $('fd-content').hidden = true;
@@ -453,9 +445,11 @@ async function loadFund(code) {
   try {
     data = await fetchFundRawFromAPI(code);
   } catch (err) {
+    if (version !== fundLoadVersion) return;
     $('fd-card-hero').innerHTML = `<h2 class="fd-hero-name">加载失败: ${escapeHtml(err.message || String(err))}</h2>`;
     return;
   }
+  if (version !== fundLoadVersion) return;
   if (!data) {
     $('fd-card-hero').innerHTML = `<span class="fd-hero-code">${escapeHtml(code)}</span><h2 class="fd-hero-name">未找到该基金</h2>`;
     return;
@@ -488,6 +482,7 @@ let initialized = false;
 export function pageInit() {
   if (initialized) return;
   initialized = true;
+  morningstarHistory = createMorningstarHistory($('fd-morningstar'));
   setupSearch();
   setupNavPeriodSwitch();
   setupRawActions();
