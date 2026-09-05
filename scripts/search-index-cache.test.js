@@ -1,0 +1,52 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import Database from 'better-sqlite3';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { gunzipSync } from 'node:zlib';
+import { createSearchIndexStore } from './search-index-cache.js';
+
+test('index snapshots invalidate on same-connection and external writes, retaining unchanged items', t => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'fundcal-search-'));
+  const file = path.join(dir, 'test.db');
+  const db = new Database(file), writer = new Database(file);
+  t.after(() => { writer.close(); db.close(); rmSync(dir, { recursive: true, force: true }); });
+  db.exec(`CREATE TABLE fund_basic (ts_code TEXT PRIMARY KEY, name TEXT);
+    CREATE TABLE fund_meta (ts_code TEXT PRIMARY KEY, code TEXT, source TEXT, name_crawler TEXT);
+    INSERT INTO fund_meta VALUES ('000001.OF','000001','crawler','基金一'),('000002.OF','000002','tushare','基金二');`);
+  let conversions = 0;
+  const store = createSearchIndexStore(name => { conversions++; return name; });
+  const first = store.load(db);
+  assert.equal(first.length, 1);
+  assert.equal(store.load(db), first);
+  assert.equal(store.load(db, true).length, 2);
+  assert.equal(conversions, 2);
+  const response = store.warm(db);
+  assert.equal(store.warm(db), response);
+  assert.deepEqual(JSON.parse(gunzipSync(response.gzip)), first);
+  db.exec("UPDATE fund_meta SET source='both' WHERE code='000002'");
+  const second = store.load(db);
+  assert.equal(second.length, 2);
+  assert.equal(second[0], first[0]);
+  assert.notEqual(store.warm(db).etag, response.etag);
+  writer.exec("INSERT INTO fund_basic VALUES ('000001.OF','新名称')");
+  assert.equal(store.load(db)[0].name, '新名称');
+  writer.exec("DELETE FROM fund_meta WHERE code='000002'");
+  assert.equal(store.load(db, true).length, 1);
+
+  const send = headers => {
+    const res = { headers: {}, setHeader(key, value) { this.headers[key] = value; }, writeHead(status) { this.status = status; }, end(body) { this.body = body; } };
+    store.send({ headers }, res, db); return res;
+  };
+  const compressed = send({ 'accept-encoding': 'br, gzip' });
+  assert.equal(compressed.headers['Content-Encoding'], 'gzip');
+  assert.equal(compressed.headers.Vary, 'Accept-Encoding');
+  assert.deepEqual(JSON.parse(gunzipSync(compressed.body)), store.load(db));
+  const plain = send({ 'accept-encoding': 'gzip;q=0, *;q=1' });
+  assert.equal(plain.headers['Content-Encoding'], undefined);
+  assert.equal(plain.body, gunzipSync(compressed.body).toString());
+  const unchanged = send({ 'if-none-match': compressed.headers.ETag });
+  assert.equal(unchanged.status, 304);
+  assert.equal(unchanged.body, undefined);
+});

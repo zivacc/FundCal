@@ -51,14 +51,8 @@ let hideAllSnapshot = null;
 let lastFundsForCrosshair = [];
 let buyFeeDiscountFactor = 1;
 
-/** 全局搜索索引缓存，供顶部搜索、卡片名称联想、批量导入共用 */
-let searchIndexCache = null;
-
-async function ensureSearchIndex() {
-  if (searchIndexCache) return searchIndexCache;
-  searchIndexCache = await fetchSearchIndexFromAPI();
-  return searchIndexCache;
-}
+/** 搜索索引统一由共享数据层缓存，后台更新可在下一次输入时生效。 */
+function ensureSearchIndex() { return fetchSearchIndexFromAPI(); }
 
 /** 从 DOM 读取基金配置 */
 function readFundFromCard(card) {
@@ -1130,6 +1124,7 @@ function init() {
       inputEl: searchInput,
       dropdownEl: searchDropdown,
       debounceMs: SEARCH_DEBOUNCE_MS,
+      preload: ensureSearchIndex,
       closeOnSelect: false,
       clearOnSelect: false,
       search: async (q) => {

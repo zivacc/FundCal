@@ -1,15 +1,15 @@
 /**
  * 基金费率 API 适配器
  *
- * 数据流优先级 (生产部署: Oracle Cloud + nginx 微缓存 + Cloudflare 边缘缓存):
+ * 数据流优先级 (本机 API + Cloudflare Tunnel):
  *   1. /api/fund/* (走后端 SQLite, 命中边缘则零回源)
  *   2. data/allfund/funds/<code>.json 单基金分片 (灾备/纯静态站点)
  *   3. data/allfund/search-index.json 等小静态索引 (兜底)
  *
  * 不再加载 75MB 的 allfund.json - 历史包袱已搬到 archive/。
  *
- * 大型静态索引 (search-index / fund-stats / feeder-index) 走 IndexedDB SWR：
- *   首次访问后写入 IDB，重访 5min 内零网络；超过 5min 用 If-None-Match → 304 短路。
+ * 大型索引走 IndexedDB 缓存：首次写入 IDB，重访 5min 内零网络。
+ *   搜索索引过期后先读旧副本并后台校验；其他索引默认等待校验。
  */
 
 import { cachedJsonFetch } from './idb-cache.js';
@@ -81,6 +81,7 @@ export async function fetchSearchIndexFromAPI() {
   const url = resolveUrl('search-index', 'data/allfund/search-index.json');
   const { data } = await cachedJsonFetch(url, {
     key: 'search-index',
+    staleWhileRevalidate: true,
     fallback: () => tryStaticFetch('data/allfund/search-index.json'),
   });
   return Array.isArray(data) ? data : [];

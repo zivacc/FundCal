@@ -77,11 +77,12 @@ export function buildListQuery(params) {
   const bind  = [];
 
   // Resolve matches with the same engine as browser suggestions, then paginate in SQL.
-  let searchJoin = '';
+  let from = 'fund_meta m';
   if (q) {
     if (!Array.isArray(params.searchIndex)) throw new Error('Search queries require a searchIndex');
     const codes = [...new Set(filterSearchIndex(params.searchIndex, q, { limit: Infinity, kinds: ['fund'] }).map(r => r.code))];
-    searchJoin = 'JOIN json_each(?) search_match ON search_match.value = m.code';
+    // 固定由小的匹配代码集合驱动索引查找，避免扫描全表后逐行展开 JSON。
+    from = 'json_each(?) search_match CROSS JOIN fund_meta m INDEXED BY idx_fund_meta_code ON m.code = search_match.value';
     bind.push(JSON.stringify(codes));
   }
 
@@ -129,8 +130,7 @@ export function buildListQuery(params) {
   const offset = (page - 1) * size;
 
   const baseFrom = `
-    FROM fund_meta m
-    ${searchJoin}
+    FROM ${from}
     LEFT JOIN fund_basic b ON b.ts_code = m.ts_code
     LEFT JOIN (
       SELECT ts_code, rate FROM fund_fee_segments WHERE kind='sell' AND seq=0

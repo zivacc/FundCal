@@ -10,6 +10,7 @@ test('shared search ranking survives SQL filters, count and pagination', () => {
     db.exec(`CREATE TABLE fund_meta(ts_code,code,source,tracking_target,trading_subscribe,trading_redeem,
       buy_fee,annual_fee,is_floating_annual_fee,crawler_updated_at,found_date_normalized,
       name_crawler,fund_type_crawler,management_crawler,benchmark_crawler);
+      CREATE INDEX idx_fund_meta_code ON fund_meta(code);
       CREATE TABLE fund_basic(ts_code,name,management,fund_type,benchmark,status);
       CREATE TABLE fund_fee_segments(ts_code,kind,seq,rate);`);
     const idx = [

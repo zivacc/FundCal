@@ -1,0 +1,247 @@
+{
+  "at": "2026-09-05T10:04:30.087Z",
+  "node": "v24.16.0",
+  "note": "Local serial samples, not browser input-to-render or public Cloudflare latency. Server warms the search index on startup; the first request may overlap warmup. SQL-only timings exclude JS matching.",
+  "http": [
+    {
+      "path": "/api/fund/search-index",
+      "i": 0,
+      "status": 200,
+      "headersMs": 143.58,
+      "totalMs": 153.2,
+      "decodedBytes": 2333723,
+      "contentLength": "450301",
+      "encoding": "gzip"
+    },
+    {
+      "path": "/api/fund/search-index",
+      "i": 1,
+      "status": 200,
+      "headersMs": 1.29,
+      "totalMs": 10.64,
+      "decodedBytes": 2333723,
+      "contentLength": "450301",
+      "encoding": "gzip"
+    },
+    {
+      "path": "/api/fund/search-index",
+      "i": 2,
+      "status": 200,
+      "headersMs": 2.11,
+      "totalMs": 7.95,
+      "decodedBytes": 2333723,
+      "contentLength": "450301",
+      "encoding": "gzip"
+    },
+    {
+      "path": "/api/fund/search-index",
+      "i": 3,
+      "status": 304,
+      "headersMs": 0.73,
+      "totalMs": 0.74,
+      "decodedBytes": 0,
+      "contentLength": null,
+      "encoding": null
+    },
+    {
+      "path": "/api/fund/list?page=1&size=30&q=hs300",
+      "i": 0,
+      "status": 200,
+      "headersMs": 75.27,
+      "totalMs": 75.36,
+      "decodedBytes": 18213,
+      "contentLength": null,
+      "encoding": null
+    },
+    {
+      "path": "/api/fund/list?page=1&size=30&q=hs300",
+      "i": 1,
+      "status": 200,
+      "headersMs": 8.73,
+      "totalMs": 8.82,
+      "decodedBytes": 18213,
+      "contentLength": null,
+      "encoding": null
+    },
+    {
+      "path": "/api/fund/list?page=1&size=30&q=hs300",
+      "i": 2,
+      "status": 200,
+      "headersMs": 6.36,
+      "totalMs": 6.45,
+      "decodedBytes": 18213,
+      "contentLength": null,
+      "encoding": null
+    },
+    {
+      "path": "/api/fund/list?page=1&size=30&q=hs300",
+      "i": 3,
+      "status": 304,
+      "headersMs": 5.56,
+      "totalMs": 5.57,
+      "decodedBytes": 0,
+      "contentLength": null,
+      "encoding": null
+    },
+    {
+      "path": "/api/fund/list?page=1&size=30&q=000001",
+      "i": 0,
+      "status": 200,
+      "headersMs": 6.19,
+      "totalMs": 6.41,
+      "decodedBytes": 677,
+      "contentLength": null,
+      "encoding": null
+    },
+    {
+      "path": "/api/fund/list?page=1&size=30&q=000001",
+      "i": 1,
+      "status": 200,
+      "headersMs": 5,
+      "totalMs": 5.06,
+      "decodedBytes": 677,
+      "contentLength": null,
+      "encoding": null
+    },
+    {
+      "path": "/api/fund/list?page=1&size=30&q=000001",
+      "i": 2,
+      "status": 200,
+      "headersMs": 5.71,
+      "totalMs": 5.78,
+      "decodedBytes": 677,
+      "contentLength": null,
+      "encoding": null
+    },
+    {
+      "path": "/api/fund/list?page=1&size=30&q=000001",
+      "i": 3,
+      "status": 304,
+      "headersMs": 4.28,
+      "totalMs": 4.3,
+      "decodedBytes": 0,
+      "contentLength": null,
+      "encoding": null
+    }
+  ],
+  "comparisons": [
+    {
+      "qs": {
+        "q": "hs300",
+        "size": "30"
+      },
+      "count": 372,
+      "rows": 30,
+      "same": true,
+      "beforeMs": 619.15,
+      "afterMs": 1.13,
+      "plan": [
+        "SCAN search_match VIRTUAL TABLE INDEX 1:",
+        "SEARCH m USING INDEX idx_fund_meta_code (code=?)",
+        "SEARCH b USING INDEX sqlite_autoindex_fund_basic_1 (ts_code=?) LEFT-JOIN",
+        "USE TEMP B-TREE FOR ORDER BY"
+      ]
+    },
+    {
+      "qs": {
+        "q": "hs300",
+        "size": "30",
+        "page": "2"
+      },
+      "count": 372,
+      "rows": 30,
+      "same": true,
+      "beforeMs": 595.77,
+      "afterMs": 1.1,
+      "plan": [
+        "SCAN search_match VIRTUAL TABLE INDEX 1:",
+        "SEARCH m USING INDEX idx_fund_meta_code (code=?)",
+        "SEARCH b USING INDEX sqlite_autoindex_fund_basic_1 (ts_code=?) LEFT-JOIN",
+        "USE TEMP B-TREE FOR ORDER BY"
+      ]
+    },
+    {
+      "qs": {
+        "q": "000001"
+      },
+      "count": 1,
+      "rows": 1,
+      "same": true,
+      "beforeMs": 10.33,
+      "afterMs": 0.1,
+      "plan": [
+        "SCAN search_match VIRTUAL TABLE INDEX 1:",
+        "SEARCH m USING INDEX idx_fund_meta_code (code=?)",
+        "SEARCH b USING INDEX sqlite_autoindex_fund_basic_1 (ts_code=?) LEFT-JOIN",
+        "USE TEMP B-TREE FOR ORDER BY"
+      ]
+    },
+    {
+      "qs": {
+        "q": "不存在的基金名字"
+      },
+      "count": 0,
+      "rows": 0,
+      "same": true,
+      "beforeMs": 2.28,
+      "afterMs": 0.04,
+      "plan": [
+        "SCAN search_match VIRTUAL TABLE INDEX 1:",
+        "SEARCH m USING INDEX idx_fund_meta_code (code=?)",
+        "SEARCH b USING INDEX sqlite_autoindex_fund_basic_1 (ts_code=?) LEFT-JOIN",
+        "USE TEMP B-TREE FOR ORDER BY"
+      ]
+    },
+    {
+      "qs": {
+        "q": "沪深",
+        "sort": "annualFee:desc"
+      },
+      "count": 391,
+      "rows": 100,
+      "same": true,
+      "beforeMs": 642.64,
+      "afterMs": 1.51,
+      "plan": [
+        "SCAN search_match VIRTUAL TABLE INDEX 1:",
+        "SEARCH m USING INDEX idx_fund_meta_code (code=?)",
+        "SEARCH b USING INDEX sqlite_autoindex_fund_basic_1 (ts_code=?) LEFT-JOIN",
+        "USE TEMP B-TREE FOR ORDER BY"
+      ]
+    },
+    {
+      "qs": {
+        "q": "沪深",
+        "buyFeeMax": "0.01"
+      },
+      "count": 372,
+      "rows": 100,
+      "same": true,
+      "beforeMs": 610.7,
+      "afterMs": 1.24,
+      "plan": [
+        "SCAN search_match VIRTUAL TABLE INDEX 1:",
+        "SEARCH m USING INDEX idx_fund_meta_code (code=?)",
+        "SEARCH b USING INDEX sqlite_autoindex_fund_basic_1 (ts_code=?) LEFT-JOIN",
+        "USE TEMP B-TREE FOR ORDER BY"
+      ]
+    },
+    {
+      "qs": {
+        "q": "沪深",
+        "source": "tushare"
+      },
+      "count": 74,
+      "rows": 74,
+      "same": true,
+      "beforeMs": 148.53,
+      "afterMs": 0.64,
+      "plan": [
+        "SCAN search_match VIRTUAL TABLE INDEX 1:",
+        "SEARCH m USING INDEX idx_fund_meta_code (code=?)",
+        "SEARCH b USING INDEX sqlite_autoindex_fund_basic_1 (ts_code=?) LEFT-JOIN",
+        "USE TEMP B-TREE FOR ORDER BY"
+      ]
+    }
+  ]
+}

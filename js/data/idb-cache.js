@@ -10,7 +10,8 @@
  *     opts:
  *       key:        缓存 key（默认用 url）
  *       freshMs:    多久内视为新鲜，跳过网络（默认 5 分钟）
- *       maxAgeMs:   多久后即便有 If-None-Match 也强制忽略缓存（默认 7 天）
+ *       maxAgeMs:   条件请求及后台刷新可复用的缓存年龄（默认 7 天；网络失败仍可读旧缓存）
+ *       staleWhileRevalidate: 过期但在 maxAgeMs 内先返回旧数据，后台校验（默认 false）
  *       fallback:   网络失败且无缓存时的兜底（返回 Promise）
  *     source: 'memory' | 'idb-fresh' | 'idb-revalidated' | 'network' | 'fallback'
  *
@@ -28,6 +29,7 @@ const DB_VERSION = 1;
 const STORE = 'kv';
 
 const memCache = new Map();         // key → { key, body, etag, savedAt }
+const refreshes = new Map();        // key → 网络校验 Promise，后台刷新也参与去重
 const inflight = new Map();         // key → Promise，防并发重复请求
 
 let dbPromise = null;
@@ -94,15 +96,16 @@ async function idbDelete(key) {
 
 /**
  * @param {string} url
- * @param {{ key?: string, freshMs?: number, maxAgeMs?: number, fallback?: () => Promise<any> }} [opts]
+ * @param {{ key?: string, freshMs?: number, maxAgeMs?: number, fallback?: () => Promise<any>, staleWhileRevalidate?: boolean }} [opts]
  * @returns {Promise<{ data: any, source: string }>}
  */
 export async function cachedJsonFetch(url, opts = {}) {
   const {
     key = url,
     freshMs = 5 * 60 * 1000,                    // 5 分钟内零网络
-    maxAgeMs = 7 * 24 * 60 * 60 * 1000,         // 7 天上限
+    maxAgeMs = 7 * 24 * 60 * 60 * 1000,         // 条件校验 / SWR 年龄上限
     fallback = null,
+    staleWhileRevalidate = false,
   } = opts;
 
   // ── L1：内存 ──
@@ -115,14 +118,7 @@ export async function cachedJsonFetch(url, opts = {}) {
   // ── 并发去重 ──
   if (inflight.has(key)) return inflight.get(key);
 
-  const work = (async () => {
-    // ── L2：IndexedDB ──
-    const rec = await idbGet(key);
-    if (rec && now - rec.savedAt < freshMs) {
-      memCache.set(key, rec);
-      return { data: rec.body, source: 'idb-fresh' };
-    }
-
+  async function fetchAndCache(rec) {
     // ── L3：网络（条件请求） ──
     const headers = {};
     if (rec && rec.etag && now - rec.savedAt < maxAgeMs) {
@@ -168,6 +164,29 @@ export async function cachedJsonFetch(url, opts = {}) {
       }
     }
     return { data: null, source: 'empty' };
+  }
+
+  function refresh(rec) {
+    if (refreshes.has(key)) return refreshes.get(key);
+    const pending = fetchAndCache(rec);
+    refreshes.set(key, pending);
+    const cleanup = () => { if (refreshes.get(key) === pending) refreshes.delete(key); };
+    pending.then(cleanup, cleanup);
+    return pending;
+  }
+
+  const work = (async () => {
+    const rec = mem || await idbGet(key);
+    if (rec && now - rec.savedAt < freshMs) {
+      memCache.set(key, rec);
+      return { data: rec.body, source: 'idb-fresh' };
+    }
+    if (staleWhileRevalidate && rec && now - rec.savedAt < maxAgeMs) {
+      memCache.set(key, rec);
+      refresh(rec).catch(() => {});
+      return { data: rec.body, source: mem ? 'memory-stale' : 'idb-stale' };
+    }
+    return refresh(rec);
   })();
 
   inflight.set(key, work);

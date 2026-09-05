@@ -91,3 +91,36 @@ test('concurrent reads share one network request', async t => {
   assert.equal(fetchMock.mock.callCount(), 1);
   for (const result of results) assert.deepEqual(result.data, ['000001']);
 });
+
+test('SWR serves stale data immediately, deduplicates refresh and exposes the updated index', { timeout: 1000 }, async t => {
+  storedRecord(t, { key: '/index', body: ['old'], etag: '"v1"', savedAt: Date.now() - 600_000 });
+  let resolveFetch;
+  const pending = new Promise(resolve => { resolveFetch = resolve; });
+  const fetchMock = t.mock.method(globalThis, 'fetch', () => pending);
+  const { cachedJsonFetch } = await freshCache();
+  assert.deepEqual(await cachedJsonFetch('/index', { staleWhileRevalidate: true }), { data: ['old'], source: 'idb-stale' });
+  assert.deepEqual((await cachedJsonFetch('/index', { staleWhileRevalidate: true })).data, ['old']);
+  assert.equal(fetchMock.mock.callCount(), 1);
+  // 默认阻塞调用也复用正在进行的同一次校验。
+  const updated = cachedJsonFetch('/index');
+  resolveFetch(Response.json(['new'], { headers: { ETag: '"v2"' } }));
+  assert.deepEqual((await updated).data, ['new']);
+  assert.deepEqual(await cachedJsonFetch('/index'), { data: ['new'], source: 'memory' });
+  assert.equal(fetchMock.mock.callCount(), 1);
+});
+
+test('SWR does not immediately serve a cache older than maxAgeMs', { timeout: 1000 }, async t => {
+  storedRecord(t, { key: '/index', body: ['old'], etag: '"v1"', savedAt: Date.now() - 10_000 });
+  let resolveFetch, settled = false;
+  const pending = new Promise(resolve => { resolveFetch = resolve; });
+  t.mock.method(globalThis, 'fetch', (url, options) => {
+    assert.equal(options.headers['If-None-Match'], undefined);
+    return pending;
+  });
+  const { cachedJsonFetch } = await freshCache();
+  const result = cachedJsonFetch('/index', { freshMs: 10, maxAgeMs: 100, staleWhileRevalidate: true }).then(value => { settled = true; return value; });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(settled, false);
+  resolveFetch(Response.json(['new']));
+  assert.deepEqual((await result).data, ['new']);
+});

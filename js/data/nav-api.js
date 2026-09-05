@@ -90,6 +90,7 @@ export async function fetchIndexSearchIndexFromAPI() {
   const url = base ? `${base}/nav/index-search-index` : 'data/allfund/index-search-index.json';
   const { data } = await cachedJsonFetch(url, {
     key: 'index-search-index',
+    staleWhileRevalidate: true,
     fallback: async () => {
       try {
         const res = await fetch('data/allfund/index-search-index.json');

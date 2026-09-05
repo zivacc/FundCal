@@ -14,7 +14,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseQuery, InvalidQueryError } from './http-query.js';
 import { createNavRouter } from './nav/nav-api.js';
-import { createFundRouter } from './fund-api.js';
+import { createFundRouter, warmFundSearchIndex } from './fund-api.js';
 
 const FUND_LIST_URL = 'http://fund.eastmoney.com/js/fundcode_search.js';
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
@@ -119,5 +119,9 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   createApiServer().listen(port, '127.0.0.1', () => {
     console.log(`Fund API: http://localhost:${port}/api/fund/*`);
     console.log(`NAV  API: http://localhost:${port}/api/nav/*`);
+    setImmediate(() => {
+      try { warmFundSearchIndex(); }
+      catch (error) { console.error('[search-index warmup]', error); }
+    });
   });
 }

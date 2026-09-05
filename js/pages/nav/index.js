@@ -332,12 +332,14 @@ function zoomPctToView(allDatesYMD, startPct, endPct) {
 /**
  * 同时加载基金 + 指数搜索池, 合并后注入 kind. 基金条目无 kind 字段时默认 'fund'.
  */
+let searchFundSource = null, searchIndexSource = null;
 async function loadSearchIndex() {
-  if (state.searchIndex) return state.searchIndex;
   const [funds, indices] = await Promise.all([
     fetchSearchIndexFromAPI(),
     fetchIndexSearchIndexFromAPI(),
   ]);
+  if (funds === searchFundSource && indices === searchIndexSource) return state.searchIndex;
+  searchFundSource = funds; searchIndexSource = indices;
   const fundList = (Array.isArray(funds) ? funds : []).map(r => ({ ...r, kind: 'fund' }));
   const indexList = (Array.isArray(indices) ? indices : []).map(r => ({ ...r, kind: 'index' }));
   state.searchIndex = [...fundList, ...indexList];
@@ -1428,6 +1430,7 @@ function setupEvents() {
       inputEl: searchInput,
       dropdownEl: dropdown,
       debounceMs: 150,
+      preload: loadSearchIndex,
       closeOnSelect: false,
       clearOnSelect: false,
       search: async (q) => {

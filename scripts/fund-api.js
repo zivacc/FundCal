@@ -14,6 +14,7 @@
  * 智能回退：fund_basic 非空用 fund_basic，否则用 *_crawler 影子列。
  */
 
+import { createSearchIndexStore } from './search-index-cache.js';
 import { parseQuery } from './http-query.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -230,24 +231,9 @@ function loadList(db, fields, sourceFilter) {
   ));
 }
 
-const searchItemsByCode = new Map();
-function loadSearchIndex(db, includePlaceholders = false) {
-  // 仅 crawler-having（needsCrawl=false）的进搜索索引；占位行不参与搜索
-  const rows = db.prepare(`
-    SELECT m.ts_code, m.code, m.source, m.name_crawler, b.name
-    FROM fund_meta m LEFT JOIN fund_basic b ON b.ts_code = m.ts_code
-    WHERE (? OR m.source IN ('both','crawler'))
-    ORDER BY m.code
-  `).all(includePlaceholders ? 1 : 0);
-  return rows.map(r => {
-    const name = smartPick(r.name, r.name_crawler) || '';
-    const old = searchItemsByCode.get(r.ts_code);
-    if (old?.name === name) return old;
-    const item = { code: r.code, name, initials: getInitials(name) };
-    searchItemsByCode.set(r.ts_code, item);
-    return item;
-  });
-}
+const searchIndexStore = createSearchIndexStore(getInitials);
+const loadSearchIndex = searchIndexStore.load;
+export function warmFundSearchIndex() { searchIndexStore.warm(getDb()); }
 
 function loadStats(db) {
   // 四维聚合 (tracking/manager/benchmark/fundType)，仅取 crawler-having
@@ -560,7 +546,7 @@ export function createFundRouter() {
 
     // GET /api/fund/search-index
     if (/^\/api\/fund\/search-index\/?$/.test(urlPath)) {
-      try { jsonCached(req, res, loadSearchIndex(db), { maxAge: 600, scope: 'public' }); }
+      try { searchIndexStore.send(req, res, db); }
       catch (e) { json(res, 500, { error: e.message }); }
       return true;
     }

@@ -19,7 +19,6 @@ let fundLoadVersion = 0;
 
 const els = {};
 const state = {
-  searchIndex: null,
   currentCode: '',
   currentData: null,
   chart: null,
@@ -61,15 +60,7 @@ function fmtText(v) {
 
 /* ========== 搜索框 ========== */
 
-async function ensureSearchIndex() {
-  if (state.searchIndex) return state.searchIndex;
-  try {
-    state.searchIndex = await fetchSearchIndexFromAPI();
-  } catch {
-    state.searchIndex = [];
-  }
-  return state.searchIndex;
-}
+function ensureSearchIndex() { return fetchSearchIndexFromAPI(); }
 
 function setupSearch() {
   const input = $('fd-search-input');
@@ -79,6 +70,7 @@ function setupSearch() {
   createTypeahead({
     inputEl: input,
     dropdownEl: dropdown,
+    preload: ensureSearchIndex,
     search: async (q) => {
       const idx = await ensureSearchIndex();
       return filterSearchIndex(idx, q, { limit: 30, kinds: ['fund'] });

@@ -1,0 +1,8 @@
+{
+  "baseline": "94fa443",
+  "date": "2026-09-05",
+  "note": "Observed local serial HTTP samples before optimization, recorded from the diagnostic command. No public Tunnel or browser render timing.",
+  "index": {"rows":28188,"bytes":2333723,"encoding":null,"firstTotalMs":268.7,"repeatTotalMs":35.0,"conditional304Ms":27.6,"jsonParseMs":5.13,"firstMatchMs":59.58,"repeatMatchMs":3.51},
+  "hs300": {"firstTotalMs":765.6,"repeatTotalMs":646.4,"conditional304Ms":638.6},
+  "000001": {"firstTotalMs":51.3,"repeatTotalMs":40.5,"conditional304Ms":45.9}
+}

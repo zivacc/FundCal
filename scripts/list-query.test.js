@@ -63,7 +63,7 @@ test('buildListQuery: default has no WHERE bind, defaults source', () => {
 
 test('buildListQuery: numeric matches are resolved before SQL pagination', () => {
   const { sql, params } = buildListQuery({ ...parseListParams({ q: '510' }), searchIndex: [{code:'510001',name:'测试'}] });
-  assert.match(sql, /JOIN json_each\(\?\)/);
+  assert.match(sql, /FROM json_each\(\?\)/);
   assert.deepEqual(params, ['["510001"]']);
 });
 

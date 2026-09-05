@@ -41,6 +41,7 @@ const ITEM_ACTIVE_CLASS = 'fund-search-item-active';
  * @param {(query: string) => any[] | Promise<any[]>} options.search
  * @param {(item: any, ctx: { highlighted: boolean, index: number }) => string | HTMLElement} options.renderItem
  * @param {(item: any) => void} options.onSelect
+ * @param {() => Promise<any>} [options.preload] 聚焦即加载搜索数据，不等待输入防抖
  * @param {number} [options.debounceMs=150]
  * @param {boolean} [options.closeOnSelect=true]   选中后是否收起下拉
  * @param {boolean} [options.clearOnSelect=false]  选中后是否清空 input
@@ -55,6 +56,7 @@ export function createTypeahead(options) {
     search,
     renderItem,
     onSelect,
+    preload,
     debounceMs = 150,
     closeOnSelect = true,
     clearOnSelect = false,
@@ -153,6 +155,7 @@ export function createTypeahead(options) {
   function onCompositionEnd() { composing = false; onInput(); }
 
   function onFocus() {
+    if (preload) Promise.resolve().then(preload).catch(error => console.error('[typeahead] preload failed:', error));
     if (!openOnFocus) return;
     runSearch();
   }

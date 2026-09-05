@@ -86,6 +86,7 @@ export function createSearchScorer(query, { fuzzy = true } = {}) {
 
 /** Scope is caller configuration, never a separate matching implementation. Index items must be immutable. */
 export function filterSearchIndex(list, q, { limit = SEARCH_MAX_ITEMS, kinds, predicate } = {}) {
+  if (!normalizeSearchText(q)) return [];
   const candidates = (list || []).filter(item => item && (!kinds || kinds.includes(prepare(item).kind)) && (!predicate || predicate(item)));
   const rank = score => candidates.map((item, order) => ({ item, order, score: score(item) + (item.needsCrawl ? 0.01 : 0) }))
     .filter(r => Number.isFinite(r.score));
