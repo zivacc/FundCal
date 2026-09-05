@@ -27,7 +27,7 @@ const DB_NAME = 'fundcal-cache';
 const DB_VERSION = 1;
 const STORE = 'kv';
 
-const memCache = new Map();         // key → { data, etag, savedAt }
+const memCache = new Map();         // key → { key, body, etag, savedAt }
 const inflight = new Map();         // key → Promise，防并发重复请求
 
 let dbPromise = null;
@@ -109,7 +109,7 @@ export async function cachedJsonFetch(url, opts = {}) {
   const mem = memCache.get(key);
   const now = Date.now();
   if (mem && now - mem.savedAt < freshMs) {
-    return { data: mem.data, source: 'memory' };
+    return { data: mem.body, source: 'memory' };
   }
 
   // ── 并发去重 ──

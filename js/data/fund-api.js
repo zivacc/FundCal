@@ -105,14 +105,13 @@ export async function fetchFundCodesFromAPI() {
 }
 
 /**
- * 联接/母基金索引（624 KB）— IDB SWR
+ * 联接/母基金索引 — 构建产物，直接读取静态资源并缓存
  */
 export async function fetchFeederIndexFromAPI() {
   const empty = { feederByMasterKey: {}, codeToFeeder: {} };
-  const url = resolveUrl('feeder-index', 'data/allfund/feeder-index.json');
+  const url = 'data/allfund/feeder-index.json';
   const { data } = await cachedJsonFetch(url, {
     key: 'feeder-index',
-    fallback: () => tryStaticFetch('data/allfund/feeder-index.json'),
   });
   if (!data) return empty;
   return {

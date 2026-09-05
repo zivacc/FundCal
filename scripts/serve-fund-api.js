@@ -9,10 +9,12 @@
  */
 
 import http from 'http';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { parseQuery, InvalidQueryError } from './http-query.js';
 import { createNavRouter } from './nav/nav-api.js';
 import { createFundRouter } from './fund-api.js';
 
-const PORT = parseInt(process.argv[2], 10) || 3457;
 const FUND_LIST_URL = 'http://fund.eastmoney.com/js/fundcode_search.js';
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
@@ -59,39 +61,55 @@ function serveAllCodes(res) {
   req.setTimeout(15000, () => { req.destroy(); });
 }
 
-const navRouter = createNavRouter();
-const fundRouter = createFundRouter();
+/** 路由可注入，HTTP 回归测试不访问实际数据库或抓取服务。 */
+export function createApiServer({
+  navRouter = createNavRouter(),
+  fundRouter = createFundRouter(),
+  onError = error => console.error('[API]', error),
+} = {}) {
+  return http.createServer(async (req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, If-None-Match');
+    res.setHeader('Access-Control-Expose-Headers', 'ETag, Cache-Control');
+    if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
 
-const server = http.createServer(async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, If-None-Match');
-  res.setHeader('Access-Control-Expose-Headers', 'ETag, Cache-Control');
-  if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
+    try {
+      req.query = parseQuery(req.url || '');
+      const urlPath = (req.url || '').split('?')[0];
 
-  // 远程拉全量代码（旧行为）
-  if (req.url && /^\/api\/fund\/all-codes\/?$/.test(req.url) && req.method === 'GET') {
-    serveAllCodes(res);
-    return;
-  }
+      // 远程拉全量代码（旧行为）
+      if (/^\/api\/fund\/all-codes\/?$/.test(urlPath) && req.method === 'GET') {
+        serveAllCodes(res);
+        return;
+      }
+      if (/^\/api\/nav(?:\/|$)/.test(urlPath)) {
+        await navRouter(req, res);
+        return;
+      }
+      if (/^\/api\/fund(?:\/|$)/.test(urlPath)) {
+        if (await fundRouter(req, res)) return;
+      }
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.writeHead(404);
+      res.end(JSON.stringify({ error: 'Not Found' }));
+    } catch (error) {
+      const invalidQuery = error instanceof InvalidQueryError;
+      if (!invalidQuery) onError(error);
+      if (res.writableEnded || res.destroyed) return;
+      if (res.headersSent) { res.destroy(); return; }
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-store');
+      res.writeHead(invalidQuery ? 400 : 500);
+      res.end(JSON.stringify({ error: invalidQuery ? error.message : 'Internal Server Error' }));
+    }
+  });
+}
 
-  // /api/nav/*
-  if (req.url && req.url.startsWith('/api/nav')) {
-    navRouter(req, res);
-    return;
-  }
-
-  // /api/fund/*
-  if (req.url && req.url.startsWith('/api/fund')) {
-    const handled = await fundRouter(req, res);
-    if (handled) return;
-  }
-
-  res.writeHead(404);
-  res.end(JSON.stringify({ error: 'Not Found' }));
-});
-
-server.listen(PORT, () => {
-  console.log(`Fund API: http://localhost:${PORT}/api/fund/*`);
-  console.log(`NAV  API: http://localhost:${PORT}/api/nav/*`);
-});
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const port = parseInt(process.argv[2], 10) || 3457;
+  createApiServer().listen(port, () => {
+    console.log(`Fund API: http://localhost:${port}/api/fund/*`);
+    console.log(`NAV  API: http://localhost:${port}/api/nav/*`);
+  });
+}

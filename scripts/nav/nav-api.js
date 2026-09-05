@@ -8,6 +8,7 @@
  *   GET /api/nav/:code/range        — 数据日期范围
  */
 
+import { parseQuery } from '../http-query.js';
 import { getDb, codeToTsCode } from './db.js';
 import { pinyin } from 'pinyin-pro';
 import {
@@ -28,17 +29,6 @@ function json(res, status, data) {
   res.setHeader('Cache-Control', 'no-store');
   res.writeHead(status);
   res.end(JSON.stringify(data));
-}
-
-function parseQuery(url) {
-  const idx = url.indexOf('?');
-  if (idx === -1) return {};
-  const qs = {};
-  for (const pair of url.slice(idx + 1).split('&')) {
-    const [k, v] = pair.split('=');
-    if (k) qs[decodeURIComponent(k)] = decodeURIComponent(v || '');
-  }
-  return qs;
 }
 
 function handleNavStats(req, res) {
@@ -101,7 +91,7 @@ function handleNavHistory(code, req, res) {
   try {
     const db = getDb();
     const tsCode = codeToTsCode(code);
-    const qs = parseQuery(req.url);
+    const qs = req.query ?? parseQuery(req.url);
 
     const conditions = ['ts_code = ?'];
     const params = [tsCode];
@@ -209,7 +199,7 @@ function loadIndexSeries(db, tsCode, qs, interval) {
 function handleNavCompare(req, res) {
   try {
     const db = getDb();
-    const qs = parseQuery(req.url);
+    const qs = req.query ?? parseQuery(req.url);
     const rawCodes = (qs.codes || '').split(',').map(s => s.trim()).filter(Boolean);
     if (!rawCodes.length) { json(res, 400, { error: 'codes 必填' }); return; }
     if (rawCodes.length > 20) { json(res, 400, { error: '一次最多对比 20 只' }); return; }

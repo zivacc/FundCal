@@ -14,6 +14,7 @@
  * 智能回退：fund_basic 非空用 fund_basic，否则用 *_crawler 影子列。
  */
 
+import { parseQuery } from './http-query.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
@@ -53,17 +54,6 @@ function json(res, status, data) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.writeHead(status);
   res.end(JSON.stringify(data));
-}
-
-function parseQuery(url) {
-  const idx = url.indexOf('?');
-  if (idx === -1) return {};
-  const qs = {};
-  for (const pair of url.slice(idx + 1).split('&')) {
-    const [k, v] = pair.split('=');
-    if (k) qs[decodeURIComponent(k)] = decodeURIComponent(v || '');
-  }
-  return qs;
 }
 
 /** 单基金 row → 旧 JSON 结构 */
@@ -517,7 +507,7 @@ function runCrawl(code) {
 export function createFundRouter() {
   return async function fundRouter(req, res) {
     const urlPath = (req.url || '').split('?')[0];
-    const qs = parseQuery(req.url || '');
+    const qs = req.query ?? parseQuery(req.url || '');
     const db = getDb();
 
     // POST /api/fund/:code/crawl —— 爬取 + 自动入 DB

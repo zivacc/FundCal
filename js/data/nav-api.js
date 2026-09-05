@@ -87,7 +87,7 @@ export function pickInterval(period) {
  */
 export async function fetchIndexSearchIndexFromAPI() {
   const base = getNavApiBase();
-  const url = base ? `${base}/index-search-index` : 'data/allfund/index-search-index.json';
+  const url = base ? `${base}/nav/index-search-index` : 'data/allfund/index-search-index.json';
   const { data } = await cachedJsonFetch(url, {
     key: 'index-search-index',
     fallback: async () => {
