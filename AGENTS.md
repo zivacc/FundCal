@@ -1,169 +1,189 @@
 # AGENTS.md
 
-This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
+本文件用于指导在 FundCal 仓库中的开发、审计和优化。最近核对日期：2026-09-05。架构事实以当前源码为准；历史审计记录和草案不代表已实现功能。
 
-## Project
+## 项目与工作范围
 
-FundCal — 基金费率计算器: 多基金费用对比 + 交叉点分析 + 净值历史 + 业绩比较。
+FundCal — 基金费率计算器：多基金费用对比、交叉点分析、基金列表、指数选基、净值/业绩比较、基金详情与晨星综合费率历史参考。
 
-Stack: Node.js 18+ (ES modules), better-sqlite3, vanilla JS frontend (no build framework)。
-**部署模式**: PC dev + Cloudflare Tunnel (历史的 Oracle Cloud / 阿里云 ECS / Workers+KV / D1+R2 已归档至 `archive/docs/`)。
+- 技术栈：Node.js ES modules、better-sqlite3、原生 JS 前端，无前端构建框架。
+- 开发与验证基线为 **Node.js 24**，最近全量测试使用 v24.16.0。当前 better-sqlite3 12.9.0 不支持 Node.js 18；不要沿用旧的“18+”声明。切换运行时先核对锁文件、依赖 engines 和原生模块安装情况。
+- 部署：本机静态服务 + API，经 Cloudflare Tunnel 提供公网访问。Oracle Cloud、阿里云 ECS、Workers/KV、D1/R2 等方案均为历史资料。
+- **账本功能已全部移除**，私人数据库已迁出项目目录。没有账本页面或 API；不要因旧文档、旧缓存或归档内容而恢复相关功能、数据或测试。
+- 按批次推进优化，保留现有原生 JS / Node / SQLite 主体。先复现问题，再修改、验证并独立提交；区分代码改动与全库抓取、导入、重建等数据操作。
 
-主要文档:
-- [README.md](README.md) — 功能 / 项目结构 / npm 命令速查
-- [docs/data-flow.md](docs/data-flow.md) — **数据架构** (双源 / 字段裁决 / Schema)
-- [docs/DEPLOY.md](docs/DEPLOY.md) — PC dev + CF Tunnel 部署
-- [docs/decisions/](docs/decisions/) — ADR 决策日志 (重大技术决策)
+主要文档：
+
+- [README.md](README.md)：功能、项目结构与命令入口；部分历史说明仍待整理。
+- [docs/data-flow.md](docs/data-flow.md)：双源数据、字段裁决和指数体系。
+- [docs/DEPLOY.md](docs/DEPLOY.md)：当前启动、静态资源白名单和本机管理入口。
+- [docs/optimization-progress.md](docs/optimization-progress.md)：已完成批次与待办，以此判断审计问题是否已处理。
+- [docs/performance/search-loading.md](docs/performance/search-loading.md)：搜索加载链路、优化前后测量与限制。
+- [docs/audits/2026-09-05/README.md](docs/audits/2026-09-05/README.md)：历史审计及原始证据，包含已删除功能和已修复问题。
+- [docs/decisions/](docs/decisions/)：ADR；标有 DRAFT 的内容是候选方案。
 
 ## 常用命令
 
 ```bash
-# 开发
-npm run dev                     # 一键: 静态服务 (3456) + API (3457)
-npm run api                     # 仅 API (3457)
-npm run serve                   # 仅静态 (3456)
+# 开发：默认只监听 127.0.0.1
+npm run dev                     # 静态 3456 + API 3457
+npm run serve                   # scripts/serve-static.js，静态白名单服务
+npm run api                     # scripts/serve-fund-api.js，基金 + NAV API
 
-# 测试 (用 node --test, *.test.js 自动发现)
-npm test                        # 跑所有测试 (scripts/**/*.test.js + js/**/*.test.js)
-node --test scripts/list-query.test.js      # 单文件
-node --test --test-name-pattern='align'     # 按测试名过滤
+# 测试：node --test，测试与实现并排
+npm test                        # scripts/**/*.test.js + js/**/*.test.js
+node --test scripts/list-query*.test.js scripts/list-search.test.js
+node --test js/data/idb-cache.test.js scripts/search-index-cache.test.js
+node --test --test-name-pattern='align' 'js/**/*.test.js'
 
-# 数据流水线 (见下面架构说明)
-npm run sync:fund-basic         # Tushare 基金清单
-npm run sync:fund-nav -- --all  # Tushare 净值增量 (全部 status=L/I)
-npm run crawl:all -- --force    # 天天基金爬虫 (费率/规模/业绩, 直写 DB)
-npm run merge-rules             # 应用字段裁决矩阵
-npm run crawl:eastmoney-nav -- --missing  # 兜底补 LOF/Reits/子类
-npm run sync:trade-cal          # 交易日历
-npm run sync:index-basic        # Tushare 指数清单
-npm run sync:index-daily        # Tushare 指数日线
-npm run crawl:em-index          # 东财指数日线 (港股 / 美股 / 全收益)
-npm run import:custom-index     # 导入自定义指数 CSV (source=6)
-npm run replay-failed           # 重放失败任务
-npm run health-check            # 体检 (10 项)
+# 数据流水线：这些命令会访问外部数据源和/或写入数据库
+npm run sync:fund-basic
+npm run sync:fund-nav -- --all
+npm run crawl:all -- --force
+npm run merge-rules
+node scripts/nav/parse-share-class.js
+npm run crawl:eastmoney-nav -- --missing
+npm run sync:trade-cal
+npm run sync:index-basic
+npm run sync:index-daily
+npm run crawl:em-index
+npm run import:custom-index      # CSV 指数，source=6
+npm run import:morningstar-fee   # 晨星 XLSX 历史快照，独立参考表
+npm run replay-failed
+npm run health-check
 
-# 构建静态资源 (DB → data/allfund/*)
-npm run build-all               # allfund + search-index + feeder-index + fund-stats + trade-calendar
+# DB → 明确的公共静态产物
+npm run build-all               # allfund（含两类搜索索引）+ feeder-index + fund-stats + trade-calendar
+
+# 无 Tushare 的批量补数编排，会抓取、裁决、构建并输出覆盖率报告
+npm run refresh:public
+npm run refresh:public -- --coverage-only  # 只读 DB，但会写覆盖率报告文件
+
+# 本地 HTTP + 正式公共库只读 SQL 对照（需先启动 API）
+node docs/performance/search-load.mjs
 ```
 
-每日自动更新的标准顺序见 [scripts/cron/fundcal-cron](scripts/cron/fundcal-cron): sync-fund-nav → replay-failed → crawl-eastmoney-nav --missing → build-all → health-check。手动补数据时按同样顺序跑。
+常规日更顺序：sync-fund-nav → replay-failed → crawl-eastmoney-nav --missing → build-all → health-check。基础信息/费率更新后还需执行字段裁决与份额解析，再构建。
 
-## 架构: 双源数据 + 字段裁决 + 静态构建
+[scripts/cron/fundcal-cron](scripts/cron/fundcal-cron) 仍包含 Linux `/var/www/fundcal` 路径和旧调度参数，**不是已确认安装的本机调度配置**；其中定时抓取缺少 `--force`、参数形式及失败可见性仍有审计待办，不要直接照搬安装。各 CLI 的参数格式并不统一，调用前核对解析代码。
 
+`refresh:public` 有锁文件与阶段状态，会并行更新费率/指数，再裁决、解析份额、补基金 NAV、构建和检查；其东财 NAV 使用 `--all --resume`，范围大于常规 `--missing` 兜底。状态和覆盖率报告在 `data/public-refresh-*`，存在缺口时可能以非零状态退出，需结合报告判断。
+
+## 部署与访问边界
+
+- [scripts/dev-server.js](scripts/dev-server.js) 用 `process.execPath` 启动两个 Node 子进程，无 shell 包装；`STATIC_PORT` / `API_PORT` 可调整一键启动的端口。前端 localhost API 默认仍是 3457，改 API 端口时需同步配置。
+- [scripts/serve-static.js](scripts/serve-static.js) 仅接受 GET/HEAD，支持 ETag/304；公开 index.html、符合规则的前端 JS/CSS、指定 vendor/图标、公共索引 JSON、单基金分片及私募代码映射。拒绝目录浏览、隐藏路径、测试文件、路径穿越和指向非公开文件的符号链接。
+- **不要恢复 `serve .` 或以仓库根目录无差别对外服务**。新增公共资源或升级 vendor 文件名时核对 `isPublicPath()`，按需扩展白名单并验证实际资源可访问。`.gitignore` 不承担 HTTP 访问控制。
+- 两个服务默认绑定 `127.0.0.1`。Tunnel origin 使用本机静态/API 端口；实际边缘认证、缓存和 ingress 配置不在本次本地验证范围内。
+- 公共 API 的 CORS 允许跨域读取，**CORS 不是管理鉴权**。`POST /api/fund/{code}/crawl` 经 [scripts/local-access.js](scripts/local-access.js) 校验 loopback、Host、Origin、Fetch Metadata 和代理头；Tunnel/外站请求返回 403。补数使用本机页面或 CLI。
+- [scripts/crawl-jobs.js](scripts/crawl-jobs.js)：同代码共享一次执行结果，最多 2 个不同代码并发，超限 429；60 秒超时终止并在必要时强制结束，限制输出并释放任务槽。CLI 批量抓取不经过这个 HTTP 并发限制。
+- 数据库及 WAL/SHM、晨星原始 XLSX、日志、环境变量和本地状态不属于发布资源或代码提交内容；保留相应忽略规则。
+
+## 数据架构：双源 + 字段裁决 + 静态构建
+
+```text
+Tushare → sync-fund-basic → fund_basic 独占字段 + fund_meta._tushare 影子
+        → sync-fund-nav   → fund_nav (source=1)
+天天基金 → crawl-fund-fee → fund_meta / _crawler 影子 + 费率分段 + 阶段业绩
+         → lsjz 抓取     → fund_nav (source=2)
+指数源   → sync-index-basic/daily、crawl-em-index、custom CSV
+                        → index_basic / index_daily / index_source_map
+晨星 XLSX → import-morningstar-fee → morningstar_* 独立历史参考表
+
+重叠基础字段 → apply-merge-rules → fund_basic 权威字段
+DB → build-allfund-from-db 等构建脚本 → data/allfund/* 公共分片
+前端 → API 优先；指定静态索引直接读取，单基金静态分片承担灾备
 ```
-Tushare API ──→ sync-fund-basic ──→ fund_basic + fund_meta._tushare 影子
-                sync-fund-nav   ──→ fund_nav (source=1)
 
-天天基金 ────→ crawl-fund-fee ──→ fund_meta + fund_meta._crawler 影子
-                                  fund_fee_segments / fund_stage_returns
-                                  (直写 DB, 已弃 data/funds/*.json 中转)
-
-天天基金 lsjz ─→ crawl-eastmoney-nav ──→ fund_nav (source=2, 兜底 LOF/子类)
-
-Tushare 指数 ──→ sync-index-basic/daily, crawl-em-index ──→ index_basic + index_daily
-
-       ↓
-apply-merge-rules.js  (按裁决矩阵把影子列写进 fund_basic 权威字段)
-       ↓
-build-allfund-from-db.js → data/allfund/* 静态分片
-       ↓
-前端: 列表/搜索 → /api/fund/list (服务端分页); 其他页面 → 静态分片 + /api/* 单只查询
-```
-
-### 字段裁决矩阵 (核心规则)
+### 字段裁决与来源约束
 
 | 字段 | 主源 | 兜底 |
 |---|---|---|
-| name / fund_type / management / benchmark / found_date | **crawler** | tushare |
-| status / market / custodian | **tushare** | (唯一源) |
-| 费率 / 分段 / 业绩 / 跟踪标的 / 规模 | **crawler** | (唯一源) |
-| nav | **tushare → eastmoney 兜底** | source 列标识 |
+| name / fund_type / management / benchmark / found_date | crawler | tushare |
+| status / market / custodian | tushare | 唯一源 |
+| 费率 / 分段 / 业绩 / 跟踪标的 / 规模 | crawler | 唯一源 |
+| NAV | 常规先 Tushare，再东财补缺 | 逐行 source 标记 |
 
-**关键约束**:
-- `sync-fund-basic.js` **不覆写** name/fund_type/management/benchmark/found_date — 只 UPSERT status/market/custodian。新基金 INSERT 全字段作初值, 已有基金的重叠字段交给 `apply-merge-rules` 裁决, 防止误覆盖。
-- 业务**只服务场外基金 .OF**, `codeToTsCode` 同 code 多行时 `.OF` 优先, `.SH/.SZ/.BJ` 行保留作审计但不取 nav。
-- `fund_nav.source`: 1=tushare, 2=eastmoney; 数据完全一致 (实测对比), eastmoney 仅补 tushare 给 0 行的 LOF / Reits / 子类。
+- `sync-fund-basic.js` 不覆写已有基金的重叠字段，只更新 status/market/custodian 等独占信息；新基金 INSERT 全字段作初值。不要改回全字段 `INSERT OR REPLACE`，也不要绕过 `apply-merge-rules`。
+- 基金业务只服务场外 `.OF`。六位代码可能有多市场行，使用 `codeToTsCode` / `codesToTsCodes` 的 `.OF` 优先规则；部分旧读写路径仍有审计待办，不能假设所有 SQL 已统一。指数代码如 `000300.SH` 不受此基金 NAV 限制。
+- `fund_nav.source`：1=tushare、2=eastmoney；`index_daily.source` 另有 3=csindex、6=custom。不要根据某次样本一致就假设多源历史数据始终相同；来源优先级、水位和历史修订仍待完善。
+- 爬虫直接写 DB，不再依赖 `data/funds/<code>.json` 中转；`--keep-json` 仅用于保留单次灾备输出。
 
-### Schema 概览 ([data/fundcal.db](data/fundcal.db), SQLite)
+### Schema 与晨星参考数据
 
-```
-fund_basic         (ts_code PK)        权威基础信息 (apply-merge-rules 裁决后)
-fund_meta          (ts_code PK)        crawler 独占字段 + 双侧影子列 (_crawler / _tushare)
-                                       + share_class (从 name 解析)
-fund_nav           (ts_code, end_date) 净值, source 1/2
-fund_fee_segments  (ts_code, kind, seq) 分段费率 (crawler)
-fund_stage_returns (ts_code, period)   阶段涨幅 (crawler)
-trade_calendar     (cal_date PK)       交易日历 (Tushare trade_cal)
-sync_log           id PK               同步审计 + 失败重放游标 (>30 天可删)
+主要定义位于 [scripts/nav/db.js](scripts/nav/db.js)：
 
-# 指数体系 (2026)
-index_basic        (ts_code PK)        指数权威信息 (含 publisher / index_type / base_date)
-index_source_map   (ts_code, source)   多源代码映射 (tushare / eastmoney / csindex / custom)
-index_daily        (ts_code, end_date) 指数 OHLC + 涨跌幅, source 1/2/3/6
-index_fund_tracker (index_ts_code, fund_ts_code) 指数 ⇄ 基金跟踪关系
-```
+| 表 | 主键 / 用途 |
+|---|---|
+| fund_basic | ts_code；裁决后的基础信息 |
+| fund_meta | ts_code；crawler 字段、双源影子、份额类别 |
+| fund_nav | ts_code + end_date；净值和 source |
+| fund_fee_segments | ts_code + kind + seq；分段费率 |
+| fund_stage_returns | ts_code + period；阶段业绩 |
+| trade_calendar | cal_date；交易日历 |
+| sync_log | id；同步审计和失败重放 |
+| index_basic / index_source_map | ts_code / ts_code + source；指数信息与多源代码映射 |
+| index_daily / index_fund_tracker | ts_code + end_date / index_ts_code + fund_ts_code；指数行情和跟踪关系 |
+| morningstar_fee_snapshot | as_of_date；源文件、SHA256 和导入统计 |
+| morningstar_fund_fee | as_of_date + code；各期综合费率、排名及参考指标 |
 
-详细字段定义见 [scripts/nav/db.js](scripts/nav/db.js) `initSchema()`。schema 演进通过 `ensureTushareShadowColumns()` / `ensureNavSourceColumn()` 等幂等迁移函数。
+`getDb()` 会初始化 schema，并调用 `ensureTushareShadowColumns()`、`ensureNavSourceColumn()`。新增列应补幂等迁移并接入初始化；**当前 `share_class` 仍由 `scripts/nav/parse-share-class.js` 添加/填充**，不能把正式库已有列当作空库也一定具备。空库构建问题尚未全部解决。
 
-## API 路由
+晨星导入通过系统 `unzip` 读取 XLSX，原始文件在被忽略的 `data/morningstar_full_fund_fee/`。晨星表不写入 fund_basic/fund_meta，也不参与字段裁决；`*_pct` 使用百分数单位，现行费用计算中的 rate 使用小数比例，展示/换算时勿混用。
 
-[scripts/serve-fund-api.js](scripts/serve-fund-api.js) 端口 3457, 路由分派:
+## API 与搜索数据流
 
-- `/api/fund/list` — **嗅探参数**: 有 `page` / `q` / `sort` → 服务端分页 ([scripts/list-query.js](scripts/list-query.js) SQL builder); 无 → 旧全量路径 (灾备)
-- `/api/fund/filter-options` — 筛选 tag + 频次 (一次性, IDB SWR 缓存)
-- `/api/fund/{code}` / `/{code}/fee` / `POST /{code}/crawl` — 单只查询/触发爬虫
-- `/api/fund/search-index` / `codes` / `stats` / `stats/detail` — 搜索 / 聚合
-- `/api/nav/{code}` / `history` / `range` / `compare` — 净值; `/api/nav/compare` 支持 fund (`000001`) + index (`HSI.HI`) 混合 codes
+[scripts/serve-fund-api.js](scripts/serve-fund-api.js) 提供 `createApiServer()`，默认 CLI 端口 3457；模块导入不启动监听，测试可注入路由。
 
-服务端分页决策见 [docs/decisions/0001-server-side-pagination-not-duckdb.md](docs/decisions/0001-server-side-pagination-not-duckdb.md)。
+- `/api/fund/list`：当前以 `page / q / sort` 的真值切换分页路径，返回 `{total,page,size,rows}`；否则走旧全量数组路径。调用方始终传 `page`，仅传 size/filter 不能保证分页。
+- `/api/fund/filter-options`：筛选标签与频次，经共享 IndexedDB 缓存，默认等待过期校验。
+- `/api/fund/{code}`、`/{code}/fee`、`/{code}/morningstar`：单只信息、费用及晨星历史。
+- `/api/fund/search-index`、`codes`、`stats`、`stats/detail`：搜索索引、代码与聚合查询。
+- `/api/nav/{code}`、`/{code}/history`、`/{code}/range`、`/api/nav/compare`：净值与比较；compare 可混合基金六位代码与指数完整代码。
+- `/api/nav/index-search-index`：指数搜索索引。不要写成 `/api/index-search-index`。
+- 联接基金索引直接读取 `data/allfund/feeder-index.json`，没有 `/api/fund/feeder-index` 端点。
 
-## 限流 / 重试
+查询参数统一使用 [scripts/http-query.js](scripts/http-query.js)，正确处理中文、`+` 和值内 `=`；非法百分号/UTF-8 编码在分派前返回 400。顶层等待路由并捕获未被业务路由处理的异常，此类错误返回不含异常详情的 500。不要再引入手写 query split/decode；各业务参数的范围校验仍需分别处理。
 
-[scripts/nav/tushare-client.js](scripts/nav/tushare-client.js) 内置:
-- 全局动态节流: 触发限流时翻倍间隔 (上限 5s), 成功时 10% 衰减回收
-- HTTP 429 / -2001 业务码 / "每分钟" / "频率" → 指数退避 (5s→10s→20s→40s→80s)
-- 默认 5 次重试
+### 搜索与缓存约定
 
-`TUSHARE_GAP_MS` / `TUSHARE_MAX_RETRIES` / `TUSHARE_RATE_LIMIT_BASE_MS` 等环境变量调参。
+- **联想搜索**：计算器、基金详情、净值比较通过共享数据层取得索引，在浏览器本地匹配；净值页并行加载基金与指数池。主要搜索框支持聚焦预加载。
+- **列表搜索**：浏览器只持有当前页，服务端用共享 [js/utils/search.js](js/utils/search.js) 匹配代码，再 SQL 筛选/排序/分页。不要为列表首屏恢复全量基金下载。
+- 搜索规则、规范化、相关度、拼音与指数别名都集中在 `js/utils/search.js`。prepared 缓存按条目对象保存，条目应视为不可变；空查询直接返回，不遍历全池。
+- [js/data/idb-cache.js](js/data/idb-cache.js) 的记录为 `{key,body,etag,savedAt}`，对外返回 `{data,source}`；内存与 IDB 必须使用同一字段契约。
+- 默认 freshness 为 5 分钟。只有显式设置 `staleWhileRevalidate: true` 的请求先返回过期副本并后台校验，目前基金/指数搜索启用；其他请求默认等待校验。SWR 年龄上限默认 7 天，网络失败仍可读旧缓存，不等于严格的离线过期删除策略。
+- 不要再用页面永久数组缓存或失败后的空数组阻止共享缓存更新；净值合并池只在底层数组引用变化时重建。后台索引更新在下次搜索时生效。
+- [scripts/search-index-cache.js](scripts/search-index-cache.js) 按 DB 连接缓存索引、JSON、ETag 和 gzip。通过 `PRAGMA data_version` + `total_changes()` 失效，CLI 服务启动时预热；304 复用响应，不重新查询全量索引、序列化和压缩。当前无关 DB 写入也会触发失效，这是已知的保守策略。
+- [scripts/list-query.js](scripts/list-query.js) 从 `json_each(?)` 匹配集合 `CROSS JOIN fund_meta`，显式使用 `idx_fund_meta_code`。该索引是查询契约的一部分，测试库也要建立；修改执行计划时覆盖 source 筛选，避免回退为逐个匹配代码扫描来源集合。
+- 新增排序字段时同时更新 `SORT_EXPR` 和前端 `parseSortValue` 的白名单/keyMap。保持相关度顺序、去重、计数、分页与筛选一致。
 
-[scripts/nav/crawl-eastmoney-nav.js](scripts/nav/crawl-eastmoney-nav.js) 注意: eastmoney lsjz API **单页硬上限 20 行** (PAGE_SIZE > 199 服务器拒返 0 行)。
+服务端分页决策见 [ADR 0001](docs/decisions/0001-server-side-pagination-not-duckdb.md)。性能数据见搜索分析报告，区分首次/重复请求、HTTP/SQL/浏览器渲染；本机微基准不能直接等同公网体验。
 
 ## 前端结构
 
-- 无构建框架, 纯 ES modules + 静态 HTML
-- **SPA + hash 路由**: 单一 `index.html`, [js/core/router.js](js/core/router.js) 按 `#/calc · #/list · #/index · #/nav · #/stats · #/fund` 切换 6 个页面, 对应 `pages/<route>/index.js` 模块**按需懒加载** (`import()`, 仅首次激活时拉取并初始化)。新增页面: 在 `ROUTES` 加一行 + `index.html` 加 `[data-route]` 容器/tab。
-- [js/](js/) 按职责分: `core/` 配置/路由/主题, `data/` API 适配 + nav 缓存 + 交易日历, `domain/` 业务计算 (fee/nav-stats/nav-align), `pages/` 各页面入口, `components/` 共享组件, `utils/` 工具
-- 测试用 `*.test.js` 跟实现并排, `node --test` 跑
-- 环境自动检测 ([js/data/fund-api.js](js/data/fund-api.js) `getFeeApiBase()`):
-  - `localhost` / `127.0.0.1` → `http://localhost:3457/api/fund`
-  - 其他域名 → 同源 `/api/fund` (CF Tunnel 反代到本机)
+- 单一 index.html，hash SPA，6 个页面懒加载，映射见 [js/core/router.js](js/core/router.js)：`calc → pages/calc`、`list → pages/list`、`index → pages/index-picker`、`nav → pages/nav`、`stats → pages/stats`、`fund → pages/fund-detail`。
+- 新增页面时更新 ROUTES、index.html 的容器/tab，并验证模块、样式和资源符合静态白名单。
+- `js/core/`：配置、路由、主题；`data/`：API、缓存、交易日历；`domain/`：费用和净值计算；`pages/`：页面；`components/`：共享组件；`utils/`：搜索和通用工具。
+- `getFeeApiBase()` 支持 `window.FUND_FEE_API_BASE` 手动覆盖；localhost/127.0.0.1 默认连 `http://localhost:3457/api/fund`，普通域名同源 `/api/fund`，GitHub Pages 使用静态回退。NAV base 到 `/api` 层，端点再拼 `/nav/...`。
+- 列表每次状态变化发起分页请求，用 AbortController 防竞态。`selectedCompare` 为 `Map<code,name>`；筛选标签来自 filter-options，基金公司默认 top-50 + 本地筛选。
+- 通用联想控件在 [js/components/typeahead.js](js/components/typeahead.js)，管理防抖、中文输入法组合态和查询令牌。扩展时保留过期结果丢弃与事件销毁逻辑。
+- Chart.js、annotation、ECharts 由本地 vendor 加载；计算器导入仍使用共享 SheetJS。不要因账本已删除就移除仍被计算器使用的 Excel 能力；旧 CDN SheetJS 版本问题仍是审计待办。
 
-### 列表页 ([js/pages/list/](js/pages/list/))
+## 限流、验证与后续优化
 
-- 服务端分页模式: 每次状态变更 (搜索 / 排序 / 筛选 / 翻页) → fetch `/api/fund/list?page=...`
-- AbortController 防竞态; 不持有 allFunds 全集, 只持有当前页 rows
-- `selectedCompare` 是 `Map<code, name>` (保持插入顺序 + 自带 name)
-- 筛选 tag 来自 `/api/fund/filter-options`, fundManager 默认 top-50 + 搜索框过滤
+- [scripts/nav/tushare-client.js](scripts/nav/tushare-client.js) 内置动态节流、429/业务限流检测和指数退避，默认 5 次重试；通过 `TUSHARE_GAP_MS`、`TUSHARE_MAX_RETRIES`、`TUSHARE_RATE_LIMIT_BASE_MS` 等调参。
+- 东财 lsjz 单页上限为 20 行，不要把增大 PAGE_SIZE 当作吞吐优化。
+- 修改业务函数、SQL builder、缓存、HTTP 边界或数据写入时补对应回归。最近代码基线为 **260 项测试通过（2026-09-05）**；仅文档修改检查链接、命令和差异即可。
+- 测试 DB 使用 `:memory:` 或临时目录；正式库审计/性能测量用独立 `better-sqlite3` readonly 连接。`getDb()` 会迁移，不应当作纯只读审计入口。不要为了验证代码改动顺带运行全库抓取、重建或修复。
+- 搜索改动至少验证本地匹配、SQL 结果/计数/排序/分页、索引失效、gzip/304 和 SWR。访问边界改动验证公共资源及私有路径的 GET/HEAD、外站抓取拒绝和任务槽释放。
+- 当前待办包括费用分段边界与 DTO 契约、局部抓取覆盖、场外代码裁决、周/月采样口径、空库迁移、来源水位与历史修订、缓存缺口、更新任务失败可见性、发布快照及页面生命周期。具体状态以优化执行记录为准，不因全量测试通过就宣称审计项全部解决。
+- 新增复杂时间序列存储时参考 [ADR 0002 草案](docs/decisions/0002-parquet-cold-storage-DRAFT.md) 评估 Parquet；尚未实施，不据此直接迁移现有 SQLite 数据。
 
-## 重要约定 / 易错点
+## 已弃与历史
 
-- **不要恢复 .SH/.SZ nav 同步**: 已删, 业务只用场外。`scripts/nav/sync-fund-daily.js` 保留作审计/调试, 但默认不跑。
-- **不要让 sync-fund-basic 覆写重叠字段**: 见上"关键约束"。改回 `INSERT OR REPLACE` 全字段会破坏 crawler-first 裁决。
-- **新增 schema 列**: 在 [scripts/nav/db.js](scripts/nav/db.js) 加 `ensureXxxColumn()` 幂等迁移函数, 不要假设 schema 已有。
-- **新增数据源**: nav 类加 `source` 整数标记 (现有 1=tushare, 2=eastmoney; index_daily 用 3=csindex, 6=custom)。指数同源思路: 见 [docs/data-flow.md § 9](docs/data-flow.md)。
-- **新增 list 排序字段**: 在 [scripts/list-query.js](scripts/list-query.js) `SORT_EXPR` 白名单加, 同时更新前端 [js/pages/list/index.js](js/pages/list/index.js) `parseSortValue` 的 valid 集和 keyMap。
-- **更新数据源时**: 优先看 [docs/data-flow.md](docs/data-flow.md) 流程图, 不要绕开 `apply-merge-rules` 直写 fund_basic。
-- **测试**: `js/domain/*.test.js` 和 `scripts/list-query.test.js` 是纯函数单测, 加新业务函数 / SQL builder 务必带测试。
-- **新加时间序列数据 (K线/股票/复杂指标)**: 优先考虑 Parquet 列存而非塞进 SQLite, 详见 [docs/decisions/0002-parquet-cold-storage-DRAFT.md](docs/decisions/0002-parquet-cold-storage-DRAFT.md)。
-
-## 已弃 / 历史
-
-- `archive/docs/DEPLOY-ORACLE.md` — Oracle Cloud Free 部署文档
-- `archive/docs/cloudflare-migration.md` — D1+R2 边缘存储方案
-- `archive/scripts/build-allfund.js` — 旧 (从 data/funds/*.json 聚合); 用 [scripts/build-allfund-from-db.js](scripts/build-allfund-from-db.js)
-- `archive/scripts/build-search-index.js` — 依赖下线的 `data/funds/*.json`
-- `archive/scripts/check-allfund.js` — 依赖下线的 `allfund.json`
-- `archive/scripts/upload-kv.js` — Cloudflare Workers + KV 全量已弃
-- `scripts/migrate-crawler-to-db.js` — 一次性迁移已完成; 仅作灾备
-- `data/funds/<code>.json` — 旧 crawler 中转; 现 crawler 直写 DB
-- VPS / Cloudflare Workers 部署遗留 (`aliyun-deploy.sh` / `deploy.sh` / `nginx/` / `ecosystem.config.cjs` / `src/worker.js` / `wrangler.toml` / `build-workers.js`) **已删** — 当前只用 CF Tunnel 模式
+- 账本前后端、样式、解析器及测试已删除，`data/portfolio.db*` 忽略规则保留以防旧数据重新入库。
+- `archive/docs/DEPLOY-ORACLE.md`、`archive/docs/cloudflare-migration.md`：旧部署方案。
+- `archive/scripts/build-allfund.js`、`build-search-index.js`、`check-allfund.js`：依赖旧 JSON 中转/胖静态产物；使用当前 DB 构建链路。
+- `archive/scripts/upload-kv.js` 与 VPS/Workers 部署遗留：不属于现部署模式。
+- `scripts/migrate-crawler-to-db.js`：已完成的一次性迁移，仅作灾备资料。
+- `scripts/nav/sync-fund-daily.js` 保留作审计/调试，默认不跑；不要恢复场内基金 NAV 同步。
