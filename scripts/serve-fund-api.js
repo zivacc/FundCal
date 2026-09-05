@@ -9,6 +9,7 @@
  */
 
 import http from 'http';
+import { isLocalManagementRequest } from './local-access.js';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseQuery, InvalidQueryError } from './http-query.js';
@@ -78,6 +79,13 @@ export function createApiServer({
       req.query = parseQuery(req.url || '');
       const urlPath = (req.url || '').split('?')[0];
 
+      if (req.method === 'POST' && /^\/api\/fund\/\d{6}\/crawl\/?$/.test(urlPath) && !isLocalManagementRequest(req)) {
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-store');
+        res.writeHead(403);
+        res.end(JSON.stringify({ error: '抓取仅允许本机直连，请在本机页面操作或运行 crawl 命令' }));
+        return;
+      }
       // 远程拉全量代码（旧行为）
       if (/^\/api\/fund\/all-codes\/?$/.test(urlPath) && req.method === 'GET') {
         serveAllCodes(res);
@@ -108,7 +116,7 @@ export function createApiServer({
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const port = parseInt(process.argv[2], 10) || 3457;
-  createApiServer().listen(port, () => {
+  createApiServer().listen(port, '127.0.0.1', () => {
     console.log(`Fund API: http://localhost:${port}/api/fund/*`);
     console.log(`NAV  API: http://localhost:${port}/api/nav/*`);
   });

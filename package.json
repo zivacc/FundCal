@@ -10,7 +10,7 @@
     "dev": "node scripts/dev-server.js",
     "test": "node --test \"scripts/**/*.test.js\" \"js/**/*.test.js\"",
     "api": "node scripts/serve-fund-api.js 3457",
-    "serve": "npx serve . -p 3456",
+    "serve": "node scripts/serve-static.js 3456",
     "build-feeder-index": "node scripts/build-feeder-index.js",
     "build-fund-stats": "node scripts/build-fund-stats.js",
     "build-allfund": "node scripts/build-allfund-from-db.js",

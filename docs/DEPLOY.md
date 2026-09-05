@@ -26,6 +26,8 @@
 - 静态文件服务 `http://localhost:3456` (浏览器访问入口)
 - API 服务 `http://localhost:3457` (前端自动连接)
 
+两个服务默认只监听 `127.0.0.1`。静态服务仅开放前端 HTML、JS、CSS、图表库、图标及明确列出的公共 JSON，不提供目录浏览；数据库、仓库配置、测试、脚本、日志和原始导入文件不能通过静态端口读取。新增公共资源时更新 `scripts/serve-static.js` 白名单。
+
 ### 单独跑
 
 ```bash
@@ -52,7 +54,9 @@ CF Tunnel 把本机 `3456`/`3457` 端口反代到公网域名 `fc.ziva.cc.cd`，
 - `localhost` / `127.0.0.1` → 直连 `http://localhost:3457/api/fund`
 - 其他域名 (含 `fc.ziva.cc.cd`) → 同源 `/api/fund`，由 Tunnel 路由到本机 API
 
-CF 边缘缓存策略由 Tunnel 上游和 Page Rules 控制（域名级配置, 不在仓库内）。
+CF 边缘缓存策略由 Tunnel 上游和 Page Rules 控制（域名级配置, 不在仓库内）。Tunnel 的 origin 建议明确使用 `http://127.0.0.1:3456` 与 `http://127.0.0.1:3457`。
+
+`POST /api/fund/:code/crawl` 仅允许本机直连：同时校验 loopback、Host、Origin 和代理头；通过 Tunnel 或外站发起的抓取返回 403。远程页面仍可查询公开数据，手动补数据请使用本机页面或 CLI。同代码并发请求合并，最多同时抓取 2 只，超限返回 429。此规则不要求将管理密钥写入前端。
 
 ---
 

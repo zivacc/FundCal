@@ -17,7 +17,7 @@
 import { parseQuery } from './http-query.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { spawn } from 'child_process';
+import { createCrawlRunner, runCrawlerProcess } from './crawl-jobs.js';
 import { pinyin } from 'pinyin-pro';
 import { getDb } from './nav/db.js';
 import { jsonCached } from './nav/http-cache.js';
@@ -52,6 +52,7 @@ function getInitials(text) {
 
 function json(res, status, data) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store');
   res.writeHead(status);
   res.end(JSON.stringify(data));
 }
@@ -481,21 +482,7 @@ function loadCodes(db, sourceFilter) {
   return db.prepare(sql).all(...params).map(r => r.code);
 }
 
-/** 触发 crawl-fund-fee.js 子进程；非阻塞返回 jobId（简化版：等待完成） */
-function runCrawl(code) {
-  return new Promise((resolve) => {
-    const child = spawn(process.execPath,
-      [path.join(__dirname, 'crawl-fund-fee.js'), code],
-      { cwd: ROOT, env: process.env });
-    let stdout = '', stderr = '';
-    child.stdout.on('data', d => stdout += d.toString());
-    child.stderr.on('data', d => stderr += d.toString());
-    child.on('close', (exitCode) => {
-      resolve({ exitCode, stdout, stderr });
-    });
-    setTimeout(() => { try { child.kill(); } catch {} }, 60000);
-  });
-}
+const runCrawl = createCrawlRunner(code => runCrawlerProcess(path.join(__dirname, 'crawl-fund-fee.js'), code, ROOT));
 
 /**
  * NOTE: 历史 `upsertSingleFundFromCrawler` 已删除。`crawl-fund-fee.js` 子进程默认
@@ -526,7 +513,7 @@ export function createFundRouter() {
           // 所以已经被移除，避免 “爬取成功但入 DB 失败：crawler JSON 不存在” 的误报。
           json(res, 200, { ok: true, code, message: '爬取并入 DB 完成' });
         } catch (e) {
-          json(res, 500, { ok: false, code, error: e.message });
+          json(res, e.statusCode === 429 ? 429 : 500, { ok: false, code, error: e.message });
         }
         return true;
       }

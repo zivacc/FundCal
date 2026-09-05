@@ -17,7 +17,7 @@ function run(label, cmd, args, options = {}) {
   const child = spawn(cmd, args, {
     cwd: ROOT,
     stdio: ['ignore', 'pipe', 'pipe'],
-    shell: true,
+    shell: false,
     ...options,
   });
   child.stdout.on('data', (d) => process.stdout.write(`[${label}] ${d}`));
@@ -33,8 +33,8 @@ console.log(`静态文件: http://localhost:${STATIC_PORT}`);
 console.log(`API 服务: http://localhost:${API_PORT}/api/fund/:code/fee`);
 console.log('按 Ctrl+C 停止所有服务\n');
 
-const api = run('API', 'node', ['scripts/serve-fund-api.js', String(API_PORT)]);
-const serve = run('静态', 'npx', ['serve', '.', '-p', String(STATIC_PORT)]);
+const api = run('API', process.execPath, ['scripts/serve-fund-api.js', String(API_PORT)]);
+const serve = run('静态', process.execPath, ['scripts/serve-static.js', String(STATIC_PORT)]);
 
 process.on('SIGINT', () => {
   api.kill();

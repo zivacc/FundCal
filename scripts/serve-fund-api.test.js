@@ -9,14 +9,15 @@ async function startServer(t, routers = {}) {
   t.after(() => new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve())));
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');
-  return path => new Promise((resolve, reject) => {
-    http.get({ hostname: '127.0.0.1', port: server.address().port, path, agent: false }, res => {
+  return (path, options = {}) => new Promise((resolve, reject) => {
+    const req = http.request({ hostname: '127.0.0.1', port: server.address().port, path, agent: false, ...options }, res => {
       let body = '';
       res.setEncoding('utf8');
       res.on('data', chunk => { body += chunk; });
       res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body: JSON.parse(body) }));
       res.on('error', reject);
-    }).on('error', reject);
+    });
+    req.on('error', reject); req.end();
   });
 }
 
@@ -72,4 +73,18 @@ test('lookalike prefixes do not enter fund or NAV routers', async t => {
     assert.equal((await request(path)).status, 404);
   }
   assert.equal(routed, 0);
+});
+
+
+test('HTTP crawl guard rejects a Tunnel or cross-site request before routing', async t => {
+  let routed = 0;
+  const request = await startServer(t, { fundRouter: (req, res) => { routed++; return success(req, res); } });
+  for (const headers of [{ host: 'fc.example' }, { 'cf-connecting-ip': '1.2.3.4' }, { origin: 'https://evil.example' }]) {
+    const response = await request('/api/fund/000001/crawl', { method: 'POST', headers });
+    assert.equal(response.status, 403);
+    assert.equal(response.headers['cache-control'], 'no-store');
+  }
+  assert.equal(routed, 0);
+  assert.equal((await request('/api/fund/000001/crawl', { method: 'POST', headers: { origin: 'http://localhost:3456' } })).status, 200);
+  assert.equal(routed, 1);
 });
