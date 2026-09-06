@@ -15,6 +15,6 @@ export function latestImplicitReference(history, code) {
   return null;
 }
 export function effectiveAnnualFee(fund) {
-  const implicit = fund.includeImplicitFee === true && Number.isFinite(fund.implicitFee) && fund.implicitFee >= 0 ? fund.implicitFee : 0;
+  const implicit = Number.isFinite(fund.implicitFee) && fund.implicitFee >= 0 ? fund.implicitFee : 0;
   return (fund.annualFee ?? 0) + implicit;
 }

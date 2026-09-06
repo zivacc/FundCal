@@ -33,7 +33,6 @@ export function getFundDisplayName(fund) {
   const name = fund && fund.name ? String(fund.name).trim() : '';
   const labels = [];
   if (fund?.__penetrationInfo) labels.push('穿透');
-  if (fund?.includeImplicitFee && Number.isFinite(fund.implicitFee)) labels.push('含隐性估算');
   return (name || '基金') + (labels.length ? ` (${labels.join(' · ')})` : '');
 }
 

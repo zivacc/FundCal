@@ -24,21 +24,23 @@ test('saved references preserve the chosen period and reject a different fund or
   for (const rate of [null, -1, Infinity, '0.3']) assert.equal(normalizeImplicitReference({ ...value, rate }, '004685'), null);
 });
 
-test('implicit fees are opt-in, added once to annual holding costs without changing buy/sell fees', () => {
+test('available implicit fees are automatic, added once to annual holding costs without changing buy/sell fees', () => {
   const fund = { annualFee: .013, buyFee: .001, sellFeeSegments: [{ to: null, rate: .005 }], implicitFee: .004 };
-  assert.equal(effectiveAnnualFee(fund), .013);
-  const before = calcTotalFeeRate(fund, 365);
-  const included = { ...fund, includeImplicitFee: true };
-  assert.ok(Math.abs(calcTotalFeeRate(included, 365) - before - .004) < 1e-10);
-  assert.ok(Math.abs(calcTotalFeeRate(included, 730) - calcTotalFeeRate(fund, 730) - .008) < 1e-10);
-  for (const implicitFee of [null, -1, NaN]) assert.equal(effectiveAnnualFee({ ...included, implicitFee }), .013);
+  assert.equal(effectiveAnnualFee(fund), .017);
+  const without = { ...fund, implicitFee: null };
+  const before = calcTotalFeeRate(without, 365);
+  assert.ok(Math.abs(calcTotalFeeRate(fund, 365) - before - .004) < 1e-10);
+  assert.ok(Math.abs(calcTotalFeeRate(fund, 730) - calcTotalFeeRate(without, 730) - .008) < 1e-10);
+  // 旧快照中的关闭开关不再阻止有效隐性费率计入。
+  assert.equal(effectiveAnnualFee({ ...fund, includeImplicitFee: false }), .017);
+  for (const implicitFee of [null, -1, NaN]) assert.equal(effectiveAnnualFee({ ...fund, implicitFee }), .013);
   assert.equal(fund.annualFee, .013);
 });
 
 test('including implicit fees also updates crossover calculations', () => {
   const a = { name: 'A', annualFee: .01, buyFee: .01, implicitFee: .01 };
   const b = { name: 'B', annualFee: .03 };
-  const original = findCrossoverPoints(a, b, 1000)[0];
+  const original = findCrossoverPoints({ ...a, implicitFee: null }, b, 1000)[0];
   const included = findCrossoverPoints({ ...a, includeImplicitFee: true }, b, 1000)[0];
   assert.ok(included.days > original.days);
 });

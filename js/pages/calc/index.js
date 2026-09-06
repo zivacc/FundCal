@@ -1185,11 +1185,10 @@ function init() {
 async function receiveBasketFunds(items, mode) {
   await initialStateReady;
   const container = document.getElementById('fund-cards');
-  // 未计入测算的晨星后台参考加载不属于用户编辑，不应打断篮子操作。
+  // 晨星后台参考加载不属于用户编辑，不应打断篮子操作。
   const comparableState = () => {
     const state = getStateFromDOM();
-    state.funds = state.funds.map(({ implicitReference, implicitFee, ...fund }) => fund.includeImplicitFee
-      ? { ...fund, implicitReference, implicitFee } : fund);
+    state.funds = state.funds.map(({ implicitReference, implicitFee, includeImplicitFee, ...fund }) => fund);
     return JSON.stringify(state);
   };
   const snapshot = comparableState();

@@ -97,6 +97,8 @@ async function applyToPage(items, mode) {
 function sourceAt(event) {
   const node = event.target.closest?.('#fund-basket-button, [data-basket-drag], [data-basket-row], [data-fund-drag]');
   if (!node) return null;
+  // 画廊卡片正文用于旋转浏览，篮子转移从独立把手开始。
+  if (node.closest('.fund-card-stage') && !event.target.closest('.fund-drag-handle')) return null;
   if (event.target.closest('input, select, textarea, a, label') || event.target.closest('button') && !event.target.closest('.fund-drag-handle, #fund-basket-button, [data-basket-drag]')) return null;
   let items, origin;
   if (node === trigger) { items = store.get(); origin = 'basket'; }

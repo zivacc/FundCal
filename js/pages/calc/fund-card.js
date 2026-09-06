@@ -87,11 +87,11 @@ export function createFundCardFactory({ updateChart, saveState, ensureSearchInde
         <input type="text" class="input-annual-fee" placeholder="1.5">
         <span class="input-unit">%</span>
       </div>
-      <div class="card-implicit">
-        <div class="card-implicit-heading"><span>隐性费率 <small>晨星估算</small></span><strong class="card-implicit-value">—</strong></div>
-        <div class="card-implicit-status" role="status">正在准备历史参考…</div>
-        <div class="card-implicit-actions"><label><input type="checkbox" class="include-implicit-fee" disabled>计入测算</label><a href="#/fund">来源与历史 ↗</a><button type="button" hidden>重试</button></div>
-        <div class="card-implicit-total"></div>
+      <div class="form-row form-row-fee card-implicit">
+        <span class="segment-section-label">隐性年化</span>
+        <button type="button" class="card-implicit-refresh" hidden aria-label="更新晨星参考">↻</button>
+        <button type="button" class="card-implicit-value" disabled>—</button>
+        <span class="input-unit">%</span>
       </div>
       <p class="segment-section-label">卖出费率</p>
       <table class="segments-table">

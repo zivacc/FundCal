@@ -40,7 +40,7 @@ export function getSellFeeRate(holdDays, segments) {
 export function calcTotalFeeRate(fund, holdDays) {
   const buyFee = fund.buyFee ?? 0;
   const sellFee = getSellFeeRate(holdDays, fund.sellFeeSegments ?? []);
-  const annualFee = effectiveAnnualFee(fund); // 显性年化 + 用户选择计入的隐性估算
+  const annualFee = effectiveAnnualFee(fund); // 显性年化 + 已取得的晨星隐性估算
   const dailyFee = (annualFee / 365) * holdDays;
   return buyFee + sellFee + dailyFee;
 }
