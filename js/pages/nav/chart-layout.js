@@ -1,8 +1,8 @@
 /** Shared plot geometry: every panel and the navigator share the same time pixels. */
-export function chartLayout(width, height, subplotCount, { bottomInset = 0 } = {}) {
+export function chartLayout(width, height, subplotCount, { bottomInset = 0, topInset = 0 } = {}) {
   const left = width < 600 ? 64 : 76;
   const right = 32; // Leave room for the final YYYY-MM tick at either viewport size.
-  const top = height < 420 ? 34 : 54, bottom = 82 + bottomInset, gap = height < 420 ? 24 : 40;
+  const top = (height < 420 ? 34 : 54) + topInset, bottom = 82 + bottomInset, gap = height < 420 ? 24 : 40;
   const available = Math.max(1, height - top - bottom - gap * subplotCount);
   const subHeight = subplotCount ? Math.min(120, available * 0.28 / subplotCount) : 0;
   const mainHeight = available - subHeight * subplotCount;

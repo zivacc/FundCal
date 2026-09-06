@@ -461,6 +461,7 @@
 .nav-baseline-panel.is-dragging {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
 }
+.nav-baseline-panel, .nav-range-control-panel, .nav-range-stats-header { touch-action: none; }
 
 /* 统计表 */
 .nav-stats-section {
@@ -638,8 +639,15 @@
 /* 三条竖线把手图标：仅视觉提示拖动方向 */
 .nav-range-grip-bars {
   display: inline-block;
-  width: 10px;
-  height: 12px;
+  width: 44px;
+  height: 28px;
+  border: 0;
+  padding: 0;
+  background-color: transparent;
+  background-size: 10px 12px;
+  background-position: center;
+  background-repeat: no-repeat;
+  cursor: ew-resize;
   background-image: linear-gradient(
     to right,
     var(--text-secondary) 0 1px,

@@ -3,13 +3,13 @@ const PANELS = [
   ['funds', '基金', '搜索、添加或隐藏对比项'],
   ['period', '区间', '选择显示范围，或框选一段进行比较'],
   ['indicators', '指标', '调整主图、副图与坐标模式'],
-  ['stats', '统计', '查看当前范围及选中区间的统计'],
+  ['stats', '统计', '查看当前显示范围的统计'],
   ['tools', '工具', '图表操作与使用提示'],
 ];
 const chevron = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
 const menu = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>';
 
-export function setupNavFullscreen({ onResize, createRange, zoomRange, clearRange, resetBaseline, getBaseline, setBaseline, hasRange, hasData }) {
+export function setupNavFullscreen({ onResize, createRange, zoomRange, clearRange, hasRange, hasData }) {
   const page = document.querySelector('.page-nav');
   const entry = document.getElementById('nav-chart-toolbar-fullscreen');
   const shell = document.createElement('div');
@@ -54,27 +54,12 @@ export function setupNavFullscreen({ onResize, createRange, zoomRange, clearRang
   periodControls.className = 'nav-controls'; pane('period').append(periodControls);
   const indicatorControls = document.createElement('div');
   indicatorControls.className = 'nav-controls'; pane('indicators').append(indicatorControls);
-  const rangeStats = document.createElement('div');
-  groupTitle(pane('stats'), '选中区间');
-  const rangeHint = document.createElement('p');
-  rangeHint.className = 'nav-fs-note'; rangeHint.textContent = '尚未框选区间，可在“区间”中创建选区。';
-  pane('stats').append(rangeHint, rangeStats);
   const rangeActions = document.createElement('div');
   rangeActions.className = 'nav-fs-actions';
   rangeActions.innerHTML = '<button type="button" class="btn btn-secondary" data-action="create-range">框选区间</button><button type="button" class="btn btn-secondary" data-action="zoom-range">放大选区</button><button type="button" class="btn btn-secondary" data-action="clear-range">清除选区</button>';
   groupTitle(pane('period'), '选区比较'); pane('period').append(rangeActions);
-  const baselineControl = document.createElement('div');
-  baselineControl.className = 'nav-fs-baseline';
-  baselineControl.innerHTML = '<label class="nav-fs-section-title" for="nav-fs-baseline-date">收益基准日</label><input type="date" id="nav-fs-baseline-date" class="nav-date-input"><p class="nav-fs-note">留空时自动选择；非交易日取下一数据日。仅收益模式生效。</p>';
-  pane('period').append(baselineControl);
-  const baselineDate = baselineControl.querySelector('input');
-  baselineDate.addEventListener('change', () => {
-    if (baselineDate.checkValidity()) setBaseline(baselineDate.value || null);
-  });
   const toolActions = document.createElement('div'); toolActions.className = 'nav-fs-actions';
   pane('tools').append(toolActions);
-  const reset = document.createElement('button'); reset.type = 'button'; reset.className = 'btn btn-secondary';
-  reset.textContent = '恢复默认基准'; reset.addEventListener('click', resetBaseline); toolActions.append(reset);
   const help = document.createElement('p'); help.className = 'nav-fs-note';
   help.textContent = '电脑：滚轮缩放，右键拖选区间。手机：双指缩放；在“区间”中框选后拖动两侧手柄。点击图表收起面板；Esc 先收起面板，再退出全屏。';
   pane('tools').append(help);
@@ -84,18 +69,13 @@ export function setupNavFullscreen({ onResize, createRange, zoomRange, clearRang
     const anchor = document.createComment('nav-fullscreen-slot');
     node.before(anchor); moved.set(node, anchor); host.appendChild(node);
   }
-  // 图表可能在进入全屏后才首次取数，允许补接后来创建的选区统计节点。
+  // 图表可能在进入全屏后才首次取数，同步操作可用状态。
   function sync() {
     if (!active) return;
-    move(document.getElementById('nav-range-stats-panel'), rangeStats);
-    rangeHint.hidden = hasRange();
     rangeActions.querySelector('[data-action="create-range"]').disabled = !hasData();
     rangeActions.querySelector('[data-action="zoom-range"]').disabled = !hasRange();
     rangeActions.querySelector('[data-action="clear-range"]').disabled = !hasRange();
-    const baseline = getBaseline();
-    baselineDate.min = baseline.min || ''; baselineDate.max = baseline.max || '';
-    baselineDate.disabled = !hasData() || !baseline.enabled;
-    if (document.activeElement !== baselineDate) baselineDate.value = baseline.value || '';
+
   }
   function mount() {
     move(page.querySelector('.container > .nav-toolbar'), fundSearch);

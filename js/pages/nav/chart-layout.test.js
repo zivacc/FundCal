@@ -45,3 +45,14 @@ test('phone dock leaves extra space without shifting shared time axes', () => {
     assert.ok(Math.abs(end(normal) - end(full) - 56) < 1e-9);
   }
 });
+
+test('fullscreen leaves room for chart controls at the top in portrait and landscape', () => {
+  for (const height of [320, 390, 640, 960]) {
+    const { grids } = chartLayout(568, height, 2, { topInset: height < 420 ? 76 : 56, bottomInset: 56 });
+    assert.equal(grids[0].top, 110);
+    for (const grid of grids) {
+      assert.ok(grid.height > 0);
+      assert.ok(grid.top + grid.height <= height - 138 + 1e-9);
+    }
+  }
+});

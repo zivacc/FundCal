@@ -10,10 +10,11 @@
  */
 
 import { setupNavFullscreen } from './fullscreen.js';
+import { ensureBenchmarkSelection, replaceBenchmarkSelection } from './benchmark-selection.js';
 import { createTypeahead } from '../../components/typeahead.js';
 import { fetchNavCompareCached, fetchIndexSearchIndexFromAPI, periodToRange } from '../../data/nav-api.js';
 import { fetchSearchIndexFromAPI } from '../../data/fund-api.js';
-import { BENCHMARK_CANDIDATES, resolveDefaultBenchmark } from '../../core/benchmarks.js';
+import { BENCHMARK_CANDIDATES } from '../../core/benchmarks.js';
 import { detectKind, KIND } from '../../core/code-kind.js';
 
 const MAX_SELECTED = 10;
@@ -397,7 +398,7 @@ function renderChartLegend() {
         ${nameSlot}
         <span class="nav-chart-legend-nav"></span>
         <span class="nav-chart-legend-chg"></span>
-        <button type="button" class="nav-chart-legend-remove" data-action="remove" data-idx="${i}" aria-label="移除该项" title="移除">×</button>
+        ${f.isBenchmark ? `<button type="button" class="nav-chart-benchmark-toggle" aria-label="${hidden ? '显示' : '隐藏'}基准">${hidden ? '显示' : '隐藏'}</button>` : `<button type="button" class="nav-chart-legend-remove" data-action="remove" data-idx="${i}" aria-label="移除该项" title="移除">×</button>`}
       </span>
     `;
   }).join('');
@@ -405,12 +406,34 @@ function renderChartLegend() {
   if (!el.dataset.toggleBound) {
     el.addEventListener('click', onLegendToggleClick);
     el.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onLegendToggleClick(e); }
+      if (e.target === e.target.closest('.nav-chart-legend-item') && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onLegendToggleClick(e); }
     });
     el.addEventListener('change', onBenchmarkSelectChange);
     el.dataset.toggleBound = '1';
   }
   updateChartLegend(null);
+  renderChartBenchmark();
+}
+
+/** 全屏时基准选择也留在图上，和列表共用同一个 selected/hiddenCodes。 */
+function renderChartBenchmark() {
+  let bar = document.getElementById('nav-chart-benchmark');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'nav-chart-benchmark'; bar.className = 'nav-chart-benchmark';
+    document.getElementById('nav-chart-wrap').append(bar);
+    bar.addEventListener('change', onBenchmarkSelectChange);
+    bar.addEventListener('click', event => {
+      if (!event.target.closest('button')) return;
+      const code = getBenchmark();
+      if (state.hiddenCodes.has(code)) state.hiddenCodes.delete(code); else state.hiddenCodes.add(code);
+      renderChartLegend(); renderChart(); persist();
+    });
+  }
+  const code = getBenchmark();
+  const series = state.data?.series?.find(item => item.code === code);
+  const missing = series && !series.navs?.some(Number.isFinite);
+  bar.innerHTML = code ? `<span title="${missing ? '当前基准暂无净值数据，可更换基准' : '比较基准'}">${missing ? '暂无数据' : '基准'}</span>${renderBenchmarkSelect(code)}<button type="button" aria-label="${state.hiddenCodes.has(code) ? '显示' : '隐藏'}基准">${state.hiddenCodes.has(code) ? '显示' : '隐藏'}</button>` : '';
 }
 
 function renderBenchmarkSelect(currentTsCode) {
@@ -550,20 +573,6 @@ function pushSelected({ code, name, kind, isBenchmark = false }) {
   return true;
 }
 
-/**
- * 仅当: 加入的是基金 + 当前还没有任何指数 + 还没有基准时, 注入默认基准.
- * 让用户开局有"基金 vs 默认指数"的对照, 后续可在基准条切换.
- */
-function maybeAutoInjectBenchmark(addedFund) {
-  if (addedFund.kind !== KIND.FUND) return;
-  if (state.selected.some(x => x.kind === KIND.INDEX)) return;
-  if (getBenchmark()) return;
-  const fundMeta = (state.searchIndex || []).find(r => r.code === addedFund.code);
-  const defaultTs = resolveDefaultBenchmark({ fundType: fundMeta?.fundType });
-  const cand = BENCHMARK_CANDIDATES.find(c => c.tsCode === defaultTs && c.available);
-  if (cand) pushSelected({ code: cand.tsCode, name: cand.label, kind: KIND.INDEX, isBenchmark: true });
-}
-
 async function addFund(f) {
   if (state.selected.find(x => x.code === f.code)) return;
   if (state.selected.length >= MAX_SELECTED) {
@@ -572,7 +581,6 @@ async function addFund(f) {
   }
   const kind = f.kind || detectKind(f.code) || KIND.FUND;
   pushSelected({ code: f.code, name: f.name, kind });
-  maybeAutoInjectBenchmark({ code: f.code, kind });
 
   renderChartLegend();
   persist();
@@ -584,17 +592,12 @@ async function setBenchmark(tsCode) {
   if (!tsCode) return;
   const cand = BENCHMARK_CANDIDATES.find(c => c.tsCode === tsCode);
   if (!cand || !cand.available) return;
-  const existingIdx = state.selected.findIndex(x => x.isBenchmark);
-  if (existingIdx >= 0) {
-    if (state.selected[existingIdx].code === tsCode) return;
-    state.selected[existingIdx] = {
-      code: cand.tsCode, name: cand.label, kind: KIND.INDEX,
-      color: state.selected[existingIdx].color, isBenchmark: true,
-    };
-  } else if (!pushSelected({ code: cand.tsCode, name: cand.label, kind: KIND.INDEX, isBenchmark: true })) {
-    alert(`已达 ${MAX_SELECTED} 只上限`);
-    return;
-  }
+  const previous = getBenchmark();
+  if (previous === tsCode) return;
+  const hidden = state.hiddenCodes.has(previous);
+  state.hiddenCodes.delete(previous); state.hiddenCodes.delete(tsCode);
+  if (hidden) state.hiddenCodes.add(tsCode);
+  state.selected = replaceBenchmarkSelection(state.selected, cand);
   renderChartLegend();
   persist();
   await fetchAndRender();
@@ -602,14 +605,11 @@ async function setBenchmark(tsCode) {
 
 function removeFund(idx) {
   const removed = state.selected[idx];
+  if (!removed || removed.isBenchmark) return;
   state.selected.splice(idx, 1);
   state.selected.forEach((f, i) => f.color = COLORS[i % COLORS.length]);
   // 防止再次添加同一基金时继承上次"被隐藏"态
   if (removed && removed.code) state.hiddenCodes.delete(removed.code);
-  // 没有基金后, 基准也跟着撤掉 (避免只剩一条孤零零的指数让人困惑)
-  if (!state.selected.some(x => x.kind !== KIND.INDEX)) {
-    state.selected = state.selected.filter(x => !x.isBenchmark);
-  }
   renderChartLegend();
   persist();
   fetchAndRender();
@@ -957,8 +957,8 @@ function renderChart({ interaction = false } = {}) {
   // 布局：无副图时主图占满；有副图时主图压缩到 56%，副图由自己的 grid 声明接下来。
   // 多副图不调主图高度（进一步的分配算法留到实际需要第二个副图时再做，YAGNI）。
   const dockInset = document.body.classList.contains('is-fullscreen-nav')
-    && window.matchMedia('(max-width: 480px), (max-width: 768px) and (min-height: 501px)').matches ? 56 : 0;
-  const { grids, left, right, fontSize } = chartLayout(chart.getWidth(), chart.getHeight(), activeSubplots.length, { bottomInset: dockInset });
+    && window.matchMedia('(max-width: 768px)').matches ? 56 : 0;
+  const { grids, left, right, fontSize } = chartLayout(chart.getWidth(), chart.getHeight(), activeSubplots.length, { bottomInset: dockInset, topInset: document.body.classList.contains('is-fullscreen-nav') ? (chart.getHeight() < 420 ? 76 : 56) : 0 });
   const shortRange = eIdx - sIdx < 260;
 
   // 主图 X 轴在 DD 副图打开时不显示日期，避免与下方 "回撤" 轴名碰撞
@@ -1253,7 +1253,7 @@ function attachBaselineMarker(chart, allDatesYMD, effectiveBaseline, theme) {
 
 /**
  * 注入 baseline 拖动 panel（一次性）：一个绝对定位的小色标，挂在 .nav-chart-wrap
- * 内部。DOM-level mousedown/move/up 驱动；松手时 convertFromPixel 反解出日期，
+ * 内部。DOM-level pointerdown/move/up 驱动；松手时按时间轴比例反解日期，
  * 写入 state.baseline 并 renderChart。
  */
 function ensureBaselinePanel() {
@@ -1273,10 +1273,10 @@ function ensureBaselinePanel() {
   wrap.appendChild(panel);
 
   // 复位按钮：清掉手动 baseline，让自动兜底逻辑接管。
-  // mousedown 级别阻断冒泡，否则会把整个 panel 拉进拖动状态。
+  // pointerdown 级别阻断冒泡，否则会把整个 panel 拉进拖动状态。
   const resetBtn = panel.querySelector('.nav-baseline-panel-reset');
   if (resetBtn) {
-    resetBtn.addEventListener('mousedown', (e) => e.stopPropagation());
+    resetBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
     resetBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       state.baseline = null;
@@ -1305,7 +1305,7 @@ function ensureBaselinePanel() {
     };
   };
 
-  let dragging = false;
+  let dragging = false, pointerId = null;
   let dragStartClientX = 0;
   let dragStartLeft = 0;
   // 拖动期间缓存的 bounds —— 避免每次 mousemove 调 ECharts coordinateSystem
@@ -1325,21 +1325,23 @@ function ensureBaselinePanel() {
     pendingNewLeft = null;
   };
 
-  panel.addEventListener('mousedown', (e) => {
+  panel.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0 || dragging) return;
+    pointerId = e.pointerId; panel.setPointerCapture(pointerId);
     dragging = true;
     dragStartClientX = e.clientX;
     dragStartLeft = Number(panel.dataset.markerX || panel.style.left.replace('px', ''));
     dragBounds = getBounds();   // 一次性测量，拖动期间复用
     panel.classList.add('is-dragging');
-    // 关掉当前可能还在显示的 tooltip —— panel mousedown 在 canvas 之外，
+    // 关掉当前可能还在显示的 tooltip —— panel pointerdown 在 canvas 之外，
     // ECharts 自己的隐藏逻辑不会跑；下面 mousemove 里的 setOption 会触发
     // tooltip._keepShow 去重新测量 DOM，目标元素此刻是 null 就会 crash。
     try { state.chart && state.chart.dispatchAction({ type: 'hideTip' }); } catch (_) {}
     e.preventDefault();
   });
 
-  document.addEventListener('mousemove', (e) => {
-    if (!dragging) return;
+  document.addEventListener('pointermove', (e) => {
+    if (!dragging || e.pointerId !== pointerId) return;
     const b = dragBounds;
     if (!b) return;
     const dx = e.clientX - dragStartClientX;
@@ -1353,14 +1355,16 @@ function ensureBaselinePanel() {
     if (!rafId) rafId = requestAnimationFrame(flushDragFrame);
   });
 
-  document.addEventListener('mouseup', () => {
-    if (!dragging) return;
+  document.addEventListener('pointerup', (e) => {
+    if (!dragging || e.pointerId !== pointerId) return;
     dragging = false;
+    if (panel.hasPointerCapture(pointerId)) panel.releasePointerCapture(pointerId);
+    pointerId = null;
     panel.classList.remove('is-dragging');
     // 取消尚未跑的 rAF（避免松手后还有一帧延迟刷竖线）
     if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
     pendingNewLeft = null;
-    // 用 mouseup 时实测的 bounds 兜底（页面若在拖动中滚动过，缓存可能略偏）
+    // 用 pointerup 时实测的 bounds 兜底（页面若在拖动中滚动过，缓存可能略偏）
     const b = getBounds() || dragBounds;
     dragBounds = null;
     if (!b || !state.chart || !state.data) return;
@@ -1383,6 +1387,12 @@ function ensureBaselinePanel() {
     if (!dropISO) return;
     state.baseline = dropISO;
     renderChart();
+  });
+  panel.addEventListener('pointercancel', () => {
+    dragging = false; pointerId = null;
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = 0; pendingNewLeft = null; panel.classList.remove('is-dragging');
+    if (state.data) renderChart();
   });
 }
 
@@ -1476,7 +1486,8 @@ function setupEvents() {
 
   // 清空
   document.getElementById('nav-clear-funds')?.addEventListener('click', () => {
-    state.selected = [];
+    state.selected = state.selected.filter(item => item.isBenchmark);
+    state.hiddenCodes = new Set([...state.hiddenCodes].filter(code => code === getBenchmark()));
     state.baseline = null;
     renderChartLegend();
     persist();
@@ -1596,8 +1607,8 @@ function setupEvents() {
  *    overlay 矩形只是视觉表现，每次 renderChart / dataZoom 后由 syncPersistentRange()
  *    根据当前 gridRect + dataZoom 窗口重新算像素位置。
  *  - 控制 panel (nav-range-control-panel)：贴在 overlay 顶部居中，外框 accent 主题色，
- *    内含拖动把手 + ⊞/× 按钮。mousedown 命中按钮时短路，不触发拖动；
- *    其它区域 mousedown → 整段区间平移（类似基准 marker 的 DOM 拖动模式）。
+ *    内含拖动把手 + ⊞/× 按钮。pointerdown 命中按钮时短路，不触发拖动；
+ *    其它区域 pointerdown → 整段区间平移（类似基准 marker 的 DOM 拖动模式）。
  *  - 统计 panel (nav-range-stats-panel)：抓 header 自由拖动；拖过一次后位置锁定
  *    (panelLeft/panelTop)，图表刷新不会再自动重定位，直到下一次开新选区。
  *  - 区间变化（创建 / 平移）→ showPersistentRangeStats() 立刻重算 + 重渲染内容。
@@ -1691,19 +1702,33 @@ function ensureRangeOverlay() {
     handle.title = `${edge === 'start' ? '起点' : '终点'}：拖动修改，方向键微调`;
     handle.hidden = true;
     el.appendChild(handle);
-    setupRangeBoundary(handle, edge);
+    setupRangeBoundary(handle);
   }
   wrap.appendChild(el);
   return el;
 }
 
-function setupRangeBoundary(handle, edge) {
+function setRangeHandleEdge(handle, edge) {
+  handle.dataset.edge = edge;
+  handle.classList.toggle('nav-range-edge-start', edge === 'start');
+  handle.classList.toggle('nav-range-edge-end', edge === 'end');
+  handle.setAttribute('aria-label', edge === 'start' ? '调整区间起点' : '调整区间终点');
+  handle.title = '拖动可越过另一端；方向键微调';
+}
+
+function setupRangeBoundary(handle) {
   let pointer = null, frame = 0, lastX = 0, original;
   const applyTarget = target => {
     const dates = state._renderCache?.allDates || collectAllDatesYMD(state.data);
+    const edge = handle.dataset.edge;
     const next = resizeRangeBoundary(rangeSel.sIx, rangeSel.eIx, edge, target, dates?.length || 0);
     if (!next || next.sIx === rangeSel.sIx && next.eIx === rangeSel.eIx) return;
-    Object.assign(rangeSel, next);
+    if (next.activeEdge !== edge) {
+      const other = handle.parentElement.querySelector(`[data-edge="${next.activeEdge}"]`);
+      setRangeHandleEdge(other, edge);
+      setRangeHandleEdge(handle, next.activeEdge);
+    }
+    rangeSel.sIx = next.sIx; rangeSel.eIx = next.eIx;
     syncPersistentRange();
     showPersistentRangeStats();
   };
@@ -1716,7 +1741,7 @@ function setupRangeBoundary(handle, edge) {
   handle.addEventListener('pointerdown', e => {
     if (e.button !== 0 || rangeSel.sIx == null || pointer != null) return;
     e.preventDefault(); e.stopPropagation();
-    original = { sIx: rangeSel.sIx, eIx: rangeSel.eIx };
+    original = { sIx: rangeSel.sIx, eIx: rangeSel.eIx, edge: handle.dataset.edge };
     pointer = e.pointerId; lastX = e.clientX;
     rangeSel.phase = 'resizing';
     handle.setPointerCapture(pointer);
@@ -1733,9 +1758,14 @@ function setupRangeBoundary(handle, edge) {
     if (e.pointerId !== pointer) return;
     if (frame) cancelAnimationFrame(frame);
     frame = 0;
-    // Flush mouseup coordinates even if the final animation frame has not run yet.
+    // Flush pointerup coordinates even if the final animation frame has not run yet.
     if (rangeSel.phase === 'resizing') {
-      if (cancel) Object.assign(rangeSel, original);
+      if (cancel) {
+        rangeSel.sIx = original.sIx; rangeSel.eIx = original.eIx;
+        const other = [...handle.parentElement.children].find(node => node !== handle);
+        setRangeHandleEdge(other, original.edge === 'start' ? 'end' : 'start');
+        setRangeHandleEdge(handle, original.edge);
+      }
       else applyPointer(e.clientX);
       rangeSel.phase = 'resting';
       syncPersistentRange(); showPersistentRangeStats();
@@ -1752,7 +1782,7 @@ function setupRangeBoundary(handle, edge) {
     if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
     e.preventDefault(); e.stopPropagation();
     const dates = state._renderCache?.allDates || [];
-    const current = edge === 'start' ? rangeSel.sIx : rangeSel.eIx;
+    const current = handle.dataset.edge === 'start' ? rangeSel.sIx : rangeSel.eIx;
     const target = e.key === 'Home' ? 0 : e.key === 'End' ? dates.length - 1
       : current + (e.key === 'ArrowLeft' ? -1 : 1) * (e.shiftKey ? 10 : 1);
     applyTarget(target);
@@ -1769,22 +1799,33 @@ function ensureRangeControlPanel() {
   panel.className = 'nav-range-control-panel';
   panel.hidden = true;
   panel.innerHTML = `
-    <span class="nav-range-grip-bars" aria-hidden="true" title="拖动以移动区间"></span>
+    <button type="button" class="nav-range-grip-bars" aria-label="移动选中区间" title="拖动以移动区间，方向键微调"></button>
     <button type="button" class="nav-range-ctrl-btn" data-action="zoom" title="放大到该区域">⊞</button>
     <button type="button" class="nav-range-ctrl-btn" data-action="close" title="关闭">×</button>
   `;
   wrap.appendChild(panel);
+  panel.addEventListener('keydown', e => {
+    if (!e.target.closest('.nav-range-grip-bars') || !['ArrowLeft', 'ArrowRight'].includes(e.key)) return;
+    if (rangeSel.sIx == null || rangeSel.eIx == null) return;
+    e.preventDefault(); e.stopPropagation();
+    const last = (rangeDates()?.length || 0) - 1;
+    const requested = (e.key === 'ArrowLeft' ? -1 : 1) * (e.shiftKey ? 10 : 1);
+    const delta = Math.max(-rangeSel.sIx, Math.min(last - rangeSel.eIx, requested));
+    rangeSel.sIx += delta; rangeSel.eIx += delta;
+    syncPersistentRange(); showPersistentRangeStats();
+  });
   panel.addEventListener('click', (e) => {
     const btn = e.target.closest('.nav-range-ctrl-btn');
     if (!btn) return;
     if (btn.dataset.action === 'close') clearPersistentRange();
     else if (btn.dataset.action === 'zoom') zoomToPersistentRange();
   });
-  panel.addEventListener('mousedown', (e) => {
+  panel.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return;
     // 命中按钮 → 不启动拖动（让 click 自然触发）
     if (e.target.closest('.nav-range-ctrl-btn')) return;
     if (rangeSel.sIx == null || rangeSel.eIx == null) return;
+    panel.setPointerCapture(e.pointerId);
     rangeSel.phase = 'moving';
     rangeSel.dragStartClientX = e.clientX;
     rangeSel.origSIx = rangeSel.sIx;
@@ -1806,14 +1847,14 @@ function ensureRangeStatsPanel() {
   panel.className = 'nav-range-stats-panel';
   panel.hidden = true;
   wrap.appendChild(panel);
-  // 抓 header 拖 panel；innerHTML 会被反复替换，但 mousedown 挂在 panel 本体
-  panel.addEventListener('mousedown', (e) => {
+  // 抓 header 拖 panel；innerHTML 会被反复替换，但 pointerdown 挂在 panel 本体
+  panel.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return;
-    if (document.body.classList.contains('is-fullscreen-nav')) return;
     const header = e.target.closest('.nav-range-stats-header');
     if (!header) return;
     if (e.target.closest('.nav-range-stats-btn')) return;
     const pR = panel.getBoundingClientRect();
+    panel.setPointerCapture(e.pointerId);
     rangeSel.phase = 'panel-dragging';
     rangeSel.panelDragDX = e.clientX - pR.left;
     rangeSel.panelDragDY = e.clientY - pR.top;
@@ -1874,12 +1915,13 @@ function setupRangeSelection() {
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
   // 初始右键拖选：开始
-  canvas.addEventListener('mousedown', (e) => {
+  canvas.addEventListener('pointerdown', (e) => {
     if (e.button !== 2) return;
     e.preventDefault();
     clearPersistentRange();
     const cR = canvas.getBoundingClientRect();
     const wR = wrap.getBoundingClientRect();
+    canvas.setPointerCapture(e.pointerId);
     rangeSel.phase = 'creating';
     rangeSel.startPx = e.clientX - cR.left;
     rangeSel.curPx = rangeSel.startPx;
@@ -1894,7 +1936,7 @@ function setupRangeSelection() {
   // 较重操作，必须节流，否则一次拖动几百毫秒堆积上千次回调会卡得明显。
   let _rangeRafScheduled = false;
   let _rangeLastEvt = null;
-  document.addEventListener('mousemove', (e) => {
+  document.addEventListener('pointermove', (e) => {
     if (rangeSel.phase === 'creating') {
       const cR = canvas.getBoundingClientRect();
       rangeSel.curPx = Math.max(0, Math.min(cR.width, e.clientX - cR.left));
@@ -1915,7 +1957,17 @@ function setupRangeSelection() {
     });
   });
 
-  document.addEventListener('mouseup', () => {
+  document.addEventListener('pointercancel', () => {
+    if (rangeSel.phase === 'creating') clearPersistentRange();
+    else if (rangeSel.phase === 'moving' || rangeSel.phase === 'panel-dragging') {
+      if (rangeSel.phase === 'moving') { rangeSel.sIx = rangeSel.origSIx; rangeSel.eIx = rangeSel.origEIx; }
+      rangeSel.phase = 'resting'; syncPersistentRange(); showPersistentRangeStats();
+      document.querySelectorAll('.nav-range-control-panel, .nav-range-stats-panel').forEach(node => node.classList.remove('is-dragging'));
+    }
+  });
+  document.addEventListener('pointerup', e => {
+    if (rangeSel.phase === 'moving') onControlPanelMove(e);
+    if (rangeSel.phase === 'panel-dragging') onStatsPanelMove(e);
     if (rangeSel.phase === 'creating') {
       const dx = Math.abs(rangeSel.curPx - rangeSel.startPx);
       if (dx < 5) { clearPersistentRange(); rangeSel.phase = 'idle'; return; }
@@ -2047,8 +2099,8 @@ function syncPersistentRange() {
         if (!h) continue;
         // A clipped edge is not the actual endpoint; don't offer a misleading drag target.
         h.hidden = px < gLeft - 0.5 || px > gRight + 0.5;
-        h.setAttribute('aria-valuemin', String(edge === 'start' ? 0 : rangeSel.sIx + 1));
-        h.setAttribute('aria-valuemax', String(edge === 'start' ? rangeSel.eIx - 1 : dates.length - 1));
+        h.setAttribute('aria-valuemin', '0');
+        h.setAttribute('aria-valuemax', String(dates.length - 1));
         h.setAttribute('aria-valuenow', String(ix));
         h.setAttribute('aria-valuetext', ymdToISO(dates[ix]));
       }
@@ -2304,12 +2356,6 @@ function setupChartToolbar() {
     createRange: createDefaultRange,
     zoomRange: zoomToPersistentRange,
     clearRange: clearPersistentRange,
-    resetBaseline: () => { state.baseline = null; persist(); if (state.data) renderChart(); },
-    getBaseline: () => ({
-      value: state.baseline >= state.viewStart && state.baseline <= state.viewEnd ? state.baseline : null,
-      min: state.viewStart, max: state.viewEnd, enabled: state.valueMode === 'pct',
-    }),
-    setBaseline: value => { state.baseline = value; persist(); if (state.data) renderChart(); },
     hasRange: () => rangeSel.sIx != null && rangeSel.eIx != null,
     hasData: () => !!state.chart && !!state.data?.series?.length,
   });
@@ -2317,6 +2363,8 @@ function setupChartToolbar() {
 
 export function pageInit() {
   loadPersistedState();
+  state.selected = ensureBenchmarkSelection(state.selected).map((item, i) => ({ ...item, color: item.color || COLORS[i % COLORS.length] }));
+  persist();
   // 交易日历：后台预热，渲染路径里会 await 同一个 Promise，不会重复 fetch
   loadTradeCalendar();
   setupEvents();

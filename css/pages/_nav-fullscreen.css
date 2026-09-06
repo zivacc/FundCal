@@ -28,10 +28,20 @@ body.is-fullscreen-nav .nav-chart-wrap {
   border-radius: 0;
 }
 body.is-fullscreen-nav .nav-chart-canvas { height: 100% !important; min-height: 0; }
-/* 标记线/选区手柄仍在图上，文字和操作移到控制面板。 */
-body.is-fullscreen-nav .nav-chart-wrap > .nav-baseline-panel,
-body.is-fullscreen-nav .nav-chart-wrap > .nav-range-control-panel,
-body.is-fullscreen-nav .nav-chart-wrap > .nav-range-stats-panel { display: none !important; }
+/* 基准与选区始终在图表上操作，面板开合不影响它们。 */
+.nav-chart-benchmark { display: none; }
+body.is-fullscreen-nav .nav-chart-benchmark {
+  position: absolute; top: 8px; right: 100px; z-index: 20;
+  display: flex; align-items: center; gap: 6px;
+  max-width: min(300px, calc(100% - 112px)); min-height: 44px;
+  padding: 0 8px; border: 1px solid var(--rule-strong);
+  border-radius: 12px; background: var(--bg-raised); font-size: 12px;
+}
+.nav-chart-benchmark > span { flex-shrink: 0; }
+.nav-chart-benchmark .nav-chart-legend-bm-select { min-width: 0; width: 150px; max-width: 100%; font-size: 14px; }
+.nav-chart-benchmark button, .nav-chart-benchmark-toggle { flex-shrink: 0; background: transparent; border: 0; color: var(--accent); cursor: pointer; min-height: 36px; }
+body.is-fullscreen-nav .nav-range-stats-panel { overflow: auto; min-width: 0; max-height: 40%; }
+body.is-fullscreen-nav .nav-range-stats-title { white-space: normal; }
 
 .nav-fs-ui {
   position: absolute;
@@ -148,19 +158,16 @@ body.is-fullscreen-nav .nav-chart-wrap > .nav-range-stats-panel { display: none 
 .nav-fs-pane .nav-chart-legend-nav { grid-column: 3; grid-row: 2; font-size: 12px; }
 .nav-fs-pane .nav-chart-legend-chg { grid-column: 2 / 4; grid-row: 3; text-align: left; margin: 0; }
 .nav-fs-pane .nav-chart-legend-remove { grid-column: 4; grid-row: 1 / 4; width: 44px; height: 44px; margin: 0; }
+.nav-fs-pane .nav-chart-benchmark-toggle { grid-column: 4; grid-row: 1 / 4; padding: 0; }
 .nav-fs-actions { display: flex; flex-wrap: wrap; gap: 10px; }
-.nav-fs-baseline label { display: block; }
-.nav-fs-baseline .nav-date-input { width: 100%; }
 .nav-fs-actions .nav-chart-toolbar-btn { width: auto; padding: 8px 12px; gap: 8px; }
 .nav-fs-actions .nav-chart-toolbar-btn::after { content: attr(aria-label); font-size: 13px; }
 .nav-fs-pane .nav-stats-section { margin-top: 20px; }
 .nav-fs-pane .nav-stats-title { font-size: 14px; }
 .nav-fs-pane .nav-stats-table-wrap { max-width: 100%; overflow: auto; }
-.nav-fs-pane .nav-range-stats-panel { position: static !important; width: 100%; min-width: 0; max-width: 100%; max-height: none; margin: 0 0 16px; box-shadow: none; overflow: auto; }
-.nav-fs-pane .nav-range-stats-header { cursor: default; }
 
 /* 手机竖屏：操作条放在拇指区，面板从下方展开；横屏沿用顶部操作条。 */
-@media (max-width: 480px), (max-width: 768px) and (min-height: 501px) {
+@media (max-width: 768px) {
   .nav-fs-dock {
     top: auto;
     bottom: calc(8px + env(safe-area-inset-bottom, 0px));
