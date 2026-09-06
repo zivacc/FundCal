@@ -9,6 +9,7 @@
  * - data/fund-api.js ：复用搜索索引接口
  */
 
+import { setupNavFullscreen } from './fullscreen.js';
 import { createTypeahead } from '../../components/typeahead.js';
 import { fetchNavCompareCached, fetchIndexSearchIndexFromAPI, periodToRange } from '../../data/nav-api.js';
 import { fetchSearchIndexFromAPI } from '../../data/fund-api.js';
@@ -83,6 +84,8 @@ const state = {
 };
 
 /* ========== 持久化（localStorage）========== */
+
+let navFullscreen = null;
 
 const STORAGE_KEY = 'nav-compare-state';
 const STORAGE_VERSION = 1;
@@ -710,6 +713,7 @@ function ensureChart() {
   resizeObserver.observe(canvas);
   ensureBaselinePanel();
   setupRangeSelection();
+  navFullscreen?.sync();
   // 注：dataZoom 事件不在这里挂；那是 renderChart 内的 'datazoom' 处理器的活，
   // 在那里同时更新 _currentDataZoom 快照并同步持久区间，避免和 chart.off('datazoom') 起冲突。
 
@@ -952,7 +956,9 @@ function renderChart({ interaction = false } = {}) {
 
   // 布局：无副图时主图占满；有副图时主图压缩到 56%，副图由自己的 grid 声明接下来。
   // 多副图不调主图高度（进一步的分配算法留到实际需要第二个副图时再做，YAGNI）。
-  const { grids, left, right, fontSize } = chartLayout(chart.getWidth(), chart.getHeight(), activeSubplots.length);
+  const dockInset = document.body.classList.contains('is-fullscreen-nav')
+    && window.matchMedia('(max-width: 480px), (max-width: 768px) and (min-height: 501px)').matches ? 56 : 0;
+  const { grids, left, right, fontSize } = chartLayout(chart.getWidth(), chart.getHeight(), activeSubplots.length, { bottomInset: dockInset });
   const shortRange = eIdx - sIdx < 260;
 
   // 主图 X 轴在 DD 副图打开时不显示日期，避免与下方 "回撤" 轴名碰撞
@@ -1018,6 +1024,7 @@ function renderChart({ interaction = false } = {}) {
     Object.assign(axis, niceAxisBounds(bounds.min, 0, 'nav', 3));
   });
 
+  navFullscreen?.sync();
   const option = {
     backgroundColor: 'transparent',
     animation: false,
@@ -1073,7 +1080,7 @@ function renderChart({ interaction = false } = {}) {
           realtime: true, throttle: 32, left, right, showDetail: false,
           start: startPct, end: endPct,
           minValueSpan,
-          height: 22, bottom: 12, filterMode: 'none',
+          height: 22, bottom: 12 + dockInset, filterMode: 'none',
           backgroundColor: theme.bgSubtle,
           dataBackground: { lineStyle: { color: theme.text3, opacity: 0.5 }, areaStyle: { color: theme.text3, opacity: 0.15 } },
           selectedDataBackground: { lineStyle: { color: theme.accent }, areaStyle: { color: theme.accent, opacity: 0.25 } },
@@ -1802,6 +1809,7 @@ function ensureRangeStatsPanel() {
   // 抓 header 拖 panel；innerHTML 会被反复替换，但 mousedown 挂在 panel 本体
   panel.addEventListener('mousedown', (e) => {
     if (e.button !== 0) return;
+    if (document.body.classList.contains('is-fullscreen-nav')) return;
     const header = e.target.closest('.nav-range-stats-header');
     if (!header) return;
     if (e.target.closest('.nav-range-stats-btn')) return;
@@ -1835,6 +1843,16 @@ function ensureRangeStatsPanel() {
   return panel;
 }
 
+function createDefaultRange() {
+  const b = rangeGetBounds();
+  if (!b) return;
+  clearPersistentRange();
+  rangeSel.startPx = b.gridRect.x + b.gridRect.width * 0.25;
+  rangeSel.curPx = b.gridRect.x + b.gridRect.width * 0.75;
+  finalizeCreation();
+  document.querySelector('.nav-range-edge-start')?.focus({ preventScroll: true });
+}
+
 function setupRangeSelection() {
   const canvas = document.getElementById('nav-chart-canvas');
   const wrap = document.getElementById('nav-chart-wrap');
@@ -1849,14 +1867,8 @@ function setupRangeSelection() {
   canvas.setAttribute('aria-label', '净值比较图；右键拖选区间，或按 Shift+F10 创建区间后调整边界');
   canvas.addEventListener('keydown', e => {
     if (e.key !== 'ContextMenu' && !(e.shiftKey && e.key === 'F10')) return;
-    const b = rangeGetBounds();
-    if (!b) return;
     e.preventDefault();
-    clearPersistentRange();
-    rangeSel.startPx = b.gridRect.x + b.gridRect.width * 0.25;
-    rangeSel.curPx = b.gridRect.x + b.gridRect.width * 0.75;
-    finalizeCreation();
-    document.querySelector('.nav-range-edge-start')?.focus({ preventScroll: true });
+    createDefaultRange();
   });
 
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -2069,6 +2081,7 @@ function clearPersistentRange() {
   rangeSel.phase = 'idle';
   rangeSel.sIx = null;
   rangeSel.eIx = null;
+  navFullscreen?.sync();
   rangeSel.panelLeft = null;
   rangeSel.panelTop = null;
   const overlay = document.getElementById('nav-range-select-overlay');
@@ -2099,6 +2112,7 @@ function minIcon(minimized) {
 }
 
 function showPersistentRangeStats() {
+  navFullscreen?.sync();
   if (!state.chart || !state.data) return;
   if (rangeSel.sIx == null || rangeSel.eIx == null) return;
 
@@ -2281,52 +2295,23 @@ function setupChartToolbar() {
     });
   }
 
-  const fullscreenBtn = document.getElementById('nav-chart-toolbar-fullscreen');
-  if (fullscreenBtn && !fullscreenBtn.dataset.bound) {
-    fullscreenBtn.dataset.bound = '1';
-    fullscreenBtn.addEventListener('click', () => toggleNavFullscreen());
-  }
-
-  // Esc 退出 + 路由切走时自动退出：document 级只挂一次
-  if (!document.body.dataset.navFullscreenEscBound) {
-    document.body.dataset.navFullscreenEscBound = '1';
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && document.body.classList.contains('is-fullscreen-nav')) {
-        toggleNavFullscreen(false);
-      }
-    });
-    window.addEventListener('hashchange', () => {
-      // 离开 #/nav 时若还挂着全屏态，清掉—— overlay 不能遮其它页面
-      if (!/^#\/nav(\/|$)/.test(window.location.hash)
-          && document.body.classList.contains('is-fullscreen-nav')) {
-        toggleNavFullscreen(false);
-      }
-    });
-  }
-}
-
-/**
- * 切换 nav 页全屏。force=true/false 强制进/退，undefined=toggle。
- * 切换后 rAF×2 再 chart.resize() —— 一帧让 grid 布局 reflow，下一帧 ECharts 按新尺寸重绘。
- */
-function toggleNavFullscreen(force) {
-  const body = document.body;
-  const btn = document.getElementById('nav-chart-toolbar-fullscreen');
-  const willEnter = force !== undefined ? !!force : !body.classList.contains('is-fullscreen-nav');
-  body.classList.toggle('is-fullscreen-nav', willEnter);
-  if (btn) {
-    btn.classList.toggle('is-active', willEnter);
-    btn.setAttribute('aria-pressed', willEnter ? 'true' : 'false');
-    btn.title = willEnter ? '退出全屏' : '全屏';
-    btn.setAttribute('aria-label', willEnter ? '退出全屏' : '全屏');
-  }
-  // 让 grid 布局生效后再 resize chart，否则 ECharts 拿到的还是旧尺寸
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      try { state.chart && state.chart.resize(); } catch (_) {}
-      // 区间选区 overlay 像素位置依赖 canvas 尺寸，resize 后同步
-      try { syncPersistentRange(); } catch (_) {}
-    });
+  if (!navFullscreen) navFullscreen = setupNavFullscreen({
+    onResize: () => {
+      state.chart?.resize();
+      if (state.data) renderChart();
+      syncPersistentRange();
+    },
+    createRange: createDefaultRange,
+    zoomRange: zoomToPersistentRange,
+    clearRange: clearPersistentRange,
+    resetBaseline: () => { state.baseline = null; persist(); if (state.data) renderChart(); },
+    getBaseline: () => ({
+      value: state.baseline >= state.viewStart && state.baseline <= state.viewEnd ? state.baseline : null,
+      min: state.viewStart, max: state.viewEnd, enabled: state.valueMode === 'pct',
+    }),
+    setBaseline: value => { state.baseline = value; persist(); if (state.data) renderChart(); },
+    hasRange: () => rangeSel.sIx != null && rangeSel.eIx != null,
+    hasData: () => !!state.chart && !!state.data?.series?.length,
   });
 }
 
