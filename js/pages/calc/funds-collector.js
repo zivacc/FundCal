@@ -21,15 +21,20 @@ export function syncCardColors(funds) {
   const cards = document.querySelectorAll('.fund-card');
   cards.forEach((card, i) => {
     const dot = card.querySelector('.color-dot');
-    if (dot && funds[i]) dot.style.background = funds[i].color;
+    if (dot && funds[i]) {
+      dot.style.background = funds[i].color;
+      card.style.setProperty('--card-accent', funds[i].color);
+    }
   });
 }
 
 /** 图表与悬浮窗中显示的基金名：已穿透的联接基金后加「(穿透)」标注 */
 export function getFundDisplayName(fund) {
   const name = fund && fund.name ? String(fund.name).trim() : '';
-  if (fund && fund.__penetrationInfo) return name ? name + ' (穿透)' : '(穿透)';
-  return name || '基金';
+  const labels = [];
+  if (fund?.__penetrationInfo) labels.push('穿透');
+  if (fund?.includeImplicitFee && Number.isFinite(fund.implicitFee)) labels.push('含隐性估算');
+  return (name || '基金') + (labels.length ? ` (${labels.join(' · ')})` : '');
 }
 
 /** 联接/母基金索引缓存 */

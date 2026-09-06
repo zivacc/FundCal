@@ -1,5 +1,7 @@
 import { registerFundSource, registerFundReceiver, notifyFundSelection, prepareFundTransfer, fundDragHandle } from '../../core/fund-transfer.js';
 import { normalizeFundRefs } from '../../data/basket-store.js';
+import { readCardImplicitFee } from './implicit-fee.js';
+import { setupCardDeck } from './card-deck.js';
 /**
  * 基金费率计算器 - 主应用
  */
@@ -76,7 +78,7 @@ function readFundFromCard(card) {
     }
   });
   segments.sort((a, b) => (a.to ?? Infinity) - (b.to ?? Infinity));
-  const fund = { name, buyFee, _rawBuyFee, sellFeeSegments: segments, annualFee };
+  const fund = { name, buyFee, _rawBuyFee, sellFeeSegments: segments, annualFee, ...readCardImplicitFee(card) };
   if (code) fund.code = code;
   return fund;
 }
@@ -567,7 +569,7 @@ async function updateChart() {
     return;
   }
 
-  syncCardColors(funds);
+  syncCardColors(allFunds);
 
   const skipFirst7 = getSkipFirst7();
   const defaultMinDay = skipFirst7 ? 8 : 0;
@@ -1183,12 +1185,19 @@ function init() {
 async function receiveBasketFunds(items, mode) {
   await initialStateReady;
   const container = document.getElementById('fund-cards');
-  const snapshot = JSON.stringify(getStateFromDOM());
+  // 未计入测算的晨星后台参考加载不属于用户编辑，不应打断篮子操作。
+  const comparableState = () => {
+    const state = getStateFromDOM();
+    state.funds = state.funds.map(({ implicitReference, implicitFee, ...fund }) => fund.includeImplicitFee
+      ? { ...fund, implicitReference, implicitFee } : fund);
+    return JSON.stringify(state);
+  };
+  const snapshot = comparableState();
   const present = new Set([...container.querySelectorAll('.fund-card')].map(card => card.dataset.fundCode));
   const incoming = normalizeFundRefs(items).filter(item => mode === 'replace' || !present.has(item.code));
   if (!incoming.length) return 0;
   const payloads = await prepareFundTransfer(incoming, item => fetchFundFeeFromAPI(item.code));
-  if (snapshot !== JSON.stringify(getStateFromDOM())) throw new Error('页面基金或设置已变化，请重新操作');
+  if (snapshot !== comparableState()) throw new Error('页面基金或设置已变化，请重新操作');
   const offset = mode === 'replace' ? 0 : container.children.length;
   const cards = payloads.map((payload, i) => createFundCard(offset + i, getColorForIndex(offset + i), { ...payload, code: incoming[i].code }));
   if (mode === 'replace') container.replaceChildren(...cards); else container.append(...cards);
@@ -1198,6 +1207,7 @@ async function receiveBasketFunds(items, mode) {
 
 export function pageInit() {
   init();
+  setupCardDeck();
   registerFundSource('calc-cards', 'calc', () => [...document.querySelectorAll('.fund-card')].map(card => ({ code: card.dataset.fundCode, name: card.querySelector('.fund-name')?.value })), 0, false);
   registerFundReceiver('calc', receiveBasketFunds);
   window.addEventListener('fundcal-theme-change', () => { updateChart(); });

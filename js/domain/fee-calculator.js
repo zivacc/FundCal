@@ -4,6 +4,8 @@
  * 预留扩展：可接入 API 获取基金费率数据
  */
 
+import { effectiveAnnualFee } from './implicit-fee.js';
+
 // 标准分段节点（天）
 export const SEGMENT_DAYS = [7, 30, 90, 180, 365, 730];
 
@@ -38,7 +40,7 @@ export function getSellFeeRate(holdDays, segments) {
 export function calcTotalFeeRate(fund, holdDays) {
   const buyFee = fund.buyFee ?? 0;
   const sellFee = getSellFeeRate(holdDays, fund.sellFeeSegments ?? []);
-  const annualFee = fund.annualFee ?? 0; // 年化管理+托管+销售费
+  const annualFee = effectiveAnnualFee(fund); // 显性年化 + 用户选择计入的隐性估算
   const dailyFee = (annualFee / 365) * holdDays;
   return buyFee + sellFee + dailyFee;
 }

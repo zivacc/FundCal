@@ -1,0 +1,64 @@
+/* 极光玻璃工作台：原生滚动 + 轻透视，表单编辑时回到正面。 */
+.fund-card-stage { position: relative; isolation: isolate; margin: 24px 0 28px; border: 1px solid var(--rule); border-radius: 26px; background: radial-gradient(ellipse at 8% 5%, #7dace322, transparent 55%), radial-gradient(ellipse at 92% 75%, #bca1ff24, transparent 50%), var(--bg-subtle); box-shadow: inset 0 1px 0 #ffffff40, 0 24px 60px #151a3210; }
+.fund-card-stage::before { content: ''; position: absolute; z-index: -1; inset: 0; border-radius: inherit; background: repeating-linear-gradient(90deg, transparent 0 59px, #88888809 59px 60px); pointer-events: none; }
+.deck-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 22px 26px 0; }
+.deck-eyebrow { font: 10px var(--font-mono); color: var(--accent); letter-spacing: 3px; }
+.deck-toolbar h2 { margin: 4px 0 0; font-size: 18px; font-weight: 600; letter-spacing: 1px; }
+.deck-navigation { display: flex; align-items: center; gap: 8px; }
+.deck-count { font: 12px var(--font-mono); margin-right: 8px; color: var(--text-secondary); }
+.deck-navigation button { width: 38px; height: 38px; border: 1px solid var(--rule-strong); border-radius: 50%; background: var(--bg-raised); color: var(--text-primary); font-size: 20px; cursor: pointer; box-shadow: 0 3px 8px #0000000a; }
+.deck-navigation button:disabled { opacity: .3; cursor: default; }
+.deck-navigation button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.fund-card-stage .fund-cards { position: relative; width: 100%; max-width: 100%; margin: 0; gap: 22px; align-items: flex-start; padding: 30px 26px 38px; scroll-padding-inline: 26px; scrollbar-gutter: auto; overscroll-behavior-x: contain; }
+.fund-card-stage .fund-cards::-webkit-scrollbar { height: 6px; }
+.fund-card-stage .fund-cards::-webkit-scrollbar-track { background: transparent; margin: 0 26px; }
+.fund-card-stage .fund-cards::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--accent) 45%, transparent); border-radius: 8px; }
+.fund-card-stage .fund-card { --card-accent: #72a9ea; --light-x: 25%; --light-y: 0%; width: 342px; flex: 0 0 342px; padding: 24px 20px 20px; border-radius: 22px; border: 1px solid color-mix(in srgb, var(--card-accent) 35%, var(--rule)); background: radial-gradient(ellipse at var(--light-x) var(--light-y), color-mix(in srgb, var(--card-accent) 15%, transparent), transparent 62%), linear-gradient(135deg, #ffffff12, #ffffff00 45%), var(--bg-raised); box-shadow: inset 1px 1px 0 #ffffff65, inset -1px -1px 0 #0000000a, 0 15px 25px -16px #090f4466, 5px 8px 0 -4px color-mix(in srgb, var(--card-accent) 16%, var(--bg-base)); transform: perspective(1200px) rotateY(var(--deck-angle, 0deg)); transform-origin: center; transition: transform .22s ease, border-color .22s, box-shadow .22s; }
+.fund-card-stage .fund-card::before { content: ''; position: absolute; top: 0; left: 24px; right: 24px; height: 2px; background: linear-gradient(90deg, transparent, var(--card-accent), #ffffffbb, transparent); box-shadow: 0 2px 20px color-mix(in srgb, var(--card-accent) 55%, transparent); pointer-events: none; }
+.fund-card-stage .fund-card.is-deck-active { box-shadow: inset 1px 1px 0 #ffffff65, 0 22px 38px -24px color-mix(in srgb, var(--card-accent) 70%, #000), 5px 8px 0 -4px color-mix(in srgb, var(--card-accent) 23%, var(--bg-base)); }
+.fund-card-stage .fund-card:focus-within { transform: perspective(1200px) rotateY(0deg); z-index: 2; border-color: var(--card-accent); }
+.fund-card-stage .fund-card h3 { min-height: 42px; margin-bottom: 20px; }
+.fund-card-stage .fund-card .remove-btn { opacity: .65; top: 9px; right: 9px; }
+.fund-card-stage .fund-card .fund-name { font-size: 14px; }
+.fund-card-stage .fund-card .form-row-fee { padding-block: 10px; }
+.fund-card-stage .fund-card .segment-section-label { font-size: 13px; }
+.fund-card-stage .fund-card .fund-drag-handle { background: transparent; border-color: color-mix(in srgb, var(--card-accent) 25%, var(--rule)); }
+.deck-caption { padding: 14px 26px 18px; display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; color: var(--text-tertiary); font-size: 11px; line-height: 1.7; }
+.deck-empty { display: none; color: var(--text-secondary); text-align: center; padding: 28px 20px; font-size: 13px; }
+.fund-card-stage.is-empty .deck-empty { display: block; }
+.fund-card-stage.is-empty .fund-cards { padding-block: 8px; }
+.card-implicit { margin: 10px 0 18px; padding: 13px 12px 10px; border: 1px solid color-mix(in srgb, var(--card-accent) 20%, var(--rule)); border-radius: 13px; background: color-mix(in srgb, var(--card-accent) 5%, var(--bg-raised)); }
+.card-implicit-heading { display: flex; justify-content: space-between; align-items: center; gap: 6px; font-size: 13px; }
+.card-implicit-heading small { font-size: 10px; color: var(--text-secondary); margin-left: 3px; }
+.card-implicit-value { color: var(--text-primary); font: 600 17px var(--font-mono); white-space: nowrap; }
+.card-implicit-status { margin-top: 7px; font-size: 10px; color: var(--text-secondary); line-height: 1.6; }
+.card-implicit-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; margin-top: 9px; font-size: 11px; }
+.card-implicit-actions label { display: flex; align-items: center; gap: 5px; cursor: pointer; white-space: nowrap; }
+.card-implicit-actions input { width: 16px; height: 16px; accent-color: var(--accent); margin: 0; }
+.card-implicit-actions a { margin-left: auto; color: var(--text-secondary); }
+.card-implicit-actions button { background: transparent; color: var(--accent); border: 1px solid var(--rule); border-radius: 5px; padding: 3px 6px; cursor: pointer; font-size: 11px; }
+.card-implicit [hidden] { display: none !important; }
+.card-implicit-total { border-top: 1px solid var(--rule); padding-top: 8px; margin-top: 10px; font: 11px var(--font-mono); color: var(--text-secondary); }
+.card-implicit.is-included { border-color: color-mix(in srgb, var(--card-accent) 65%, var(--rule)); }
+.card-implicit.is-included .card-implicit-total { color: var(--text-primary); }
+[data-theme="dark"] .fund-card-stage { background: radial-gradient(ellipse at 10% 0%, #357acf20, transparent 55%), radial-gradient(ellipse at 90% 90%, #975dd124, transparent 55%), #12171b; border-color: #48536465; }
+[data-theme="dark"] .fund-card-stage .fund-card { background-color: #1c232a; color: #e6edf2; box-shadow: inset 1px 1px 0 #ffffff20, 0 18px 30px -15px #000000aa, 5px 8px 0 -4px #334050; }
+[data-theme="dark"] .fund-card-stage .card-implicit { background-color: #151b21; }
+@media (max-width: 768px) {
+  .fund-card-stage { margin-inline: 0; border-radius: 20px; }
+  .deck-toolbar { padding: 18px 16px 0; }
+  .deck-toolbar h2 { font-size: 16px; }
+  .deck-eyebrow { font-size: 9px; letter-spacing: 2px; }
+  .deck-count { margin-right: 0; }
+  .deck-navigation { gap: 5px; }
+  .deck-navigation button { width: 34px; height: 34px; }
+  .fund-card-stage .fund-cards { padding: 22px 16px 28px; scroll-padding-inline: 16px; gap: 18px; }
+  .fund-card-stage .fund-card { width: min(330px, calc(100vw - 76px)); flex-basis: min(330px, calc(100vw - 76px)); padding: 20px 14px 16px; }
+  .fund-card-stage .fund-card h3 { gap: 2px; padding-right: 10px; }
+  .deck-caption { padding: 12px 16px 16px; font-size: 10px; }
+  .card-implicit { padding-inline: 9px; }
+  .card-implicit-heading { flex-wrap: wrap; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fund-card-stage .fund-card, .fund-card-stage .fund-card:focus-within { transform: none; transition: none; }
+}

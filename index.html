@@ -85,7 +85,12 @@
           <button type="button" class="btn btn-secondary" id="clear-storage" title="清除所有基金卡片并清除本地暂存">清除所有</button>
         </div>
       </div>
-      <div class="fund-cards" id="fund-cards"></div>
+      <section class="fund-card-stage" id="fund-card-stage" aria-label="基金卡片工作台">
+        <div class="deck-toolbar"><div><span class="deck-eyebrow">FUND STUDIO</span><h2>基金工作台</h2></div><div class="deck-navigation"><span class="deck-count" aria-live="polite">0 / 0</span><button type="button" data-deck-prev aria-label="向左浏览基金卡片">←</button><button type="button" data-deck-next aria-label="向右浏览基金卡片">→</button></div></div>
+        <div class="fund-cards" id="fund-cards" tabindex="0" role="region" aria-label="横向基金卡片，方向键左右浏览"></div>
+        <div class="deck-empty">从上方搜索基金，或从篮子拖入，开始比较。</div>
+        <div class="deck-caption"><span>左右滑动浏览 · ⠿ 拖入篮子</span><span>晨星隐性费率为历史估算；开启后按年化匀速摊入测算。</span></div>
+      </section>
 
       <div class="actions">
         <div class="form-row calc-days-row">

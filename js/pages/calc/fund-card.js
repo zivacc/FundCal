@@ -1,4 +1,5 @@
 import { fundDragHandle } from '../../core/fund-transfer.js';
+import { setupCardImplicitFee } from './implicit-fee.js';
 /**
  * 计算器页 —— 单只基金卡片（fund-card）的创建 / 增删生命周期。
  *
@@ -47,6 +48,11 @@ import { renderSegmentRow, sortSegmentRows, updateQuickButtons } from './segment
  * @param {FundCardDeps} deps
  */
 export function createFundCardFactory({ updateChart, saveState, ensureSearchIndex }) {
+  let morningstarUpdateTimer;
+  const updateMorningstar = () => {
+    clearTimeout(morningstarUpdateTimer);
+    morningstarUpdateTimer = setTimeout(() => { updateChart(); saveState(); }, 100);
+  };
 
   /**
    * 渲染并返回一张卡片节点（不挂载到 DOM）。
@@ -59,6 +65,7 @@ export function createFundCardFactory({ updateChart, saveState, ensureSearchInde
     const card = document.createElement('div');
     card.className = 'fund-card';
     card.dataset.index = index;
+    card.style.setProperty('--card-accent', color);
     card.innerHTML = `
       <h3>
         ${fundDragHandle()}
@@ -76,9 +83,15 @@ export function createFundCardFactory({ updateChart, saveState, ensureSearchInde
         <span class="input-unit">%</span>
       </div>
       <div class="form-row form-row-annual form-row-fee">
-        <span class="segment-section-label">年化</span>
+        <span class="segment-section-label" title="管理费、托管费及销售服务费">显性年化</span>
         <input type="text" class="input-annual-fee" placeholder="1.5">
         <span class="input-unit">%</span>
+      </div>
+      <div class="card-implicit">
+        <div class="card-implicit-heading"><span>隐性费率 <small>晨星估算</small></span><strong class="card-implicit-value">—</strong></div>
+        <div class="card-implicit-status" role="status">正在准备历史参考…</div>
+        <div class="card-implicit-actions"><label><input type="checkbox" class="include-implicit-fee" disabled>计入测算</label><a href="#/fund">来源与历史 ↗</a><button type="button" hidden>重试</button></div>
+        <div class="card-implicit-total"></div>
       </div>
       <p class="segment-section-label">卖出费率</p>
       <table class="segments-table">
@@ -97,6 +110,7 @@ export function createFundCardFactory({ updateChart, saveState, ensureSearchInde
     // 任意输入变化都走 update：300ms 防抖后重算 + 持久化
     const debounce = (fn, ms) => { let t; return () => { clearTimeout(t); t = setTimeout(fn, ms); }; };
     const update = debounce(() => { updateChart(); saveState(); }, 300);
+    let morningstar, feeVersion = 0;
     const refreshQuickButtons = () => updateQuickButtons(tbody, quickContainer, update, refreshQuickButtons);
 
     /* ========== 名称联想下拉 ========== */
@@ -141,10 +155,13 @@ export function createFundCardFactory({ updateChart, saveState, ensureSearchInde
       if (codeSpan) codeSpan.textContent = item.code || '';
       cardEl.dataset.fundCode = item.code || '';
       cardEl.dataset.fundDrag = item.code || ''; cardEl.dataset.fundName = item.name || item.code;
+      void morningstar.load(item.code, true);
+      const version = ++feeVersion;
       resizeFundNameInput();
       nameDropdown.classList.remove('fund-name-dropdown-visible');
       (async () => {
         const data = await fetchFundFeeFromAPI(item.code);
+        if (version !== feeVersion) return;
         if (data && cardEl.isConnected) {
           cardEl.querySelector('.input-buy-fee').value = data.buyFee != null ? (data.buyFee * 100).toFixed(2) : '';
           cardEl.querySelector('.input-annual-fee').value = data.annualFee != null ? (data.annualFee * 100).toFixed(2) : '';
@@ -253,7 +270,7 @@ export function createFundCardFactory({ updateChart, saveState, ensureSearchInde
 
     // 任意输入变化都触发 update（卡片级回退监听器，避免遗漏）
     card.querySelectorAll('input').forEach(inp => inp.addEventListener('input', update));
-
+    morningstar = setupCardImplicitFee(card, initialData, updateMorningstar);
     return card;
   }
 
