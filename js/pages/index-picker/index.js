@@ -1,3 +1,4 @@
+import { registerFundSource, notifyFundSelection, fundDragAttrs, fundDragHandle, escapeFundAttribute } from '../../core/fund-transfer.js';
 import { fetchFundStatsFromAPI, fetchFundFeeFromAPI } from '../../data/fund-api.js';
 import { escapeHtml } from '../../utils/format.js';
 import { getColorForIndex } from '../../utils/color.js';
@@ -27,6 +28,7 @@ const state = {
 };
 
 const els = {};
+const basketSelection = new Set();
 
 function cacheEls() {
   els.searchInput = document.getElementById('index-page-search-input');
@@ -329,6 +331,7 @@ function renderSummary() {
 }
 
 function renderTable() {
+  notifyFundSelection();
   if (!els.tableBody) return;
   if (!state.sortedRows.length) {
     els.tableBody.innerHTML = '<tr><td class="cached-funds-empty" colspan="7">未找到可比较基金。</td></tr>';
@@ -336,8 +339,8 @@ function renderTable() {
   }
   els.tableBody.innerHTML = state.sortedRows.map(row => {
     const ret = getReturnValue(row, state.returnPeriod);
-    return `<tr>
-      <td>${escapeHtml(row.name || `基金${row.code}`)}</td>
+    return `<tr ${fundDragAttrs(row)}>
+      <td><input type="checkbox" class="index-basket-select" data-code="${escapeHtml(row.code)}" aria-label="选择 ${escapeFundAttribute(row.name)}" ${basketSelection.has(row.code) ? 'checked' : ''}>${fundDragHandle()}${escapeHtml(row.name || `基金${row.code}`)}</td>
       <td><span class="fund-code">${escapeHtml(row.code || '--')}</span></td>
       <td>${escapeHtml(row.scaleText || '--')}</td>
       <td>${formatPct(row.annualFee)}</td>
@@ -595,6 +598,8 @@ async function init() {
 }
 
 export function pageInit() {
+  registerFundSource('index-rows', 'index', () => state.allRows.filter(row => basketSelection.has(row.code)), 10);
+  document.getElementById('index-page-table-body').addEventListener('change', event => { const code = event.target.dataset.code; if (!code) return; if (event.target.checked) basketSelection.add(code); else basketSelection.delete(code); notifyFundSelection(); });
   init();
   window.addEventListener('fundcal-theme-change', () => {
     if (state.sortedRows && state.sortedRows.length) renderCharts();

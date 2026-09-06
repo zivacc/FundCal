@@ -1,3 +1,5 @@
+import { registerFundSource, registerFundReceiver, notifyFundSelection, prepareFundTransfer, fundDragHandle } from '../../core/fund-transfer.js';
+import { normalizeFundRefs } from '../../data/basket-store.js';
 /**
  * 基金费率计算器 - 主应用
  */
@@ -44,6 +46,7 @@ if (typeof window !== 'undefined' && window.Chart && window['chartjs-plugin-anno
 }
 
 let chartInstance = null;
+let initialStateReady = Promise.resolve();
 let activeChartFundCodes = new Set();
 let knownChartFundCodes = new Set();
 let showAllFundsActive = false;
@@ -274,11 +277,13 @@ function renderChartFundList(funds) {
     const color = fund.color || getColorForIndex(i);
     const active = activeChartFundCodes.has(id);
     const row = document.createElement('div');
+    row.dataset.fundDrag = fund.code || ''; row.dataset.fundName = fund.name || fund.code;
     row.className = 'chart-fund-list-item' + (active ? ' chart-fund-list-item-active' : '');
     row.dataset.fundId = id;
     row.setAttribute('role', 'listitem');
     row.innerHTML = `
       <div class="chart-fund-list-item-left">
+        ${/^\d{6}$/.test(code) ? fundDragHandle() : ''}
         <span class="chart-fund-list-color" style="color:${color};background:${color};"></span>
         <span class="chart-fund-list-name" title="${escapeHtml(name)}">${escapeHtml(name)}</span>
       </div>
@@ -534,6 +539,8 @@ function renderChartHoverTooltip(context) {
 
 /** 更新图表（开启联接穿透时为异步：会拉取母基金费率） */
 async function updateChart() {
+  document.querySelectorAll('.fund-card').forEach(card => { card.dataset.fundDrag = card.dataset.fundCode || ''; card.dataset.fundName = card.querySelector('.fund-name')?.value || ''; card.querySelector('.fund-drag-handle').hidden = !/^\d{6}$/.test(card.dataset.fundDrag); });
+  notifyFundSelection();
   const allFunds = collectFunds();
   // 渲染右侧列表时使用全部基金（含未高亮的），确保列表始终完整
   renderChartFundList(allFunds);
@@ -1157,7 +1164,7 @@ function init() {
       onSelect: (item) => { selectSearchItem(item); },
     });
   }
-  (async () => {
+  initialStateReady = (async () => {
     const appliedCompare = await applyCompareFromCacheSession();
     if (appliedCompare) return;
     const state = loadStateFromStorage();
@@ -1173,7 +1180,25 @@ function init() {
   })();
 }
 
+async function receiveBasketFunds(items, mode) {
+  await initialStateReady;
+  const container = document.getElementById('fund-cards');
+  const snapshot = JSON.stringify(getStateFromDOM());
+  const present = new Set([...container.querySelectorAll('.fund-card')].map(card => card.dataset.fundCode));
+  const incoming = normalizeFundRefs(items).filter(item => mode === 'replace' || !present.has(item.code));
+  if (!incoming.length) return 0;
+  const payloads = await prepareFundTransfer(incoming, item => fetchFundFeeFromAPI(item.code));
+  if (snapshot !== JSON.stringify(getStateFromDOM())) throw new Error('页面基金或设置已变化，请重新操作');
+  const offset = mode === 'replace' ? 0 : container.children.length;
+  const cards = payloads.map((payload, i) => createFundCard(offset + i, getColorForIndex(offset + i), { ...payload, code: incoming[i].code }));
+  if (mode === 'replace') container.replaceChildren(...cards); else container.append(...cards);
+  await updateChart(); saveState();
+  return cards.length;
+}
+
 export function pageInit() {
   init();
+  registerFundSource('calc-cards', 'calc', () => [...document.querySelectorAll('.fund-card')].map(card => ({ code: card.dataset.fundCode, name: card.querySelector('.fund-name')?.value })), 0, false);
+  registerFundReceiver('calc', receiveBasketFunds);
   window.addEventListener('fundcal-theme-change', () => { updateChart(); });
 }

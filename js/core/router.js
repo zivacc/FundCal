@@ -14,6 +14,7 @@ const ROUTES = {
 const DEFAULT_ROUTE = 'calc';
 const initialized = new Set();
 let switching = false;
+let pendingRoute = null;
 
 function parseRoute() {
   const h = (window.location.hash || '').replace(/^#\/?/, '').trim();
@@ -38,25 +39,27 @@ function showOnlyPage(route) {
 }
 
 async function activate(route) {
+  pendingRoute = route;
   if (switching) return;
   switching = true;
   try {
-    showOnlyPage(route);
-    setActiveTab(route);
-    if (!initialized.has(route)) {
-      const cfg = ROUTES[route];
-      const mod = await import(cfg.module);
-      if (typeof mod.pageInit === 'function') {
-        mod.pageInit();
+    while (pendingRoute) {
+      const current = pendingRoute;
+      pendingRoute = null;
+      showOnlyPage(current);
+      setActiveTab(current);
+      if (!initialized.has(current)) {
+        const mod = await import(ROUTES[current].module);
+        if (typeof mod.pageInit === 'function') mod.pageInit();
+        initialized.add(current);
       }
-      initialized.add(route);
+      if (!pendingRoute) {
+        window.scrollTo({ top: 0, behavior: 'instant' });
+        window.dispatchEvent(new Event('resize'));
+        window.dispatchEvent(new CustomEvent('fundcal-route-ready', { detail: { route: current } }));
+      }
     }
-    window.scrollTo({ top: 0, behavior: 'instant' });
-    // 触发 resize：Chart.js 等组件在 display:none → block 切换后需要重算尺寸
-    window.dispatchEvent(new Event('resize'));
-  } finally {
-    switching = false;
-  }
+  } finally { switching = false; }
 }
 
 function onHashChange() {

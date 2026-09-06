@@ -1,3 +1,4 @@
+import { registerFundSource, notifyFundSelection, fundDragAttrs, fundDragHandle } from '../core/fund-transfer.js';
 /**
  * 基金详情表格 - 共享模块
  * 供主页 (app.js) 和指数选基页 (index-picker-page.js) 共用
@@ -224,6 +225,8 @@ function openSmppCompare(mapping) {
 }
 
 function bindSmppColumnSelection(tbody, funds, smppMapping, { onDelete } = {}) {
+  const route = tbody.closest('[data-route]')?.dataset.route;
+  if (route) registerFundSource(tbody.id, route, () => funds.filter(f => smppSelectedCodes.has(f.code)), 20);
   const mapping = smppMapping || {};
   const currentCodes = new Set(funds.map(f => (f.code || '').trim()).filter(Boolean));
   smppSelectedCodes.forEach(c => { if (!currentCodes.has(c)) smppSelectedCodes.delete(c); });
@@ -258,6 +261,7 @@ function bindSmppColumnSelection(tbody, funds, smppMapping, { onDelete } = {}) {
     }
     deleteBtn.hidden = !onDelete;
     updateSelectedCells();
+    notifyFundSelection();
   };
 
   tbody.onclick = (e) => {
@@ -293,6 +297,7 @@ function bindSmppColumnSelection(tbody, funds, smppMapping, { onDelete } = {}) {
     smppSelectedCodes.clear();
     hideFloatingActions();
     updateSelectedCells();
+    notifyFundSelection();
   };
 
   updateFloatingActions();
@@ -386,12 +391,12 @@ export async function renderFundDetailTable(tbody, funds, options = {}) {
     },
   );
 
-  tbody.innerHTML = rows.map(row => {
+  tbody.innerHTML = rows.map((row, rowIndex) => {
     const th = `<th class="fund-detail-row-label">${row.label}</th>`;
     const style = row.nowrap === false ? ' style="white-space:normal"' : '';
     const tds = funds.map((f, i) => {
       const code = escapeHtml(String(f?.code || '').trim());
-      return `<td class="fund-detail-fund-cell" data-fund-code="${code}"${style}>${row.render(f, metas[i], i)}</td>`;
+      return `<td class="fund-detail-fund-cell" data-fund-code="${code}" ${fundDragAttrs(f)}${style}>${rowIndex === 0 && fundDragAttrs(f) ? fundDragHandle() : ''}${row.render(f, metas[i], i)}</td>`;
     }).join('');
     return `<tr>${th}${tds}</tr>`;
   }).join('');

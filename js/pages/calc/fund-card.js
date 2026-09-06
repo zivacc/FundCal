@@ -1,3 +1,4 @@
+import { fundDragHandle } from '../../core/fund-transfer.js';
 /**
  * 计算器页 —— 单只基金卡片（fund-card）的创建 / 增删生命周期。
  *
@@ -60,6 +61,7 @@ export function createFundCardFactory({ updateChart, saveState, ensureSearchInde
     card.dataset.index = index;
     card.innerHTML = `
       <h3>
+        ${fundDragHandle()}
         <span class="color-dot" style="background:${color}"></span>
         <div class="fund-name-wrap">
           <input type="text" class="fund-name" value="基金 ${index + 1}" placeholder="基金名称" data-min-ch="10" autocomplete="off" aria-autocomplete="list">
@@ -138,6 +140,7 @@ export function createFundCardFactory({ updateChart, saveState, ensureSearchInde
       if (inp) inp.value = item.name || `基金${item.code}`;
       if (codeSpan) codeSpan.textContent = item.code || '';
       cardEl.dataset.fundCode = item.code || '';
+      cardEl.dataset.fundDrag = item.code || ''; cardEl.dataset.fundName = item.name || item.code;
       resizeFundNameInput();
       nameDropdown.classList.remove('fund-name-dropdown-visible');
       (async () => {
@@ -218,6 +221,7 @@ export function createFundCardFactory({ updateChart, saveState, ensureSearchInde
       const codeVal = (initialData.code != null ? String(initialData.code).trim() : '') || '';
       if (codeVal) {
         card.dataset.fundCode = codeVal;
+        card.dataset.fundDrag = codeVal; card.dataset.fundName = initialData.name || codeVal;
         const codeEl = card.querySelector('.fund-code');
         if (codeEl) codeEl.textContent = `${codeVal}`;
       }

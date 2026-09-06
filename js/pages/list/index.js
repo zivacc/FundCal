@@ -1,3 +1,4 @@
+import { registerFundSource, notifyFundSelection, fundDragAttrs, fundDragHandle } from '../../core/fund-transfer.js';
 /**
  * 基金列表页 (服务端分页重构, 2026)。
  *
@@ -73,6 +74,7 @@ function setProgress(done, totalSteps) {
 }
 
 function updateCompareFab() {
+  notifyFundSelection();
   const fab = document.getElementById('cached-funds-compare-fab');
   if (!fab) return;
   const n = selectedCompare.size;
@@ -135,9 +137,9 @@ function renderRow(f) {
       actionCell = `<button type="button" class="btn btn-sm cached-fund-crawl-btn" data-code="${escapeHtml(f.code)}" title="抓取该基金费率与详情">补全</button>`;
     }
     return `
-      <tr class="cached-fund-row cached-fund-row-placeholder cached-fund-row-${lifecycle}" data-code="${escapeHtml(f.code)}" data-needs-crawl="true">
+      <tr class="cached-fund-row cached-fund-row-placeholder cached-fund-row-${lifecycle}" ${fundDragAttrs(f)} data-code="${escapeHtml(f.code)}" data-needs-crawl="true">
         <td>${actionCell}</td>
-        <td>${escapeHtml(f.code)}</td>
+        <td>${fundDragHandle()}${escapeHtml(f.code)}</td>
         <td><span class="cached-fund-status-badge ${badgeClass}">${badgeLabel}</span> ${escapeHtml(f.name)}</td>
         <td>${escapeHtml(f.fundType || '-')}</td>
         <td>${escapeHtml(f.establishmentDate || '-')}</td>
@@ -154,9 +156,9 @@ function renderRow(f) {
     ? '<span class="cached-fund-status-badge cached-fund-badge-terminated">已终止</span> '
     : '';
   return `
-    <tr class="cached-fund-row${selClass}${terminatedClass}" data-code="${escapeHtml(f.code)}" tabindex="0" aria-selected="${isSel ? 'true' : 'false'}">
+    <tr class="cached-fund-row${selClass}${terminatedClass}" ${fundDragAttrs(f)} data-code="${escapeHtml(f.code)}" tabindex="0" aria-selected="${isSel ? 'true' : 'false'}">
       <td><button type="button" class="btn btn-sm cached-fund-json-btn" data-code="${escapeHtml(f.code)}">查看</button></td>
-      <td>${escapeHtml(f.code)}</td>
+      <td>${fundDragHandle()}${escapeHtml(f.code)}</td>
       <td>${namePrefix}${escapeHtml(f.name)}</td>
       <td>${escapeHtml(f.fundType || '-')}</td>
       <td>${escapeHtml(f.establishmentDate || '-')}</td>
@@ -411,7 +413,7 @@ function setupEvents() {
     tbody.addEventListener('keydown', (e) => {
       if (e.key !== 'Enter' && e.key !== ' ') return;
       const t = e.target;
-      if (!(t instanceof HTMLElement)) return;
+      if (!(t instanceof HTMLElement) || t.closest('button, input, a')) return;
       const tr = t.closest('tr.cached-fund-row');
       if (!tr) return;
       e.preventDefault();
@@ -445,6 +447,7 @@ function setupEvents() {
 /* ========== bootstrap ========== */
 
 export function pageInit() {
+  registerFundSource('list', 'list', () => [...selectedCompare].map(([code, name]) => ({ code, name })));
   setupEvents();
   setupFilters({ onChange: () => { currentPage = 1; refresh(); } });
   setupNarrowFilterDrawer();

@@ -1,6 +1,6 @@
 # AGENTS.md
 
-本文件用于指导在 FundCal 仓库中的开发、审计和优化。最近核对日期：2026-09-05。架构事实以当前源码为准；历史审计记录和草案不代表已实现功能。
+本文件用于指导在 FundCal 仓库中的开发、审计和优化。最近核对日期：2026-09-06。架构事实以当前源码为准；历史审计记录和草案不代表已实现功能。
 
 ## 项目与工作范围
 
@@ -166,6 +166,7 @@ DB → build-allfund-from-db 等构建脚本 → data/allfund/* 公共分片
 - `js/core/`：配置、路由、主题；`data/`：API、缓存、交易日历；`domain/`：费用和净值计算；`pages/`：页面；`components/`：共享组件；`utils/`：搜索和通用工具。
 - `getFeeApiBase()` 支持 `window.FUND_FEE_API_BASE` 手动覆盖；localhost/127.0.0.1 默认连 `http://localhost:3457/api/fund`，普通域名同源 `/api/fund`，GitHub Pages 使用静态回退。NAV base 到 `/api` 层，端点再拼 `/nav/...`。
 - 列表每次状态变化发起分页请求，用 AbortController 防竞态。`selectedCompare` 为 `Map<code,name>`；筛选标签来自 filter-options，基金公司默认 top-50 + 本地筛选。
+- 全局基金篮子由 `js/components/fund-basket.js` 管理 UI/Pointer Events，`js/core/fund-transfer.js` 注册页面选中项和接收器，`js/data/basket-store.js` 保存公开基金 `{code,name}` 引用。新增基金列表需提供拖动属性/把手与选中项来源；接收页面应先准备全部数据再应用，保留基准与去重规则。页面→篮子只显示篮子接收区；篮子→页面的添加/替换遮罩位于篮子浮窗下方。详见 [docs/fund-basket.md](docs/fund-basket.md)。
 - 通用联想控件在 [js/components/typeahead.js](js/components/typeahead.js)，管理防抖、中文输入法组合态和查询令牌。扩展时保留过期结果丢弃与事件销毁逻辑。
 - Chart.js、annotation、ECharts 由本地 vendor 加载；计算器导入仍使用共享 SheetJS。不要因账本已删除就移除仍被计算器使用的 Excel 能力；旧 CDN SheetJS 版本问题仍是审计待办。
 
@@ -173,7 +174,7 @@ DB → build-allfund-from-db 等构建脚本 → data/allfund/* 公共分片
 
 - [scripts/nav/tushare-client.js](scripts/nav/tushare-client.js) 内置动态节流、429/业务限流检测和指数退避，默认 5 次重试；通过 `TUSHARE_GAP_MS`、`TUSHARE_MAX_RETRIES`、`TUSHARE_RATE_LIMIT_BASE_MS` 等调参。
 - 东财 lsjz 单页上限为 20 行，不要把增大 PAGE_SIZE 当作吞吐优化。
-- 修改业务函数、SQL builder、缓存、HTTP 边界或数据写入时补对应回归。最近代码基线为 **260 项测试通过（2026-09-05）**；仅文档修改检查链接、命令和差异即可。
+- 修改业务函数、SQL builder、缓存、HTTP 边界或数据写入时补对应回归。最近代码基线为 **281 项测试通过（2026-09-06）**；仅文档修改检查链接、命令和差异即可。
 - 测试 DB 使用 `:memory:` 或临时目录；正式库审计/性能测量用独立 `better-sqlite3` readonly 连接。`getDb()` 会迁移，不应当作纯只读审计入口。不要为了验证代码改动顺带运行全库抓取、重建或修复。
 - 搜索改动至少验证本地匹配、SQL 结果/计数/排序/分页、索引失效、gzip/304 和 SWR。访问边界改动验证公共资源及私有路径的 GET/HEAD、外站抓取拒绝和任务槽释放。
 - 当前待办包括费用分段边界与 DTO 契约、局部抓取覆盖、场外代码裁决、周/月采样口径、空库迁移、来源水位与历史修订、缓存缺口、更新任务失败可见性、发布快照及页面生命周期。具体状态以优化执行记录为准，不因全量测试通过就宣称审计项全部解决。

@@ -1,3 +1,4 @@
+import { registerFundSource, notifyFundSelection, fundDragAttrs, fundDragHandle } from '../../core/fund-transfer.js';
 // 单一事实来源：与 fund-api.js 共用同一份 base 解析逻辑，避免分叉（参见 docs/audit-data-flow.md P2 #5）。
 // search-index 同时被 fund-api.js 通过 IndexedDB 缓存，所以这里复用它派生 code→name 映射，
 // 而不是再去拉一份从未产出的 data/allfund/code-name-map.json（P1 #3）。
@@ -75,6 +76,7 @@ function getOrCreateFundStatsCompareFab() {
 }
 
 function syncFundStatsCompareFab() {
+  notifyFundSelection();
   const fab = getOrCreateFundStatsCompareFab();
   const btn = document.getElementById('fund-stats-compare-btn');
   const jBtn = document.getElementById('fund-stats-jiuquan-btn');
@@ -427,8 +429,8 @@ function renderFundDetail(viewKey, label, detail) {
     const code = String(f.code || '').trim();
     const selected = code && fundStatsSelectedCompareCodes.has(code);
     return `
-      <div class="fund-stats-detail-row${selected ? ' fund-stats-detail-row-selected' : ''}" data-code="${code}" tabindex="0" aria-selected="${selected ? 'true' : 'false'}">
-        <div class="fund-stats-detail-order">#${order}</div>
+      <div class="fund-stats-detail-row${selected ? ' fund-stats-detail-row-selected' : ''}" ${fundDragAttrs(f)} data-code="${code}" tabindex="0" aria-selected="${selected ? 'true' : 'false'}">
+        <div class="fund-stats-detail-order">${fundDragHandle()}#${order}</div>
         <div class="fund-stats-detail-main">
           <div class="fund-stats-detail-name-line">
             <span class="fund-stats-detail-name" title="${f.name || f.code}">${f.name || f.code}</span>
@@ -547,6 +549,7 @@ function bindCardInteractions() {
     detailWrapper.addEventListener('click', (evt) => {
       const target = evt.target;
       if (!(target instanceof HTMLElement)) return;
+      if (target.closest('.fund-drag-handle')) return;
       const row = target.closest('.fund-stats-detail-row');
       if (!row) return;
       const code = String(row.getAttribute('data-code') || '').trim();
@@ -564,6 +567,7 @@ function bindCardInteractions() {
       if (evt.key !== 'Enter' && evt.key !== ' ') return;
       const target = evt.target;
       if (!(target instanceof HTMLElement)) return;
+      if (target.closest('.fund-drag-handle')) return;
       const row = target.closest('.fund-stats-detail-row');
       if (!row) return;
       evt.preventDefault();
@@ -740,6 +744,7 @@ async function loadStats() {
 }
 
 export function pageInit() {
+  registerFundSource('stats', 'stats', () => currentDetailFunds.filter(f => fundStatsSelectedCompareCodes.has(String(f.code || '').trim())));
   loadStats();
   renderFundDetailPlaceholder();
   bindCardInteractions();

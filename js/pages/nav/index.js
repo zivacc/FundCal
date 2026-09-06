@@ -1,3 +1,5 @@
+import { registerFundSource, registerFundReceiver, notifyFundSelection, fundDragAttrs, fundDragHandle } from '../../core/fund-transfer.js';
+import { planNavBasketTransfer } from './basket-transfer.js';
 /**
  * 净值比较页 (NAV Compare)
  *
@@ -89,6 +91,7 @@ const state = {
 /* ========== 持久化（localStorage）========== */
 
 let navFullscreen = null;
+let compareLoadVersion = 0;
 
 const STORAGE_KEY = 'nav-compare-state';
 const STORAGE_VERSION = 1;
@@ -359,6 +362,7 @@ function filterIndex(list, q) {
  * 本函数只负责"结构"；NAV/chg 文字由 updateChartLegend 填。
  */
 function renderChartLegend() {
+  notifyFundSelection();
   // 静态 HTML 里已经预建 #nav-chart-legend（nav-chart-header 内）；
   // 这段 fallback 只为向后兼容——若元素缺失，挂到 header 或 wrap 上。
   let el = document.getElementById('nav-chart-legend');
@@ -384,12 +388,12 @@ function renderChartLegend() {
       : `<span class="nav-chart-legend-name">${escapeHtml(f.name)}</span>`;
     return `
       <span class="${cls}"
-            data-code="${escapeHtml(f.code)}"
+            ${fundDragAttrs(f)} data-code="${escapeHtml(f.code)}"
             data-idx="${i}"
             role="button"
             tabindex="0"
             title="点击切换显示/隐藏">
-        <span class="nav-chart-legend-dot" style="background:${f.color}"></span>
+        ${fundDragAttrs(f) ? fundDragHandle() : ''}<span class="nav-chart-legend-dot" style="background:${f.color}"></span>
         <span class="nav-chart-legend-code">${codeText}</span>
         ${nameSlot}
         <span class="nav-chart-legend-nav"></span>
@@ -614,6 +618,7 @@ function removeFund(idx) {
 /* ========== Data fetch ========== */
 
 async function fetchAndRender() {
+  const version = ++compareLoadVersion;
   if (!state.selected.length) {
     setStatusEmpty(true);
     if (state.chart) state.chart.clear();
@@ -631,6 +636,7 @@ async function fetchAndRender() {
       fetchNavCompareCached({ codes, start, end, interval: 'daily' }),
       loadTradeCalendar(),
     ]);
+    if (version !== compareLoadVersion) return;
     if (!data) { alert('当前无后端 API'); return; }
     state.data = data;
 
@@ -646,6 +652,7 @@ async function fetchAndRender() {
 
     renderChart();
   } catch (e) {
+    if (version !== compareLoadVersion) return;
     console.error('compare 请求失败', e);
     alert('数据请求失败：' + e.message);
   }
@@ -1397,8 +1404,8 @@ function renderStatsTable(stats) {
     const totalCls = s.totalReturn != null ? (s.totalReturn >= 0 ? 'nav-stats-pos' : 'nav-stats-neg') : '';
     const cagrCls = s.cagr != null ? (s.cagr >= 0 ? 'nav-stats-pos' : 'nav-stats-neg') : '';
     return `
-      <tr>
-        <td><span class="nav-stats-dot" style="background:${dotColor}"></span>${escapeHtml(s.name || '')}</td>
+      <tr ${fundDragAttrs(sel || s)}>
+        <td>${fundDragAttrs(sel || s) ? fundDragHandle() : ''}<span class="nav-stats-dot" style="background:${dotColor}"></span>${escapeHtml(s.name || '')}</td>
         <td class="mono">${escapeHtml(s.code)}</td>
         <td class="mono">${fmt(s.startNav, '')}</td>
         <td class="mono">${fmt(s.endNav, '')}</td>
@@ -2263,8 +2270,9 @@ function renderMultiFundTable(perFund, rsInds) {
   }
   const rows = perFund.map(p => {
     const s = p.stats;
+    const dragAttrs = fundDragAttrs(state.selected.find(item => item.code === p.code) || p);
     const cells = [
-      `<td><span class="nav-range-dot" style="background:${p.color}"></span>${escapeHtml(p.code)} ${escapeHtml(p.name)}</td>`,
+      `<td>${dragAttrs ? fundDragHandle() : ''}<span class="nav-range-dot" style="background:${p.color}"></span>${escapeHtml(p.code)} ${escapeHtml(p.name)}</td>`,
       `<td class="mono ${cls(s.changePct)}">${pct(s.changePct)}</td>`,
       `<td class="mono ${cls(s.change)}">${f(s.change)}</td>`,
       `<td class="mono">${pct(s.swing)}</td>`,
@@ -2275,7 +2283,7 @@ function renderMultiFundTable(perFund, rsInds) {
       const v = p.indicators?.[I.id];
       cells.push(`<td class="mono">${f(v)}</td>`);
     }
-    return `<tr>${cells.join('')}</tr>`;
+    return `<tr ${dragAttrs}>${cells.join('')}</tr>`;
   });
   return `
     <table class="nav-range-stats-table">
@@ -2343,7 +2351,32 @@ function setupChartToolbar() {
   });
 }
 
+async function receiveBasketFunds(items, mode) {
+  const snapshot = JSON.stringify(state.selected);
+  const version = compareLoadVersion;
+  const next = planNavBasketTransfer(state.selected, items, mode, MAX_SELECTED);
+  const { start, end } = periodToRange('MAX');
+  const [data] = await Promise.all([
+    fetchNavCompareCached({ codes: next.map(item => item.code), start, end, interval: 'daily' }),
+    loadTradeCalendar(),
+  ]);
+  if (!data) throw new Error('净值数据加载失败，请重试');
+  const missing = items.filter(item => !data.series?.find(series => series.code === item.code)?.dates?.length);
+  if (missing.length) throw new Error(`基金 ${missing.map(item => item.code).join('、')} 暂无净值，当前比较未修改`);
+  if (snapshot !== JSON.stringify(state.selected) || version !== compareLoadVersion) throw new Error('页面基金已变化，请重新操作');
+  const added = next.filter(item => !state.selected.some(previous => previous.code === item.code)).length;
+  compareLoadVersion++;
+  state.selected = next.map((item, i) => ({ ...item, color: item.color || COLORS[i % COLORS.length] }));
+  state.hiddenCodes = new Set([...state.hiddenCodes].filter(code => next.some(item => item.code === code) && (mode !== 'replace' || next.find(item => item.code === code).isBenchmark)));
+  state.data = data;
+  clearPersistentRange();
+  renderChart(); persist();
+  return mode === 'replace' ? items.length : added;
+}
+
 export function pageInit() {
+  registerFundSource('nav', 'nav', () => state.selected.filter(item => item.kind !== KIND.INDEX && !item.isBenchmark), 0, false);
+  registerFundReceiver('nav', receiveBasketFunds);
   loadPersistedState();
   state.selected = ensureBenchmarkSelection(state.selected).map((item, i) => ({ ...item, color: item.color || COLORS[i % COLORS.length] }));
   persist();

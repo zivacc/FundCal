@@ -1,3 +1,4 @@
+import { registerFundSource, notifyFundSelection, fundDragAttrs, fundDragHandle } from '../../core/fund-transfer.js';
 /**
  * 基金详情页 (page-fund-detail)
  *
@@ -105,8 +106,10 @@ function renderHero(d) {
   const typeBadge = d.fundType
     ? `<span class="fd-hero-badge fd-badge-muted">${escapeHtml(d.fundType)}</span>`
     : '';
+  el.dataset.fundDrag = d.code || state.currentCode; el.dataset.fundName = d.name || state.currentCode;
+  notifyFundSelection();
   el.innerHTML = `
-    <span class="fd-hero-code">${escapeHtml(d.code || state.currentCode)}</span>
+    ${fundDragHandle()}<span class="fd-hero-code">${escapeHtml(d.code || state.currentCode)}</span>
     <h2 class="fd-hero-name">${escapeHtml(d.name || '未知基金')}</h2>
     <div class="fd-hero-meta">
       ${typeBadge}
@@ -334,8 +337,8 @@ async function renderPeers(d) {
     return;
   }
   const rows = others.map(it => `
-    <tr>
-      <td><a class="fd-peer-link" href="#/fund/${escapeHtml(it.code)}">${escapeHtml(it.code)}</a></td>
+    <tr ${fundDragAttrs(it)}>
+      <td>${fundDragHandle()}<a class="fd-peer-link" href="#/fund/${escapeHtml(it.code)}">${escapeHtml(it.code)}</a></td>
       <td>${escapeHtml(it.name || '')}</td>
       <td>${escapeHtml(it.fundManager || '')}</td>
     </tr>
@@ -422,9 +425,13 @@ async function loadFund(code) {
     disposeChart();
     state.currentCode = '';
     state.currentData = null;
+    notifyFundSelection();
     return;
   }
   state.currentCode = code;
+  state.currentData = null;
+  notifyFundSelection();
+  delete $('fd-card-hero').dataset.fundDrag;
   $('fd-empty').hidden = true;
   $('fd-content').hidden = false;
 
@@ -472,6 +479,7 @@ function onHashChange() {
 let initialized = false;
 
 export function pageInit() {
+  registerFundSource('fund', 'fund', () => state.currentData ? [{ code: state.currentCode, name: state.currentData.name }] : [], 0, false);
   if (initialized) return;
   initialized = true;
   morningstarHistory = createMorningstarHistory($('fd-morningstar'));

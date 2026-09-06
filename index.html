@@ -46,6 +46,9 @@
       </div>
     </div>
     <div class="top-rail-right">
+      <button type="button" id="fund-basket-button" aria-label="基金篮子" aria-controls="fund-basket-panel" aria-expanded="false" title="点击打开基金篮子，拖动使用整篮">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m8 3-4 7m12-7 4 7M3 10h18l-2 10H5L3 10Zm6 4v3m6-3v3"/></svg><span class="basket-label">篮子</span><span class="basket-count">0</span>
+      </button>
       <button type="button" class="theme-toggle" id="theme-toggle" title="切换浅色 / 深色" aria-label="切换主题">
         <span class="theme-toggle-icon" aria-hidden="true">◐</span>
       </button>
@@ -919,5 +922,6 @@
   <script src="js/core/config.js"></script>
   <script src="js/core/theme-toggle.js"></script>
   <script type="module" src="js/core/router.js"></script>
+  <script type="module" src="js/components/fund-basket.js"></script>
 </body>
 </html>

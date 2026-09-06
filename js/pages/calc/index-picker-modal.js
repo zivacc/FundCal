@@ -1,3 +1,4 @@
+import { registerFundSource, notifyFundSelection, fundDragHandle } from '../../core/fund-transfer.js';
 /**
  * 基金费率计算器 - 指数选择弹窗模块
  */
@@ -49,11 +50,13 @@ export function setupIndexPickerModal({ addFundCard }) {
 
   if (!openBtn || !backdrop || !searchInput || !indexListEl || !fundListEl) return;
 
+  registerFundSource('calc-index-modal', 'calc', () => backdrop.classList.contains('visible') || backdrop.getAttribute('aria-hidden') === 'false' ? [...fundListEl.querySelectorAll('.index-picker-fund-item-selected')].map(row => ({ code: row.dataset.code, name: row.dataset.fundName })) : [], 30);
   let selectAllActive = false;
   let selectLinkedActive = false;
   let selectEnhancedActive = false;
 
   const updateHint = () => {
+    notifyFundSelection();
     const count = indexPickerSelectedCodes.size;
     const text = `已选择 ${count} 只基金。`;
     if (hintEl) hintEl.textContent = text;
@@ -108,10 +111,10 @@ export function setupIndexPickerModal({ addFundCard }) {
       if (!safeCode) return;
       const row = document.createElement('div');
       row.className = 'index-picker-fund-item';
-      row.dataset.code = safeCode;
+      row.dataset.code = safeCode; row.dataset.fundDrag = safeCode; row.dataset.fundName = safeCode;
       row.innerHTML = `
         <div class="index-picker-fund-main">
-          <div class="index-picker-fund-name-line">
+          <div class="index-picker-fund-name-line">${fundDragHandle()}
             <span class="index-picker-fund-name">基金 ${safeCode}</span>
             <span class="index-picker-fund-code">${safeCode}</span>
           </div>
@@ -139,6 +142,7 @@ export function setupIndexPickerModal({ addFundCard }) {
         try {
           const data = await fetchFundFeeFromAPI(safeCode);
           if (data && data.name) {
+            row.dataset.fundName = data.name; notifyFundSelection();
             const nameEl = row.querySelector('.index-picker-fund-name');
             if (nameEl) nameEl.textContent = data.name;
             const nameStr = String(data.name);
