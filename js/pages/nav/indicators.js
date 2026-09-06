@@ -163,7 +163,7 @@ export const INDICATOR_REGISTRY = {
         areaStyle: { color: ctx.color, opacity: 0.08 },
         xAxisIndex: ctx.xAxisIndex, yAxisIndex: ctx.yAxisIndex,
         sampling: 'lttb', connectNulls: true,
-        markPoint: markData.length ? {
+        markPoint: {
           symbol: 'circle', symbolSize: 1, silent: true,
           itemStyle: { color: 'rgba(0,0,0,0)', borderColor: 'rgba(0,0,0,0)' },
           label: {
@@ -175,7 +175,7 @@ export const INDICATOR_REGISTRY = {
             },
           },
           data: markData,
-        } : undefined,
+        },
       }];
     },
     // 回撤目前不进区间统计 panel（"最大回撤"字段已由 computeRangeStats 提供）

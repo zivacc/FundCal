@@ -184,7 +184,7 @@ test('INDICATOR_REGISTRY.DRAWDOWN.build: 返回一条副图 line series，axis �
   assert.equal(out[0].markPoint.data[0].name, '最大回撤');
 });
 
-test('INDICATOR_REGISTRY.DRAWDOWN.build: 全 null 数组 → 无 markPoint', () => {
+test('INDICATOR_REGISTRY.DRAWDOWN.build: 全 null 数组 → 空 markPoint 数据', () => {
   const ctx = {
     code: '001', name: 'A', color: '#111',
     aligned: [null, null, null],
@@ -193,8 +193,8 @@ test('INDICATOR_REGISTRY.DRAWDOWN.build: 全 null 数组 → 无 markPoint', () 
     xAxisIndex: 1, yAxisIndex: 1,
   };
   const out = INDICATOR_REGISTRY.DRAWDOWN.build(ctx);
-  // computeDrawdown on all-null returns all-null; minI stays -1 → markPoint undefined
-  assert.equal(out[0].markPoint, undefined);
+  // 保留样式模板，便于下一选区重新计算并显式清空旧标记。
+  assert.deepEqual(out[0].markPoint.data, []);
 });
 
 /* ============== rangeStats.single：与 computeMA 最后点一致 ============== */

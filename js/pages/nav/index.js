@@ -10,6 +10,8 @@
  */
 
 import { setupNavFullscreen } from './fullscreen.js';
+import { buildExtremaUpdates, extremaWindow } from './chart-extrema.js';
+import { periodStartIndex } from './period-window.js';
 import { ensureBenchmarkSelection, replaceBenchmarkSelection } from './benchmark-selection.js';
 import { createTypeahead } from '../../components/typeahead.js';
 import { fetchNavCompareCached, fetchIndexSearchIndexFromAPI, periodToRange } from '../../data/nav-api.js';
@@ -276,13 +278,7 @@ function viewWindowFromPeriod(period, allDatesYMD, series) {
     return { start: cs || ymdToISO(allDatesYMD[0]), end: endISO };
   }
   if (period === 'MAX') return { start: ymdToISO(allDatesYMD[0]), end: endISO };
-  const days = { '1M': 30, '3M': 91, '6M': 182, '1Y': 365, '3Y': 365 * 3, '5Y': 365 * 5, '10Y': 365 * 10 }[period] || 365;
-  // 数据最后一天 - days，找数据中第一个 >= 该日期的点
-  const lastDate = new Date(parseInt(lastYMD.slice(0,4)), parseInt(lastYMD.slice(4,6)) - 1, parseInt(lastYMD.slice(6,8)));
-  const target = new Date(lastDate.getTime() - days * 86400000);
-  const targetYMD = `${target.getFullYear()}${String(target.getMonth()+1).padStart(2,'0')}${String(target.getDate()).padStart(2,'0')}`;
-  const found = allDatesYMD.findIndex(d => d >= targetYMD);
-  const startIdx = found === -1 ? 0 : found;
+  const startIdx = periodStartIndex(period, allDatesYMD);
   return { start: ymdToISO(allDatesYMD[startIdx]), end: endISO };
 }
 
@@ -850,35 +846,7 @@ function renderChart({ interaction = false } = {}) {
     const aligned = alignedByCode.get(s.code) || new Array(allDates.length).fill(null);
     const transformed = transformByMode(allDates, aligned, valueMode, effectiveBaseline);
 
-    // 当前视图窗口内的 max/min 显式索引；避开 ECharts type:'max' 在
-    // 前向填充平台上落点不准、且不受窗口约束的两个老坑。
-    let maxI = -1, minI = -1;
-    let maxV = -Infinity, minV = Infinity;
-    for (let k = extremaStartIdx; k <= eIdx; k++) {
-      const v = transformed[k];
-      if (v == null || !Number.isFinite(v)) continue;
-      if (v > maxV) { maxV = v; maxI = k; }
-      if (v < minV) { minV = v; minI = k; }
-    }
-    // 显式 value，避免 ECharts 解析成 undefined 导致 formatter 算 NaN。
-    // 每个点自带 label.position：最高在曲线上方，最低在曲线下方。
-    const markPointData = [];
-    const pointPosition = (index, fallback) => index > eIdx - (eIdx - sIdx) * 0.04 ? 'left'
-      : index < sIdx + (eIdx - sIdx) * 0.04 ? 'right' : fallback;
-    if (maxI >= 0) {
-      markPointData.push({
-        name: '最高', coord: [maxI, maxV], value: maxV,
-        label: { position: pointPosition(maxI, 'top') },
-      });
-    }
-    if (minI >= 0 && minI !== maxI) {
-      markPointData.push({
-        name: '最低', coord: [minI, minV], value: minV,
-        label: { position: pointPosition(minI, 'bottom') },
-      });
-    }
-
-    // 主线：附 max/min 标记点（仅当前视图窗口内的极值，仅显示数值）
+    // 主线保留标记样式，候选极值在后面跨曲线统一裁决。
     mainSeries.push({
       name: `${s.code} ${s.name}`,
       type: 'line',
@@ -891,7 +859,7 @@ function renderChart({ interaction = false } = {}) {
       xAxisIndex: 0,
       yAxisIndex: 0,
       connectNulls: true,
-      markPoint: markPointData.length ? {
+      markPoint: {
         // 用 1px 完全透明的 circle 取代 symbol:'none' —— ECharts 5.5.x 在 'none'
         // 时会连带把 label 一起隐藏，circle+opacity:0 才能稳定保留文字标签
         symbol: 'circle',
@@ -906,11 +874,11 @@ function renderChart({ interaction = false } = {}) {
             return yAxisLabelFormatter(valueMode)(v);
           },
         },
-        data: markPointData,
-      } : undefined,
+        data: [],
+      },
     });
     // 指标注册表驱动：每个启用指标根据其 panel（main / 副图）到主图或副图列。
-    // 指标自己管理计算方式、样式、极值 markPoint 等—— renderChart 完全不知道“MA”或“回撤”存在。
+    // 指标管理计算与标记样式，chart-extrema 统一选出每张图最终保留的极值。
     // 新增指标 = indicators.js 里添一行，不用改这里。
     for (const ind of enabledIndicators) {
       const axisIdx = getIndicatorAxisIndex(ind, subplotIdxMap);
@@ -1099,6 +1067,10 @@ function renderChart({ interaction = false } = {}) {
         backgroundColor: theme.bgRaised, borderRadius: 3, padding: [2, 3] } } } : {}) })),
   };
 
+  state._extremaCache = { series: option.series, start: sIdx, end: eIdx, baselineStart: extremaStartIdx };
+  const initialMarks = new Map(currentExtremaUpdates().map(update => [update.id, update.markPoint]));
+  option.series.forEach(item => { if (initialMarks.has(item.id)) item.markPoint = initialMarks.get(item.id); });
+
   // dataZoom 拖动 / 滚轮缩放 → 反向同步到 state.viewStart/End + 区间输入框
   // 按帧刷新坐标和极值，交互期间不重建 dataZoom 组件。
   chart.off('datazoom');
@@ -1172,6 +1144,18 @@ function renderChart({ interaction = false } = {}) {
     refreshStats();
   } else if (!state._statsFrameTimer) state._statsFrameTimer = setTimeout(refreshStats, 100);
   persist();
+}
+
+function currentExtremaUpdates() {
+  const cache = state._extremaCache;
+  if (!cache) return [];
+  const { start, end } = extremaWindow(cache.start, cache.end, cache.baselineStart, rangeSel.sIx, rangeSel.eIx);
+  return buildExtremaUpdates(cache.series, start, end, cache.start, cache.end);
+}
+
+function refreshChartExtrema() {
+  if (!state.chart || !state._extremaCache) return;
+  state.chart.setOption({ series: currentExtremaUpdates() }, { silent: true });
 }
 
 function formatDate(s) {
@@ -2051,12 +2035,8 @@ function onStatsPanelMove(e) {
   const wrap = document.getElementById('nav-chart-wrap');
   if (!panel || !wrap) return;
   const wR = wrap.getBoundingClientRect();
-  const pw = panel.offsetWidth;
-  const ph = panel.offsetHeight;
-  let left = e.clientX - wR.left - rangeSel.panelDragDX;
-  let top = e.clientY - wR.top - rangeSel.panelDragDY;
-  left = Math.max(4, Math.min(Math.max(4, wR.width - pw - 4), left));
-  top = Math.max(4, Math.min(Math.max(4, wR.height - ph - 4), top));
+  const left = e.clientX - wR.left - rangeSel.panelDragDX;
+  const top = e.clientY - wR.top - rangeSel.panelDragDY;
   rangeSel.panelLeft = left;
   rangeSel.panelTop = top;
   panel.style.left = `${left}px`;
@@ -2142,6 +2122,7 @@ function clearPersistentRange() {
   if (overlay) overlay.hidden = true;
   if (control) control.hidden = true;
   if (stats) stats.hidden = true;
+  refreshChartExtrema();
 }
 
 function zoomToPersistentRange() {
@@ -2164,6 +2145,7 @@ function minIcon(minimized) {
 }
 
 function showPersistentRangeStats() {
+  refreshChartExtrema();
   navFullscreen?.sync();
   if (!state.chart || !state.data) return;
   if (rangeSel.sIx == null || rangeSel.eIx == null) return;

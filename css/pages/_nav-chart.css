@@ -54,8 +54,14 @@
 }
 
 .nav-period-group {
-  gap: 2px;
+  gap: 6px;
+  flex-wrap: wrap;
+  flex-basis: 100%;
+  min-width: 0;
 }
+.nav-period-group > .nav-control-label, .nav-period-btn { white-space: nowrap; flex-shrink: 0; }
+.nav-date-range { display: flex; align-items: center; gap: 8px; flex-basis: 100%; width: 100%; min-width: 0; margin-top: 4px; }
+.nav-date-range .nav-date-input { flex: 1 1 0; width: 0; max-width: 160px; min-width: 0; }
 
 .nav-excess-select {
   font-size: 13px;
@@ -151,7 +157,7 @@
 }
 
 .nav-date-input:first-of-type {
-  margin-left: 8px; /* 跟 MAX 按钮拉开一点距离 */
+  margin-left: 0;
 }
 
 /* 隐藏 Webkit/Blink 内置的日历小图标，整个输入框承担点击面 */
