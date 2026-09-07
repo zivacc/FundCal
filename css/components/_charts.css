@@ -9,24 +9,24 @@
   padding: 16px 20px;
   margin-bottom: 1rem;
   position: relative;
-  height: clamp(420px, calc(100vh - 10rem), 1080px);
+  height: auto;
   box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
   container-type: inline-size;
+  container-name: calc-chart;
 }
 
 .chart-main {
   display: flex;
   align-items: stretch;
   gap: 0.75rem;
-  flex: 1 1 auto;
-  min-height: 0;
+  min-width: 0;
 }
 
 .chart-main-left {
-  flex: 1 1 auto;
+  container-type: inline-size;
+  flex: 1 1 0;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -35,23 +35,31 @@
 .chart-main-right {
   flex: 0 0 260px;
   max-width: 280px;
-  min-width: 200px;
+  min-width: 0;
   display: flex;
   flex-direction: row;
   border-left: 1px solid var(--rule);
-  transition: flex-basis 0.25s, min-width 0.25s, padding 0.25s;
 }
 
 /* 图表区域 */
 .chart-wrapper {
   position: relative;
-  flex: 1 1 auto;
-  min-height: 460px;
+  flex: none;
+  width: 100%;
+  height: clamp(280px, min(52cqw, 65svh), 560px);
+  min-height: 0;
+  overflow: hidden;
 }
+
+.chart-wrapper canvas { position: absolute; inset: 0; display: block; width: 100% !important; height: 100% !important; }
+.chart-empty { position: absolute; inset: 0; display: grid; place-items: center; color: var(--text-secondary); padding: 24px; text-align: center; }
+.chart-empty[hidden] { display: none; }
 
 /* 图表底部 */
 .chart-footer {
   display: flex;
+  flex-wrap: wrap;
+  flex: none;
   justify-content: space-between;
   align-items: flex-start;
   gap: 1rem;
@@ -61,12 +69,13 @@
 }
 
 .chart-footer-left {
-  flex: 1;
+  flex: 1 1 260px;
+  overflow-wrap: anywhere;
   min-width: 0;
 }
 
 .chart-footer-right {
-  flex-shrink: 0;
+  max-width: 100%;
 }
 
 .chart-options {
@@ -77,53 +86,12 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   曲线悬停框（Chart.js external tooltip）
-   ═══════════════════════════════════════════════════════════════ */
-
-.chart-hover-tooltip {
-  position: absolute;
-  max-width: min(280px, calc(100% - 24px));
-  font-size: 11.5px;
-  font-family: var(--font-mono);
-  color: var(--text-primary);
-  background: var(--bg-glass);
-  padding: 8px 12px;
-  border-radius: var(--radius-md);
-  border-left: 2px solid var(--accent);
-  border-top: 1px solid var(--rule);
-  border-right: 1px solid var(--rule);
-  border-bottom: 1px solid var(--rule);
-  box-shadow: var(--shadow-md);
-  line-height: 1.55;
-  backdrop-filter: blur(8px);
-  pointer-events: none;
-  opacity: 0;
-  transform: translateY(2px);
-  transition: opacity 0.08s ease-out, transform 0.08s ease-out;
-  z-index: 30;
-  white-space: nowrap;
-}
-
-.chart-hover-tooltip.visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.chart-hover-tooltip-title {
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 0.2rem;
-}
-
-.chart-hover-tooltip-body {
-  color: var(--text-secondary);
-}
-
-/* ═══════════════════════════════════════════════════════════════
    最优区间色带
    ═══════════════════════════════════════════════════════════════ */
 
 .optimal-band {
+  flex: none;
+  min-width: 0;
   order: -1;
   margin-top: 0;
   margin-bottom: 0.5rem;
@@ -138,11 +106,8 @@
   padding: 0 4px;
   margin-bottom: 4px;
   min-height: 1.2em;
-  line-height: 1.2;
-  transition: color var(--transition-fast);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
 }
 
 .optimal-band-strip {
@@ -156,13 +121,16 @@
 .optimal-band-segment {
   position: relative;
   flex-shrink: 0;
-  min-width: 2px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  font: inherit;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
   cursor: pointer;
-  transition: filter var(--transition-fast), flex 0.2s ease, box-shadow var(--transition-fast);
+  transition: filter var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .optimal-band-segment.active {
@@ -199,7 +167,6 @@
 .optimal-band-boundary-label {
   position: absolute;
   top: 2px;
-  transform: translateX(-50%);
   font-size: 0.72rem;
   font-family: var(--font-mono);
   color: var(--text-secondary);
@@ -324,7 +291,7 @@
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
-  max-height: 50vh;
+  max-height: 320px;
   padding-right: 0.25rem;
   display: flex;
   flex-direction: column;
@@ -449,6 +416,7 @@
 .chart-crosshair-overlay.visible .chart-crosshair-label-x,
 .chart-crosshair-overlay.visible .chart-crosshair-label-y,
 .chart-crosshair-overlay.visible .chart-crosshair-info {
+  visibility: visible;
   opacity: 1;
 }
 
@@ -504,11 +472,17 @@
   z-index: 10;
 }
 
+.chart-crosshair-info-fund { margin-top: 6px; overflow-wrap: anywhere; }
+
 .chart-crosshair-info {
   position: absolute;
   top: 8px;
   right: 8px;
-  max-width: min(260px, calc(50% - 16px));
+  max-width: min(280px, calc(100% - 16px));
+  max-height: calc(100% - 52px);
+  overflow: auto;
+  pointer-events: auto;
+  visibility: hidden;
   background: var(--bg-glass);
   backdrop-filter: blur(6px);
   border: 1px solid var(--rule);
@@ -520,6 +494,20 @@
   box-shadow: var(--shadow-md);
   z-index: 10;
   word-break: break-all;
+}
+
+/* 基于图表容器宽度切换，列表和说明始终参与正常文档流。 */
+@container calc-chart (max-width: 760px) {
+  .chart-main { flex-direction: column; }
+  .chart-main-left { flex: none; width: 100%; }
+  .chart-main-right, .chart-main-right.collapsed { flex: none; width: 100%; min-width: 0; max-width: none; border-left: 0; border-top: 1px solid var(--rule); padding-top: 8px; }
+  .chart-fund-list { max-height: 180px; }
+  .chart-fund-list-toggle { min-height: 44px; width: 28px; }
+  .chart-fund-list-toggle-arrow { transform: rotate(90deg); }
+  .chart-main-right.collapsed .chart-fund-list-toggle { flex-direction: row; flex-wrap: wrap; padding: 8px; gap: 8px; justify-content: flex-start; }
+  .chart-footer { flex-direction: column; gap: 8px; }
+  .chart-footer-left { flex: none; }
+  .chart-footer-right { align-self: flex-start; }
 }
 
 /* ═══════════════════════════════════════════════════════════════

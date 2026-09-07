@@ -2,6 +2,7 @@ import { registerFundSource, registerFundReceiver, notifyFundSelection, prepareF
 import { normalizeFundRefs } from '../../data/basket-store.js';
 import { readCardImplicitFee } from './implicit-fee.js';
 import { setupCardDeck } from './card-deck.js';
+import { chartPointer, chartInfoCorner, alignOptimalBand, hideChartOverlays, calcChartLayoutPlugin } from './chart-layout.js';
 /**
  * 基金费率计算器 - 主应用
  */
@@ -396,7 +397,7 @@ function setupCrosshair(canvas) {
     const lineV = overlay.querySelector('#chart-crosshair-v');
     const lineH = overlay.querySelector('#chart-crosshair-h');
     const infoEl = overlay.querySelector('#chart-crosshair-info');
-    canvas.addEventListener('mousemove', (e) => {
+    const showCrosshair = (e) => {
       if (!chartInstance) {
         overlay.classList.remove('visible');
         return;
@@ -404,8 +405,16 @@ function setupCrosshair(canvas) {
       const rect = canvas.getBoundingClientRect();
       const scaleX = chartInstance.scales.x;
       const scaleY = chartInstance.scales.y;
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+      const { x, y } = chartPointer(e.clientX, e.clientY, rect, chartInstance.width, chartInstance.height);
+      const area = chartInstance.chartArea;
+      if (x < area.left || x > area.right || y < area.top || y > area.bottom) {
+        hideChartOverlays(); return;
+      }
+      // Confine crosshair lines to the plot instead of crossing tick labels.
+      lineV.style.top = area.top + 'px';
+      lineV.style.bottom = (chartInstance.height - area.bottom) + 'px';
+      lineH.style.left = area.left + 'px';
+      lineH.style.right = (chartInstance.width - area.right) + 'px';
       let dataX = scaleX.getValueForPixel(x);
       let dataY = scaleY.getValueForPixel(y);
       const minX = scaleX.min;
@@ -414,35 +423,42 @@ function setupCrosshair(canvas) {
       const maxY = scaleY.max;
       dataX = Math.max(minX, Math.min(maxX, dataX));
       dataY = Math.max(minY, Math.min(maxY, dataY));
-      const dayInt = Math.floor(dataX);
+      // 使用最近的整数天，避免像素/缩放舍入让整日落点偏到前一天。
+      const dayInt = Math.round(dataX);
       const pixelX = scaleX.getPixelForValue(dayInt);
       const pixelY = scaleY.getPixelForValue(dataY);
       lineV.style.left = pixelX + 'px';
       lineH.style.top = pixelY + 'px';
-      labelX.style.left = pixelX + 'px';
       labelX.textContent = dayInt + '天';
+      labelX.style.top = (area.bottom + 4) + 'px';
+      labelX.style.bottom = 'auto';
+      labelX.style.left = Math.max(labelX.offsetWidth / 2, Math.min(chartInstance.width - labelX.offsetWidth / 2, pixelX)) + 'px';
       labelY.style.top = pixelY + 'px';
       labelY.textContent = dataY.toFixed(2) + '%';
       if (infoEl && lastFundsForCrosshair.length > 0) {
         // 控制固定数据悬浮窗显示与位置（由“数据悬浮窗”开关控制）
         if (getShowTooltip()) {
-          const lines = ['持有天数: ' + dayInt];
+          const lines = ['<strong>持有天数: ' + dayInt + '</strong>'];
+          const crossing = chartInstance.data.datasets.find(dataset => dataset.crossover &&
+            Math.hypot(scaleX.getPixelForValue(dataset.data[0].x) - x, scaleY.getPixelForValue(dataset.data[0].y) - y) <= 16);
+          if (crossing) lines.push('<div>' + escapeHtml(crossing.crossover.beforeCross) + ' → ' + escapeHtml(crossing.crossover.afterCross) + '</div>');
           lastFundsForCrosshair.forEach((fund, i) => {
             const rate = calcTotalFeeRate(fund, dayInt) * 100;
             const color = fund.color || getColorForIndex(i);
             const displayName = getFundDisplayName(fund);
-            lines.push('<span class="chart-crosshair-info-fund" style="color:' + color + '">' + escapeHtml(displayName) + ': ' + rate.toFixed(2) + '%</span>');
+            const annualized = dayInt > 0 ? (rate * 365 / dayInt).toFixed(2) + '%' : '—';
+            lines.push('<div class="chart-crosshair-info-fund" style="color:' + color + '">' + escapeHtml(displayName) + '<br>累计 ' + rate.toFixed(2) + '% · 年化约 ' + annualized + '</div>');
           });
-          infoEl.innerHTML = lines.join('<br>');
+          infoEl.innerHTML = lines.join('');
           infoEl.style.display = 'block';
-          // 鼠标在图表右半边时，把固定悬浮窗移到左侧，避免遮挡
-          const isRightHalf = x > rect.width / 2;
-          if (isRightHalf) {
-            infoEl.style.right = '';
-            infoEl.style.left = '20px';
-          } else {
-            infoEl.style.left = '';
-            infoEl.style.right = '8px';
+          // 一个信息窗覆盖普通曲线和交叉点；本次悬停内固定位置，允许移入滚动。
+          if (!infoEl.dataset.placement) {
+            const corner = chartInfoCorner(x, y, chartInstance.width, chartInstance.height);
+            infoEl.dataset.placement = 'fixed';
+            infoEl.style.maxHeight = corner.maxHeight + 'px';
+            infoEl.style.top = corner.top + 'px';
+            infoEl.style.left = corner.left === null ? '' : corner.left + 'px';
+            infoEl.style.right = corner.left === null ? '8px' : '';
           }
         } else {
           infoEl.innerHTML = '';
@@ -450,93 +466,19 @@ function setupCrosshair(canvas) {
         }
       }
       overlay.classList.add('visible');
+    };
+    canvas.addEventListener('pointermove', showCrosshair);
+    canvas.addEventListener('pointerdown', showCrosshair);
+    canvas.addEventListener('pointerleave', (event) => {
+      if (event.pointerType === 'touch') return;
+      if (event.relatedTarget?.closest?.('.chart-crosshair-info')) return;
+      hideChartOverlays();
     });
-    canvas.addEventListener('mouseleave', () => {
-      overlay.classList.remove('visible');
-      hideChartHoverTooltip();
-    });
+    wrapper.addEventListener('pointerleave', event => { if (event.pointerType !== 'touch') hideChartOverlays(); });
+    document.addEventListener('pointerdown', event => { if (!wrapper.contains(event.target)) hideChartOverlays(); });
+    window.addEventListener('scroll', hideChartOverlays, { passive: true });
+    canvas.addEventListener('pointercancel', hideChartOverlays);
   }
-}
-
-/** 确保图表曲线悬停框（HTML）存在于 chart wrapper 中 */
-function ensureChartHoverTooltip(wrapper) {
-  if (!wrapper) return null;
-  let el = wrapper.querySelector('#chart-hover-tooltip');
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'chart-hover-tooltip';
-    el.className = 'chart-hover-tooltip';
-    el.setAttribute('aria-hidden', 'true');
-    wrapper.appendChild(el);
-  }
-  return el;
-}
-
-/** 隐藏曲线悬停框 */
-function hideChartHoverTooltip() {
-  const el = document.getElementById('chart-hover-tooltip');
-  if (!el) return;
-  el.classList.remove('visible');
-  el.innerHTML = '';
-}
-
-/** 渲染 Chart.js 曲线悬停框（HTML，层级高于十字线信息窗） */
-function renderChartHoverTooltip(context) {
-  const { chart, tooltip } = context || {};
-  if (!chart || !tooltip) return;
-  const wrapper = chart.canvas?.parentElement;
-  const el = ensureChartHoverTooltip(wrapper);
-  if (!el) return;
-
-  if (tooltip.opacity === 0 || !tooltip.dataPoints || tooltip.dataPoints.length === 0) {
-    el.classList.remove('visible');
-    return;
-  }
-
-  const title = (() => {
-    const ctx = tooltip.dataPoints[0];
-    if (!ctx) return '';
-    const c = ctx.dataset && ctx.dataset.crossover;
-    if (c) return `${Math.round(c.days)}天`;
-    return `持有 ${ctx.parsed.x} 天`;
-  })();
-
-  const lines = tooltip.dataPoints.map((ctx) => {
-    const c = ctx.dataset && ctx.dataset.crossover;
-    if (c) {
-      return `${escapeHtml(c.beforeCross)}&lt;${escapeHtml(c.afterCross)}`;
-    }
-    const days = ctx.parsed.x;
-    const feePct = ctx.parsed.y;
-    const annualized = days > 0 ? (feePct / 100) * (365 / days) * 100 : 0;
-    return `${escapeHtml(ctx.dataset.label || '基金')}: 累计 ${feePct.toFixed(2)}%，年化约 ${annualized.toFixed(2)}%`;
-  });
-
-  el.innerHTML = `
-    <div class="chart-hover-tooltip-title">${title}</div>
-    <div class="chart-hover-tooltip-body">${lines.map(line => `<div>${line}</div>`).join('')}</div>
-  `;
-
-  // 相对 chart wrapper 定位
-  const x = tooltip.caretX;
-  const y = tooltip.caretY;
-  const wrapperWidth = wrapper.clientWidth || 0;
-  const wrapperHeight = wrapper.clientHeight || 0;
-  // 先粗略放置，再根据自身尺寸微调，尽量不越界
-  let left = x + 12;
-  let top = y - 12;
-  el.style.left = `${left}px`;
-  el.style.top = `${top}px`;
-  el.classList.add('visible');
-
-  const rect = el.getBoundingClientRect();
-  const w = rect.width || 0;
-  const h = rect.height || 0;
-  if (left + w > wrapperWidth - 8) left = Math.max(8, x - w - 12);
-  if (top + h > wrapperHeight - 8) top = Math.max(8, wrapperHeight - h - 8);
-  if (top < 8) top = 8;
-  el.style.left = `${left}px`;
-  el.style.top = `${top}px`;
 }
 
 /** 更新图表（开启联接穿透时为异步：会拉取母基金费率） */
@@ -550,6 +492,8 @@ async function updateChart() {
   let funds = allFunds.filter(f => activeChartFundCodes.has(f._id));
   const canvas = document.getElementById('chart-canvas');
   const legendEl = document.getElementById('crossover-legend');
+  hideChartOverlays();
+  document.getElementById('chart-empty').hidden = funds.length > 0;
 
   if (getPenetrateFeeder() && funds.length > 0) {
     funds = await applyFeederPenetration(funds);
@@ -562,8 +506,10 @@ async function updateChart() {
     }
     const crosshairEl = document.getElementById('chart-crosshair-overlay');
     if (crosshairEl) crosshairEl.classList.remove('visible');
-    hideChartHoverTooltip();
-    legendEl.innerHTML = '<p class="none">请添加基金并填写费率</p>';
+    const band = document.getElementById('optimal-band');
+    band.replaceChildren(); band.style.display = 'none';
+    lastFundsForCrosshair = [];
+    legendEl.innerHTML = '<p class="none">' + (allFunds.length ? '全部基金已隐藏，可在列表中恢复显示' : '请添加基金并填写费率') + '</p>';
     renderFundDetailTableForMainPage([]);
     resetStageReturnChartState();
     return;
@@ -630,7 +576,7 @@ async function updateChart() {
       backgroundColor: fund.color + '20',
       borderWidth: 2,
       fill: false,
-      tension: 0.1,
+      tension: 0,
       pointRadius: 0,
       pointHoverRadius: 6,
       pointHitRadius: 20,
@@ -684,7 +630,7 @@ async function updateChart() {
       label: '\u200b',
       data: [{ x: dayNext, y: yNext }],
       borderColor: color,
-      backgroundColor: '#1c2636',
+      backgroundColor: getChartTheme().crossFill,
       borderWidth: 3,
       pointRadius: 6,
       pointHoverRadius: 14,
@@ -740,20 +686,18 @@ async function updateChart() {
   chartInstance = new Chart(canvas, {
     type: 'line',
     data: { datasets },
+    plugins: [calcChartLayoutPlugin],
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      // 优化：当数据集或点数较多时，禁用动画以提升响应速度
-      animation: (datasets.length > 20 || displayDays > 1000) ? false : { duration: 400 },
+      // 重建与响应式缩放直接绘制最终曲线，避免频繁数据更新时从零重播。
+      animation: false,
       layout: { padding: { left: 0, right: 8, top: 4, bottom: 0 } },
       interaction: { intersect: true, mode: 'nearest' },
       plugins: {
         legend: { display: false },
-        tooltip: {
-          // 改为 HTML 外置悬浮窗，保证层级高于十字线信息窗与坐标刻度窗
-          enabled: false,
-          external: renderChartHoverTooltip
-        }
+        // 共用十字线信息窗，避免两套浮层争抢鼠标事件。
+        tooltip: { enabled: false }
       },
       scales: {
         x: {
@@ -787,8 +731,6 @@ async function updateChart() {
     bandEl.innerHTML = '';
     if (optimalSwitches.length > 0) {
       bandEl.style.display = 'block';
-      bandEl.style.marginLeft = '60px';
-      bandEl.style.marginRight = '15px';
 
       const display = document.createElement('div');
       display.className = 'optimal-band-display';
@@ -800,16 +742,19 @@ async function updateChart() {
       strip.className = 'optimal-band-strip';
       displaySegments.forEach((seg, segIndex) => {
         const segDays = seg.end - seg.start + 1;
-        const widthPct = (segDays / displayDays * 100).toFixed(2) + '%';
+        const widthPct = (segDays / displayDays * 100) + '%';
         const color = seg.redNoText ? 'var(--danger)' : (funds[seg.fundIndex].color || getColorForIndex(seg.fundIndex));
         const labelText = seg.redNoText ? '惩罚期' : getFundDisplayName(funds[seg.fundIndex]);
-        const segDiv = document.createElement('div');
+        const segDiv = document.createElement('button');
+        segDiv.type = 'button';
         segDiv.className = 'optimal-band-segment';
         segDiv.style.width = widthPct;
         segDiv.style.backgroundColor = color;
         segDiv.dataset.segIndex = String(segIndex);
         segDiv.dataset.fullName = labelText;
         segDiv.dataset.range = `${seg.start}–${seg.end} 天`;
+        segDiv.title = `${segDiv.dataset.range} · ${labelText}`;
+        segDiv.setAttribute('aria-label', segDiv.title);
         // 仅宽度足够时显示文字（占比 > 4% 或绝对天数 > 20天）
         const showLabel = (segDays / displayDays) > 0.04 || segDays > 20;
         if (showLabel) {
@@ -841,14 +786,14 @@ async function updateChart() {
       const labelsRow = document.createElement('div');
       labelsRow.className = 'optimal-band-labels';
       optimalSwitches.forEach(s => {
-        const leftPct = ((s.days - displayMin) / displayDays * 100).toFixed(2) + '%';
         const span = document.createElement('span');
         span.className = 'optimal-band-boundary-label';
-        span.style.left = leftPct;
+        span.dataset.day = String(s.days);
         span.textContent = s.days + '天';
         labelsRow.appendChild(span);
       });
       bandEl.appendChild(labelsRow);
+      alignOptimalBand(chartInstance);
     } else {
       bandEl.style.display = 'none';
       bandEl.style.marginLeft = '';
@@ -967,6 +912,7 @@ async function renderFundDetailTableForMainPage(funds) {
 
 /** 初始化 */
 function init() {
+  window.addEventListener('hashchange', hideChartOverlays);
   document.getElementById('add-fund').addEventListener('click', () => addFundCard());
   setupImportModal({ addFundCard, restoreState, saveState, ensureSearchIndex });
   const exportBtn = document.getElementById('export-funds');
@@ -1028,7 +974,7 @@ function init() {
   const showTooltipEl = document.getElementById('show-tooltip');
   if (showTooltipEl) {
     showTooltipEl.addEventListener('change', () => {
-      // 仅控制右上角固定数据悬浮窗，不再控制曲线悬浮窗
+      // 统一控制曲线/交叉点信息窗，更新时清除残留。
       updateChart();
       saveState();
     });

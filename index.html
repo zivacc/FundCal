@@ -119,9 +119,10 @@
         <div class="chart-main">
           <div class="chart-main-left">
             <div class="chart-wrapper">
-              <canvas id="chart-canvas"></canvas>
+              <canvas id="chart-canvas" role="img" aria-label="基金累计费率与持有天数比较"></canvas>
+              <div class="chart-empty" id="chart-empty" hidden>请选择要显示的基金</div>
             </div>
-            <div class="optimal-band" id="optimal-band" aria-hidden="true"></div>
+            <div class="optimal-band" id="optimal-band" aria-label="最优费率区间"></div>
           </div>
           <aside class="chart-main-right" id="chart-main-right" aria-label="参与图表计算的基金列表">
             <button type="button" class="chart-fund-list-toggle" id="chart-fund-list-toggle" title="收起/展开列表"><span class="chart-fund-list-toggle-arrow">›</span></button>
