@@ -1,7 +1,7 @@
-/* 环绕画廊：舞台统一光源，卡片沿弧线从后方翻入。 */
-.fund-card-stage { --stage-surface: #e9edf1; --card-surface: #fcfdfe; position: relative; isolation: isolate; margin: 24px 0 28px; border: 1px solid var(--rule); border-radius: 26px; background: var(--stage-surface); overflow: hidden; box-shadow: inset 0 1px 0 #ffffff80, 0 24px 60px #151a3215; }
-.fund-card-stage::before { content: ''; position: absolute; z-index: 0; inset: 0; background: radial-gradient(ellipse at 42% -12%, #ffffffef, transparent 57%), radial-gradient(ellipse at 90% 36%, #98b9d750, transparent 65%); pointer-events: none; }
-.fund-card-stage::after { content: ''; position: absolute; left: 5%; right: 5%; height: 120px; bottom: -55px; border-radius: 50%; background: #a3b7cd55; box-shadow: 0 -35px 90px #98aec339; transform: perspective(500px) rotateX(60deg); pointer-events: none; }
+/* 金银色画廊：光标驱动统一光源，宽屏前排平铺，后排沿弧线翻入。 */
+.fund-card-stage { --stage-surface: var(--bg-subtle); --card-surface: #f8f7f3; --metal-edge: #c5bdab; --metal-glow: #fff4d770; --light-x: 42%; --light-y: 12%; --light-angle: 100deg; --shadow-x: 2px; --shadow-y: 26px; position: relative; isolation: isolate; margin: 24px 0 28px; border: 1px solid var(--rule); border-radius: 26px; background: var(--stage-surface); overflow: hidden; box-shadow: inset 0 1px 0 #ffffff80, 0 24px 60px #45351e15; }
+.fund-card-stage::before { content: ''; position: absolute; z-index: 0; inset: 0; background: radial-gradient(ellipse at var(--light-x) var(--light-y), #ffffffea, transparent 58%), linear-gradient(var(--light-angle), #d5c39b20, transparent 45%, #c8c6be28); pointer-events: none; }
+.fund-card-stage::after { content: ''; position: absolute; left: 5%; right: 5%; height: 120px; bottom: -55px; border-radius: 50%; background: #b3a78a38; box-shadow: var(--shadow-x) -35px 90px #c2b39330; transform: perspective(500px) rotateX(60deg); pointer-events: none; }
 .deck-toolbar { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 22px 26px 0; }
 .deck-eyebrow { font: 10px var(--font-mono); color: var(--accent); letter-spacing: 3px; }
 .deck-toolbar h2 { margin: 4px 0 0; font-size: 18px; font-weight: 600; letter-spacing: 1px; }
@@ -12,9 +12,9 @@
 .deck-navigation button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
 .fund-card-stage .fund-cards { display: block; position: relative; z-index: 1; width: 100%; max-width: 100%; height: 520px; margin: 0; padding: 0; overflow: hidden; perspective: 1100px; perspective-origin: 50% 38%; scrollbar-width: none; scrollbar-gutter: auto; touch-action: pan-y; scroll-snap-type: none; }
 .fund-card-stage .fund-cards::-webkit-scrollbar { display: none; width: 0; height: 0; }
-.fund-card-stage .fund-card { position: absolute; left: 50%; top: 32px; width: 330px; padding: 23px 20px 20px; border-radius: 21px; border: 1px solid color-mix(in srgb, var(--card-accent) 30%, var(--rule-strong)); background: linear-gradient(158deg, #ffffff38, transparent 43%), var(--card-surface); box-shadow: inset 1px 1px 0 #ffffff85, inset -1px -1px 0 #00000014, 0 32px 32px -22px #081c4566, 5px 5px 0 -2px color-mix(in srgb, var(--card-surface) 75%, #6d7b89); transform-origin: 50% 45%; filter: brightness(var(--surface-light, 1)); transition: border-color .18s; backface-visibility: hidden; }
+.fund-card-stage .fund-card { position: absolute; left: 50%; top: 32px; width: 330px; padding: 23px 20px 20px; border-radius: 21px; border: 1px solid var(--metal-edge); background: radial-gradient(ellipse at var(--reflection-x, 50%) var(--reflection-y, 0%), var(--metal-glow), transparent 85%), linear-gradient(var(--light-angle), #ffffff30, transparent 43%, #a99a7720), var(--card-surface); box-shadow: inset 1px 1px 0 #ffffff85, inset -1px -1px 0 #00000014, var(--shadow-x) var(--shadow-y) 32px -18px #352d2048, 4px 5px 0 -2px color-mix(in srgb, var(--card-surface) 75%, #918c7e); transform-origin: 50% 45%; filter: brightness(var(--surface-light, 1)); transition: border-color .18s; backface-visibility: hidden; }
 .fund-card-stage .fund-card::before { content: ''; position: absolute; top: 0; left: 22px; right: 22px; height: 1px; background: linear-gradient(90deg, transparent, #ffffffcc, transparent); pointer-events: none; }
-.fund-card-stage .fund-card.is-deck-active { border-color: color-mix(in srgb, var(--card-accent) 45%, var(--rule-strong)); }
+.fund-card-stage .fund-card.is-deck-active { border-color: var(--metal-edge); }
 .fund-card-stage .fund-card:not(.is-deck-active) { user-select: none; }
 .fund-card-stage .deck-card-open { position: absolute; inset: 0; z-index: 3; width: 100%; height: 100%; padding: 0; border: 0; border-radius: inherit; background: transparent; cursor: pointer; touch-action: pan-y; }
 .fund-card-stage .deck-card-open[hidden] { display: none; }
@@ -33,10 +33,10 @@
 .card-implicit .card-implicit-value:hover:not(:disabled) { border-color: var(--rule); }
 .card-implicit-refresh { border: 0; background: transparent; color: var(--text-secondary); cursor: pointer; }
 .card-implicit [hidden] { display: none !important; }
-[data-theme="dark"] .fund-card-stage { --stage-surface: #10171e; --card-surface: #26323e; border-color: #48536465; }
-[data-theme="dark"] .fund-card-stage::before { background: radial-gradient(ellipse at 42% -12%, #c2d8ef55, transparent 60%), radial-gradient(ellipse at 94% 45%, #46679b20, transparent 65%); }
-[data-theme="dark"] .fund-card-stage::after { background: #8ba8cc22; box-shadow: 0 -25px 100px #8ba8cc19; }
-[data-theme="dark"] .fund-card-stage .fund-card { box-shadow: inset 1px 1px 0 #ffffff28, inset -1px -1px 0 #00000055, 0 32px 34px -22px #000000bb, 5px 5px 0 -2px #344555; }
+[data-theme="dark"] .fund-card-stage { --stage-surface: var(--bg-subtle); --card-surface: #29271e; --metal-edge: #7c70524d; --metal-glow: #e5d3a02c; border-color: var(--rule-strong); }
+[data-theme="dark"] .fund-card-stage::before { background: radial-gradient(ellipse at var(--light-x) var(--light-y), #d9c58e38, transparent 58%), linear-gradient(var(--light-angle), #e0dbc00b, transparent 55%, #a78c4410); }
+[data-theme="dark"] .fund-card-stage::after { background: #b6a06e1c; box-shadow: var(--shadow-x) -25px 100px #c5b17a17; }
+[data-theme="dark"] .fund-card-stage .fund-card { box-shadow: inset 1px 1px 0 #ffffff28, inset -1px -1px 0 #00000055, var(--shadow-x) var(--shadow-y) 34px -18px #00000099, 4px 5px 0 -2px #4a4537; }
 @media (max-width: 768px) {
   .fund-card-stage { margin-inline: 0; border-radius: 20px; }
   .deck-toolbar { padding: 18px 16px 0; }
