@@ -7,6 +7,7 @@ import Database from 'better-sqlite3';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { ensureIndexReturnLinks } from './wind-index-data.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, '..', '..', 'data');
@@ -27,6 +28,7 @@ export function getDb() {
   initSchema(_db);
   ensureTushareShadowColumns(_db);
   ensureNavSourceColumn(_db);
+  ensureIndexReturnLinks(_db);
   return _db;
 }
 
@@ -250,7 +252,7 @@ function initSchema(db) {
     -- ─── 多源代码映射: 一个指数 → 多个源的代码 ───
     CREATE TABLE IF NOT EXISTS index_source_map (
       ts_code     TEXT NOT NULL REFERENCES index_basic(ts_code) ON DELETE CASCADE,
-      source      TEXT NOT NULL,        -- tushare / eastmoney / csindex / custom
+      source      TEXT NOT NULL,        -- tushare / eastmoney / csindex / wind / custom
       source_code TEXT NOT NULL,        -- 该源用的代码 (e.g. 100.NDX, 932000)
       is_active   INTEGER DEFAULT 1,
       notes       TEXT,
@@ -260,7 +262,7 @@ function initSchema(db) {
     CREATE INDEX IF NOT EXISTS idx_index_source_map_source ON index_source_map(source, is_active);
 
     -- ─── 指数日线 ───
-    -- source: 1=tushare, 2=eastmoney, 3=csindex, 6=custom
+    -- source: 1=tushare, 2=eastmoney, 3=csindex, 4=wind, 6=custom
     CREATE TABLE IF NOT EXISTS index_daily (
       ts_code   TEXT NOT NULL,
       end_date  TEXT NOT NULL,
@@ -679,7 +681,7 @@ export function upsertCrawlerData(crawler) {
  * 字段裁决: 新源不覆盖已有非空字段 (除非显式 force).
  *
  * @param {Array<object>} rows  含 ts_code, code, name, ... 字段
- * @param {string} sourceName   tushare / eastmoney / csindex / custom
+ * @param {string} sourceName   tushare / eastmoney / csindex / wind / custom
  */
 export function upsertIndexBasicRecords(rows, sourceName = 'tushare') {
   if (!rows.length) return { inserted: 0, updated: 0 };

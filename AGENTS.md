@@ -109,7 +109,7 @@ DB → build-allfund-from-db 等构建脚本 → data/allfund/* 公共分片
 
 - `sync-fund-basic.js` 不覆写已有基金的重叠字段，只更新 status/market/custodian 等独占信息；新基金 INSERT 全字段作初值。不要改回全字段 `INSERT OR REPLACE`，也不要绕过 `apply-merge-rules`。
 - 基金业务只服务场外 `.OF`。六位代码可能有多市场行，使用 `codeToTsCode` / `codesToTsCodes` 的 `.OF` 优先规则；部分旧读写路径仍有审计待办，不能假设所有 SQL 已统一。指数代码如 `000300.SH` 不受此基金 NAV 限制。
-- `fund_nav.source`：1=tushare、2=eastmoney；`index_daily.source` 另有 3=csindex、6=custom。不要根据某次样本一致就假设多源历史数据始终相同；来源优先级、水位和历史修订仍待完善。
+- `fund_nav.source`：1=tushare、2=eastmoney；`index_daily.source` 另有 3=csindex、4=wind、6=custom。Wind 使用 `sync:index-wind -- --end YYYY-MM-DD` 独立补缺，不覆写已有行；`--resume` 续跑同一截止日。收益版本关联在 `index_return_links`，详见 [docs/wind-data-source.md](docs/wind-data-source.md)。不要根据某次样本一致就假设多源历史数据始终相同；来源优先级、水位和历史修订仍待完善。
 - 爬虫直接写 DB，不再依赖 `data/funds/<code>.json` 中转；`--keep-json` 仅用于保留单次灾备输出。
 
 ### Schema 与晨星参考数据
@@ -127,6 +127,7 @@ DB → build-allfund-from-db 等构建脚本 → data/allfund/* 公共分片
 | sync_log | id；同步审计和失败重放 |
 | index_basic / index_source_map | ts_code / ts_code + source；指数信息与多源代码映射 |
 | index_daily / index_fund_tracker | ts_code + end_date / index_ts_code + fund_ts_code；指数行情和跟踪关系 |
+| index_return_links | index_ts_code + return_ts_code；Wind 核验的全收益版本关联及时间 |
 | morningstar_fee_snapshot | as_of_date；源文件、SHA256 和导入统计 |
 | morningstar_fund_fee | as_of_date + code；各期综合费率、排名及参考指标 |
 

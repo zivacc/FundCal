@@ -10,7 +10,7 @@
 
 import { parseQuery } from '../http-query.js';
 import { getDb, codeToTsCode } from './db.js';
-import { pinyin } from 'pinyin-pro';
+import { buildIndexSearch } from './index-search.js';
 import {
   downsample,
   computeStats,
@@ -266,26 +266,13 @@ function handleNavRange(code, req, res) {
  * 返回 [{ code: ts_code, name, fullname, kind: 'index', isPrice }]
  *
  * - code 字段直接是 ts_code (如 "HSI.HI"); 与 fund 的 6 位 code 共存于同一前端搜索池
- * - isPrice: 通过 fullname 是否含"全收益"判断 (无该字样默认认为是价格指数)
+ * - returnType: 优先使用已核验的收益处理方式，兼容 fullname 推断；isPrice 保留兼容
  * - 仅返回 index_daily 中实际有数据的指数 (避免 zombie 项)
  */
 function handleIndexSearchIndex(req, res) {
   try {
     const db = getDb();
-    const rows = db.prepare(`
-      SELECT b.ts_code, b.name, b.fullname
-      FROM index_basic b
-      WHERE EXISTS (SELECT 1 FROM index_daily d WHERE d.ts_code = b.ts_code)
-      ORDER BY b.ts_code
-    `).all();
-    const list = rows.map(r => ({
-      code: r.ts_code,
-      name: r.name || r.ts_code,
-      fullname: r.fullname || '',
-      initials: pinyin(r.name || '', { pattern: 'first', toneType: 'none', type: 'array' }).join('').toLowerCase(),
-      kind: 'index',
-      isPrice: !/全收益/.test(r.fullname || ''),
-    }));
+    const list = buildIndexSearch(db);
     jsonCached(req, res, list, { maxAge: 300 });
   } catch (e) {
     json(res, 500, { error: '查询失败', detail: e.message });

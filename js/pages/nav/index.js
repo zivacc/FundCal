@@ -20,6 +20,7 @@ import { fetchNavCompareCached, fetchIndexSearchIndexFromAPI, periodToRange } fr
 import { fetchSearchIndexFromAPI } from '../../data/fund-api.js';
 import { BENCHMARK_CANDIDATES } from '../../core/benchmarks.js';
 import { detectKind, KIND } from '../../core/code-kind.js';
+import { indexReturnLabel } from '../../domain/index-return.js';
 
 const MAX_SELECTED = 10;
 import { loadTradeCalendar, isTradingDay } from '../../data/trade-calendar.js';
@@ -438,7 +439,7 @@ function renderChartBenchmark() {
 
 function renderBenchmarkSelect(currentTsCode) {
   const opts = BENCHMARK_CANDIDATES.map(c => {
-    const tag = c.isPrice ? ' · 价格' : '';
+    const tag = indexReturnLabel(c) ? ` · ${indexReturnLabel(c)}` : '';
     const label = `${c.label}${tag}${c.available ? '' : ' (未接入)'}`;
     return `<option value="${escapeHtml(c.tsCode)}"
       ${c.tsCode === currentTsCode ? 'selected' : ''}
@@ -1432,7 +1433,7 @@ function setupEvents() {
       if (idx >= 0) removeFund(idx);
     };
     const kindBadge = (r) => r.kind === KIND.INDEX
-      ? `<span class="fund-search-kind nav-kind-index">${r.isPrice ? '指数 · 价格' : '指数'}</span>`
+      ? `<span class="fund-search-kind nav-kind-index">指数${indexReturnLabel(r) ? ` · ${indexReturnLabel(r)}` : ''}</span>`
       : '';
     createTypeahead({
       inputEl: searchInput,

@@ -57,7 +57,7 @@
 
 详细见 [docs/DEPLOY.md](docs/DEPLOY.md)。
 
-项目级万得金融技能已安装，供特色指数及全收益指数的研究取数与口径核验使用；需配置 `WIND_API_KEY` 后验证访问，当前尚未接入日更流水线。安装状态、数据能力和配置方式见 [Wind 数据源说明](docs/wind-data-source.md)。
+项目级万得金融技能已安装，档案与历史日线已验证并用于补充指数及全收益数据。`sync:index-wind` 独立补缺，`report:index-returns` 输出基金覆盖缺口，尚未加入常规自动日更。安装状态、数据能力和配置方式见 [Wind 数据源说明](docs/wind-data-source.md)。
 
 ---
 
@@ -329,6 +329,9 @@ npm run replay-failed                          # 实际重跑近 7 天失败
 | `npm run sync:trade-cal`        | Tushare 交易日历                            |
 | `npm run sync:index-basic`      | Tushare 指数清单                            |
 | `npm run sync:index-daily`      | Tushare 指数日线                            |
+| `npm run sync:index-wind -- --end YYYY-MM-DD` | Wind 指数及关联全收益历史补缺；同截止日可加 `--resume` |
+| `npm run report:index-returns` | 基金全收益基准覆盖缺口（本地 JSON） |
+| `npm run build-index-search` | 仅重建公共指数搜索目录 |
 | `npm run crawl:em-index`        | 东财指数日线 (港股 / 美股 / 全收益)               |
 | `npm run crawl:eastmoney-nav`   | 东财基金净值 (兜底 / 补全)                      |
 | `npm run crawl:all`             | 爬虫全量基金费率 (直写 DB)                     |

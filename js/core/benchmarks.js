@@ -27,7 +27,7 @@ export const FALLBACK_BENCHMARK_BY_FUND_TYPE = [
   { match: (t) => /黄金|商品/.test(t || ''), tsCode: 'AU9999.SGE' },
 ];
 
-export const DEFAULT_BENCHMARK = '000300.SH'; // 沪深300 (全收益版接入后改为 H00300.CSI 之类)
+export const DEFAULT_BENCHMARK = '000300.SH'; // 保留现有价格基准；可手动切换全收益版本。
 
 /**
  * 快速切换器候选指数。available=false 表示数据未接入 — UI 应 disabled。
@@ -41,9 +41,9 @@ export const BENCHMARK_CANDIDATES = [
   { tsCode: '000905.SH',    label: '中证500',          available: true,  isPrice: true },
   { tsCode: '000852.SH',    label: '中证1000',         available: true,  isPrice: true },
   { tsCode: '932000.CSI',   label: '中证2000',         available: true,  isPrice: true },
-  { tsCode: '932050.CSI',   label: '中证全指',          available: true,  isPrice: true },
+  { tsCode: 'h00985.CSI',   label: '中证全指',          available: true,  isPrice: false, returnType: 'total' },
   { tsCode: '000510.CSI',   label: '中证A500',         available: true,  isPrice: true },
-  { tsCode: 'H30269.CSI',   label: '红利低波',          available: true,  isPrice: true },
+  { tsCode: 'h30269.CSI',   label: '红利低波',          available: true,  isPrice: true },
   { tsCode: '000016.SH',    label: '上证50',           available: true,  isPrice: true },
   { tsCode: '399303.SZ',    label: '国证2000',          available: true,  isPrice: true },
   { tsCode: 'SPX.GI',       label: '标普500',           available: true,  isPrice: true },
@@ -51,11 +51,23 @@ export const BENCHMARK_CANDIDATES = [
   { tsCode: '899050.BJ',    label: '北证50',           available: true,  isPrice: true },
   { tsCode: 'NDX.GI',       label: '纳斯达克100',       available: true,  isPrice: true },
   { tsCode: '399006.SZ',    label: '创业板指',          available: true,  isPrice: true },
+  // 已核验且有历史日线的全收益版本（保留本地规范代码的大小写）。
+  { tsCode: 'h00300.CSI',   label: '沪深300',          available: true,  isPrice: false, returnType: 'total' },
+  { tsCode: 'h00905.CSI',   label: '中证500',          available: true,  isPrice: false, returnType: 'total' },
+  { tsCode: 'h00852.SH',    label: '中证1000',         available: true,  isPrice: false, returnType: 'total' },
+  { tsCode: '932000CNY010.CSI', label: '中证2000',     available: true,  isPrice: false, returnType: 'total' },
+  { tsCode: '000510CNY010.CSI', label: '中证A500',     available: true,  isPrice: false, returnType: 'total' },
+  { tsCode: 'h00016.SH',    label: '上证50',           available: true,  isPrice: false, returnType: 'total' },
+  { tsCode: 'h20269.CSI',   label: '红利低波',         available: true,  isPrice: false, returnType: 'total' },
+  { tsCode: '000688CNY01.SH', label: '科创50',         available: true,  isPrice: false, returnType: 'total' },
+  { tsCode: '899050CNY01.CSI', label: '北证50',        available: true,  isPrice: false, returnType: 'total' },
+  { tsCode: '881001.WI',    label: '万得全A',          available: true,  isPrice: false, returnType: 'total' },
+  { tsCode: '8841431.WI',   label: '万得微盘股（日频等权）', available: true, isPrice: false, returnType: 'total' },
+  { tsCode: '889033.WI',    label: '万得可转债等权',    available: true,  isPrice: false, returnType: 'full_price' },
   // ─── 待接入数据源 ───
   { tsCode: 'IXIC.GI',      label: '纳斯达克综合',      available: false, isPrice: true },
   { tsCode: 'DJI.GI',       label: '道琼斯工业',        available: false, isPrice: true },
   { tsCode: 'CBA00301.CSI', label: '中债国债总指数',    available: false, isPrice: false },
-  { tsCode: 'WIND_WMICRO',  label: '微盘股指数',        available: false, isPrice: true },
 ];
 
 /**
@@ -72,4 +84,3 @@ export function resolveDefaultBenchmark(fund) {
   }
   return DEFAULT_BENCHMARK;
 }
-

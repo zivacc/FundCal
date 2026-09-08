@@ -315,7 +315,7 @@ ETF / LOF 等场内基金, tushare 在 .OF 端不给 nav (给在 .SH/.SZ 经 `fu
 index_basic       (ts_code PK)         指数基础信息
   ├─ name / fullname / publisher / category / market / index_type
   ├─ base_date / base_point / list_date / weight_rule / description
-  └─ primary_source                    当前主拉源 (tushare/eastmoney/csindex/custom)
+  └─ primary_source                    当前主拉源 (tushare/eastmoney/csindex/wind/custom)
 
 index_source_map  (ts_code, source) PK 多源代码映射
   ├─ source_code                       该源用的代码 (e.g. 000300.SH / 100.NDX / 932000)
@@ -323,7 +323,7 @@ index_source_map  (ts_code, source) PK 多源代码映射
   └─ notes
 
 index_daily       (ts_code, end_date) PK 日线 (open/high/low/close/pct_chg/vol/amount)
-  └─ source ∈ {1: tushare, 2: eastmoney, 3: csindex, 6: custom}
+  └─ source ∈ {1: tushare, 2: eastmoney, 3: csindex, 4: wind, 6: custom}
 
 index_fund_tracker (index_ts_code, fund_ts_code) PK  基金跟踪关系 (派生)
 ```

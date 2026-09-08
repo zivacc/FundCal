@@ -24,6 +24,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { pinyin } from 'pinyin-pro';
 import { getDb, closeDb } from './nav/db.js';
+import { buildIndexSearch } from './nav/index-search.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
@@ -202,20 +203,7 @@ function main() {
 
   // ─── 指数搜索索引 (与基金共享 typeahead) ───
   // 仅含 index_daily 实际有数据的指数; ts_code 直接作为 code 字段, 与基金 6 位 code 共存
-  const indexRows = db.prepare(`
-    SELECT b.ts_code, b.name, b.fullname
-    FROM index_basic b
-    WHERE EXISTS (SELECT 1 FROM index_daily d WHERE d.ts_code = b.ts_code)
-    ORDER BY b.ts_code
-  `).all();
-  const indexSearchList = indexRows.map(r => ({
-    code: r.ts_code,
-    name: r.name || r.ts_code,
-    fullname: r.fullname || '',
-    initials: getInitials(r.name || ''),
-    kind: 'index',
-    isPrice: !/全收益/.test(r.fullname || ''),
-  }));
+  const indexSearchList = buildIndexSearch(db);
   fs.writeFileSync(INDEX_SEARCH_PATH, JSON.stringify(indexSearchList), 'utf8');
   console.log(`📝 写入 ${indexSearchList.length} 条 index-search-index.json`);
 
