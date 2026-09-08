@@ -1,6 +1,6 @@
 # AGENTS.md
 
-本文件用于指导在 FundCal 仓库中的开发、审计和优化。最近核对日期：2026-09-07。架构事实以当前源码为准；历史审计记录和草案不代表已实现功能。
+本文件用于指导在 FundCal 仓库中的开发、审计和优化。最近核对日期：2026-09-08。架构事实以当前源码为准；历史审计记录和草案不代表已实现功能。
 
 ## 项目与工作范围
 
@@ -166,7 +166,7 @@ DB → build-allfund-from-db 等构建脚本 → data/allfund/* 公共分片
 - `js/core/`：配置、路由、主题；`data/`：API、缓存、交易日历；`domain/`：费用和净值计算；`pages/`：页面；`components/`：共享组件；`utils/`：搜索和通用工具。
 - `getFeeApiBase()` 支持 `window.FUND_FEE_API_BASE` 手动覆盖；localhost/127.0.0.1 默认连 `http://localhost:3457/api/fund`，普通域名同源 `/api/fund`，GitHub Pages 使用静态回退。NAV base 到 `/api` 层，端点再拼 `/nav/...`。
 - 列表每次状态变化发起分页请求，用 AbortController 防竞态。`selectedCompare` 为 `Map<code,name>`；筛选标签来自 filter-options，基金公司默认 top-50 + 本地筛选。
-- 全局基金篮子由 `js/components/fund-basket.js` 管理 UI/Pointer Events，`js/core/fund-transfer.js` 注册页面选中项和接收器，`js/data/basket-store.js` 保存公开基金 `{code,name}` 引用。新增基金列表需提供拖动属性/把手与选中项来源；接收页面应先准备全部数据再应用，保留基准与去重规则。页面→篮子只显示篮子接收区；篮子→页面的添加/替换遮罩位于篮子浮窗下方。详见 [docs/fund-basket.md](docs/fund-basket.md)。
+- 全局基金篮子由 `js/components/fund-basket.js` 管理 UI/Pointer Events，`js/core/fund-transfer.js` 注册页面选中项和接收器，`js/data/basket-store.js` 保存公开基金 `{code,name}` 引用。新增基金列表需提供拖动属性/把手与选中项来源；接收页面应先准备全部数据再应用，保留基准与去重规则。页面→篮子只显示篮子接收区，单只基金还高亮“基金详情”顶栏，拖入直接按代码跳转。接收圈直径 260px，绘制和命中统一由 `js/core/fund-drop.js` 管理。篮子→计算器/NAV 的添加/替换遮罩位于篮子浮窗下方；详情页单只直接打开，多只按落点从独立列表选一只，长列表支持拖动边缘滚动。详见 [docs/fund-basket.md](docs/fund-basket.md)。
 - 计算器卡片舞台在 `js/pages/calc/card-deck.js`，样式 `css/pages/_calc-deck.css`；采用弧形 3D 轨道，支持鼠标/触屏横向拖动、滚轮及键盘；窄屏中心卡片可编辑，宽屏按可用宽度将多张前排卡片正面平铺并允许编辑，后排点击前移，篮子拖动从独立把手开始。布局计算在 `js/pages/calc/deck-layout.js`；金银色材质与主题背景协调，光标驱动舞台统一光源、卡片反射及阴影，减少动态效果时固定光源。晨星隐性费率通过 `js/data/morningstar-api.js` 读取已有历史 API，最多 4 个并发、5 分钟缓存。`js/domain/implicit-fee.js` 管理百分数→小数及自动计入规则；有效隐性费率自动加入年化，旧 includeImplicitFee=false 不再阻止计入。缺失显示 —，不能直接把晨星综合费率叠加到现行年化费率。快照保存所选晨星日期/数值，不静默替换已保存参考。
 - 计算器费用图使用独立尺寸的 canvas 父容器，外层按内容自然增高；仅通过命名容器查询切换基金列表位置，不再给整个图表面板设固定视口高度。`js/pages/calc/chart-layout.js` 管理色带与实际坐标轴对齐、密集标签避让和缩放后的指针坐标。普通曲线/交叉点共用一个可滚动信息窗，避免两套悬浮层抢占指针；触屏点击保留信息，图外点击/页面滚动/切页/重排清除。可选浏览器回归见 `docs/performance/calc-chart-check.mjs`，使用外置 Playwright 和独立浏览器上下文，不向项目新增浏览器依赖。
 - 通用联想控件在 [js/components/typeahead.js](js/components/typeahead.js)，管理防抖、中文输入法组合态和查询令牌。扩展时保留过期结果丢弃与事件销毁逻辑。
@@ -176,7 +176,7 @@ DB → build-allfund-from-db 等构建脚本 → data/allfund/* 公共分片
 
 - [scripts/nav/tushare-client.js](scripts/nav/tushare-client.js) 内置动态节流、429/业务限流检测和指数退避，默认 5 次重试；通过 `TUSHARE_GAP_MS`、`TUSHARE_MAX_RETRIES`、`TUSHARE_RATE_LIMIT_BASE_MS` 等调参。
 - 东财 lsjz 单页上限为 20 行，不要把增大 PAGE_SIZE 当作吞吐优化。
-- 修改业务函数、SQL builder、缓存、HTTP 边界或数据写入时补对应回归。最近代码基线为 **293 项测试通过（2026-09-07）**；仅文档修改检查链接、命令和差异即可。
+- 修改业务函数、SQL builder、缓存、HTTP 边界或数据写入时补对应回归。最近代码基线为 **295 项测试通过（2026-09-08）**；仅文档修改检查链接、命令和差异即可。
 - 测试 DB 使用 `:memory:` 或临时目录；正式库审计/性能测量用独立 `better-sqlite3` readonly 连接。`getDb()` 会迁移，不应当作纯只读审计入口。不要为了验证代码改动顺带运行全库抓取、重建或修复。
 - 搜索改动至少验证本地匹配、SQL 结果/计数/排序/分页、索引失效、gzip/304 和 SWR。访问边界改动验证公共资源及私有路径的 GET/HEAD、外站抓取拒绝和任务槽释放。
 - 当前待办包括费用分段边界与 DTO 契约、局部抓取覆盖、场外代码裁决、周/月采样口径、空库迁移、来源水位与历史修订、缓存缺口、更新任务失败可见性、发布快照及页面生命周期。具体状态以优化执行记录为准，不因全量测试通过就宣称审计项全部解决。

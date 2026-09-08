@@ -51,7 +51,7 @@
 #basket-drop-zones [data-basket-drop] { padding-top: max(12px, var(--basket-panel-offset, 0px)); padding-bottom: 70px; }
 #basket-drop-zones [data-basket-drop].is-over, #basket-drop-zones [data-basket-drop]:focus-visible { background: color-mix(in srgb, var(--accent) 20%, var(--bg-raised)); border-style: solid; box-shadow: inset 0 0 0 4px var(--accent-subtle); }
 #basket-drag-cancel { pointer-events: auto; position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%); border: 1px solid var(--rule); background: var(--bg-raised); color: var(--text-secondary); border-radius: 20px; padding: 10px 20px; }
-#basket-drop-target { position: fixed; z-index: 15000; width: 130px; height: 130px; transform: translate(-50%, -50%); border: 2px dashed var(--accent); border-radius: 50%; background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); pointer-events: auto; box-shadow: 0 0 0 10px color-mix(in srgb, var(--accent) 6%, transparent); }
+#basket-drop-target { position: fixed; z-index: 15000; width: var(--basket-drop-diameter); height: var(--basket-drop-diameter); transform: translate(-50%, -50%); border: 2px dashed var(--accent); border-radius: 50%; background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); pointer-events: auto; box-shadow: 0 0 0 10px color-mix(in srgb, var(--accent) 6%, transparent); }
 #basket-drop-target span { position: absolute; bottom: 14px; left: 0; right: 0; font-size: 12px; }
 #basket-drop-target.is-over { background: color-mix(in srgb, var(--accent) 30%, transparent); box-shadow: 0 0 0 18px color-mix(in srgb, var(--accent) 12%, transparent); }
 #basket-drag-ghost { position: fixed; pointer-events: none; z-index: 16000; max-width: 220px; padding: 10px 14px; border: 1px solid var(--accent); background: var(--bg-raised); border-radius: 12px; box-shadow: 0 6px 22px rgb(0 0 0 / 18%); font-size: 12px; }
@@ -72,3 +72,30 @@
   .fund-drag-handle, #fund-basket-panel .fund-drag-handle { width: 40px; min-height: 40px; }
 }
 @media (prefers-reduced-motion: reduce) { #fund-basket-panel { animation: none; } #fund-basket-button { transition: none; } }
+
+.top-rail-tab.is-fund-drop-ready { box-shadow: inset 0 0 0 2px var(--accent); color: var(--accent); }
+.top-rail-tab.is-fund-drop-over { background: var(--accent-subtle); box-shadow: inset 0 0 0 3px var(--accent); }
+#basket-fund-picker { position: fixed; z-index: 13000; left: 12px; bottom: 16px; display: flex; flex-direction: column; padding: 16px; gap: 12px; border: 2px dashed var(--accent); border-radius: 20px; background: color-mix(in srgb, var(--bg-raised) 96%, transparent); backdrop-filter: blur(4px); }
+#basket-fund-picker header { display: flex; gap: 12px; justify-content: space-between; align-items: center; }
+#basket-fund-picker header strong { font-weight: 500; }
+#basket-fund-picker button { color: var(--text-primary); background: var(--bg-raised); border: 1px solid var(--rule); border-radius: 10px; padding: 12px; }
+#basket-fund-choices { min-height: 0; overflow: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+#basket-fund-choices button { display: flex; align-items: center; gap: 12px; flex: none; min-height: 52px; text-align: left; }
+#basket-fund-choices span { color: var(--text-secondary); font: 13px var(--font-mono); }
+#basket-fund-choices strong { font-weight: 500; overflow-wrap: anywhere; }
+#basket-fund-picker[data-basket-drop^="fund:"] #basket-fund-choices button { flex: 1; justify-content: center; }
+#basket-fund-picker .is-over, #basket-fund-picker.is-over, #basket-fund-choices button:focus-visible { border-color: var(--accent); background: var(--accent-subtle); }
+@media (max-width: 768px) {
+  .basket-detail-drag #fund-basket-panel { max-height: 40dvh; }
+  .basket-detail-drag #fund-basket-panel header, .basket-detail-drag #fund-basket-panel footer { padding: 8px 12px; }
+  .basket-detail-drag #fund-basket-panel p, .basket-detail-drag .basket-pending, .basket-detail-drag .basket-list-tools, .basket-detail-drag .basket-use-actions { display: none; }
+  #basket-fund-picker { padding: 10px; gap: 8px; bottom: 10px; }
+  #basket-fund-picker header { font-size: 12px; }
+  #basket-fund-picker header button { white-space: nowrap; padding: 8px; }
+}
+@media (max-height: 500px) {
+  #fund-basket-panel { overflow-y: auto; }
+  #fund-basket-panel > * { flex-shrink: 0; }
+  #fund-basket-list { overflow: visible; }
+}
+.basket-dragging .top-rail { z-index: 15002; }

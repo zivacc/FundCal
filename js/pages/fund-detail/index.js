@@ -1,4 +1,4 @@
-import { registerFundSource, notifyFundSelection, fundDragAttrs, fundDragHandle } from '../../core/fund-transfer.js';
+import { registerFundReceiver, registerFundSource, notifyFundSelection, fundDragAttrs, fundDragHandle } from '../../core/fund-transfer.js';
 /**
  * 基金详情页 (page-fund-detail)
  *
@@ -479,6 +479,11 @@ function onHashChange() {
 let initialized = false;
 
 export function pageInit() {
+  registerFundReceiver('fund', async items => {
+    if (items.length !== 1) throw new Error('请选择一只基金查看详情');
+    window.location.hash = `#/fund/${items[0].code}`;
+    return 1;
+  });
   registerFundSource('fund', 'fund', () => state.currentData ? [{ code: state.currentCode, name: state.currentData.name }] : [], 0, false);
   if (initialized) return;
   initialized = true;
