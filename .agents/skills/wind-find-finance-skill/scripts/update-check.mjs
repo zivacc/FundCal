@@ -256,6 +256,8 @@ function markSkillUsed() {
 }
 
 function triggerUpdateCheck() {
+  // FundCal: do not silently reinstall project skills during data queries.
+  if (process.env.WIND_SKILL_AUTO_UPDATE !== '1') return;
   try {
     if (locallyUpdatedToday()) return;
     markSkillUsed();
@@ -426,6 +428,7 @@ function runUpdate() {
 }
 
 async function main() {
+  if (process.env.WIND_SKILL_AUTO_UPDATE !== '1') return;
   if (alreadyUpdatedToday()) return;
   const fd = acquireLock();
   if (fd === null) return;

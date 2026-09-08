@@ -490,6 +490,8 @@ function runUpdate() {
 }
 
 async function main() {
+  // FundCal: upgrades are explicit; preserve local credentials and audited code.
+  if (process.env.WIND_SKILL_AUTO_UPDATE !== '1') return;
   if (alreadyUpdatedToday()) return;
 
   const fd = acquireLock();

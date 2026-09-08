@@ -98,7 +98,7 @@ DB → build-allfund-from-db 等构建脚本 → data/allfund/* 公共分片
 
 ### 字段裁决与来源约束
 
-万得自编指数及用户指定的 Wind 指数，研究取数、标准代码和收益口径核验优先使用本项目 `.agents/skills/wind-mcp-skill/SKILL.md`。首次安装验证因缺少 `WIND_API_KEY` 未完成数据访问；配置后先短区间验证，再独立推进 DB 适配。不得把技能安装视为已完成数据源接入，也不得把 K 线复权选项视为全收益指数口径。详见 [Wind 数据源说明](docs/wind-data-source.md)。
+万得自编指数及用户指定的 Wind 指数，研究取数、标准代码和收益口径核验优先使用本项目 `.agents/skills/wind-mcp-skill/SKILL.md`。档案接口已验证成功，但上游后台重装曾删除项目 Key；项目现已默认禁用 Wind 技能自动更新，升级时保留此修复并备份凭据。恢复配置后先短区间验证，再独立推进 DB 适配。不得把技能安装视为已完成数据源接入，也不得把 K 线复权选项视为全收益指数口径。详见 [Wind 数据源说明](docs/wind-data-source.md)。
 
 | 字段 | 主源 | 兜底 |
 |---|---|---|

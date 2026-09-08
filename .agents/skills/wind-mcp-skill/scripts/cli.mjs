@@ -135,6 +135,8 @@ function markSkillUsed() {
 }
 
 function triggerUpdateCheck() {
+  // FundCal: unattended reinstall deletes the project's config.json/API key.
+  if (process.env.WIND_SKILL_AUTO_UPDATE !== '1') return;
   try {
     if (!existsSync(UPDATE_CHECK_PATH)) return;
     if (alreadyUpdatedToday()) return;

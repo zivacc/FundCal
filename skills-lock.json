@@ -25,6 +25,12 @@
       "source": "JuliusBrussee/caveman",
       "sourceType": "github",
       "computedHash": "368a26f2b079ffe0d584f48006524f65cf997cb9369411aa8c6ead216dee22eb"
+    },
+    "wind-mcp-skill": {
+      "source": "Wind-Information-Co-Ltd/wind-skills",
+      "sourceType": "github",
+      "skillPath": "skills/wind-mcp-skill/SKILL.md",
+      "computedHash": "3987f3ed6d4b3caadeeacf16a1d59dd354a5b55ebead2dbd13b82d824dfa495c"
     }
   }
 }
