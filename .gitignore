@@ -30,6 +30,12 @@ npm-debug.log*
 .env
 .env.local
 
+# Wind skill 本地凭据、请求与自动更新状态
+.agents/skills/wind-*/config.json
+.agents/skills/wind-*/scripts/request-*.json
+.agents/skills/wind-*/scripts/update-state.json
+.agents/skills/wind-*/scripts/update.lock
+
 # SQLite 数据库
 data/fundcal.db
 data/fundcal.db-wal

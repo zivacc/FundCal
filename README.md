@@ -57,6 +57,8 @@
 
 详细见 [docs/DEPLOY.md](docs/DEPLOY.md)。
 
+项目级万得金融技能已安装，供特色指数及全收益指数的研究取数与口径核验使用；需配置 `WIND_API_KEY` 后验证访问，当前尚未接入日更流水线。安装状态、数据能力和配置方式见 [Wind 数据源说明](docs/wind-data-source.md)。
+
 ---
 
 ## 项目结构

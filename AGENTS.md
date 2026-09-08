@@ -16,6 +16,7 @@ FundCal — 基金费率计算器：多基金费用对比、交叉点分析、�
 
 - [README.md](README.md)：功能、项目结构与命令入口；部分历史说明仍待整理。
 - [docs/data-flow.md](docs/data-flow.md)：双源数据、字段裁决和指数体系。
+- [docs/wind-data-source.md](docs/wind-data-source.md)：项目级 Wind 技能、能力范围、认证状态及特色/全收益指数取数约定；尚未接入 DB 日更。
 - [docs/DEPLOY.md](docs/DEPLOY.md)：当前启动、静态资源白名单和本机管理入口。
 - [docs/optimization-progress.md](docs/optimization-progress.md)：已完成批次与待办，以此判断审计问题是否已处理。
 - [docs/performance/search-loading.md](docs/performance/search-loading.md)：搜索加载链路、优化前后测量与限制。
@@ -96,6 +97,8 @@ DB → build-allfund-from-db 等构建脚本 → data/allfund/* 公共分片
 ```
 
 ### 字段裁决与来源约束
+
+万得自编指数及用户指定的 Wind 指数，研究取数、标准代码和收益口径核验优先使用本项目 `.agents/skills/wind-mcp-skill/SKILL.md`。首次安装验证因缺少 `WIND_API_KEY` 未完成数据访问；配置后先短区间验证，再独立推进 DB 适配。不得把技能安装视为已完成数据源接入，也不得把 K 线复权选项视为全收益指数口径。详见 [Wind 数据源说明](docs/wind-data-source.md)。
 
 | 字段 | 主源 | 兜底 |
 |---|---|---|
