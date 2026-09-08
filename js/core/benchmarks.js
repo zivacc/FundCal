@@ -21,7 +21,7 @@ export { isIndexKey, isFundCode, KIND, detectKind } from './code-kind.js';
  * 本表是兜底.
  */
 export const FALLBACK_BENCHMARK_BY_FUND_TYPE = [
-  { match: (t) => /债|货币/.test(t || ''), tsCode: 'CBA00301.CSI' },
+  { match: (t) => /债|货币/.test(t || ''), tsCode: '000012.SH' },
   { match: (t) => /港股|QDII.*港|香港/.test(t || ''), tsCode: 'HSI.HI' },
   { match: (t) => /QDII|海外|美股|纳斯达克|标普/.test(t || ''), tsCode: 'NDX.GI' },
   { match: (t) => /黄金|商品/.test(t || ''), tsCode: 'AU9999.SGE' },
@@ -64,10 +64,10 @@ export const BENCHMARK_CANDIDATES = [
   { tsCode: '881001.WI',    label: '万得全A',          available: true,  isPrice: false, returnType: 'total' },
   { tsCode: '8841431.WI',   label: '万得微盘股（日频等权）', available: true, isPrice: false, returnType: 'total' },
   { tsCode: '889033.WI',    label: '万得可转债等权',    available: true,  isPrice: false, returnType: 'full_price' },
+  { tsCode: '000012.SH',    label: '上证国债指数',      available: true,  isPrice: false, returnType: 'total' },
   // ─── 待接入数据源 ───
   { tsCode: 'IXIC.GI',      label: '纳斯达克综合',      available: false, isPrice: true },
   { tsCode: 'DJI.GI',       label: '道琼斯工业',        available: false, isPrice: true },
-  { tsCode: 'CBA00301.CSI', label: '中债国债总指数',    available: false, isPrice: false },
 ];
 
 /**

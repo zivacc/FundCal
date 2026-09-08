@@ -7,6 +7,7 @@ import Database from 'better-sqlite3';
 import { readFileSync, writeFileSync, mkdirSync, renameSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
 import { profileMatchesIndex } from '../../js/domain/index-return.js';
 import { callWindIndex, windTables, normalizeWindKline, indexReturnType,
@@ -17,21 +18,33 @@ const DIR = path.join(ROOT, 'data/wind');
 const key = value => String(value || '').toUpperCase();
 const iso = value => /^\d{8}$/.test(value || '') ? `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}` : null;
 
-export async function syncWindIndices({ end, discoverOnly = false, resume = false, retryInvalid = false } = {}) {
+export function parseWindCodes(value) {
+  if(value===undefined) return null;
+  const codes=[...new Set(String(value).split(',').map(c=>c.trim().toUpperCase()))].sort();
+  if(!codes.length || codes.some(c=>! /^[A-Z0-9]+\.[A-Z]{2,4}$/.test(c))) throw new Error('--codes requires verified full codes separated by commas');
+  return codes;
+}
+export function windRunDirectory(codes) {
+  return codes ? path.join(DIR,'scopes',createHash('sha256').update(JSON.stringify(codes)).digest('hex').slice(0,16)) : DIR;
+}
+
+export async function syncWindIndices({ end, discoverOnly = false, resume = false, retryInvalid = false, codes = null } = {}) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(end || '') || new Date(`${end}T00:00:00Z`).toISOString().slice(0,10) !== end) throw new Error('Explicit --end YYYY-MM-DD is required');
-  mkdirSync(DIR, { recursive: true });
+  codes=codes ? parseWindCodes(codes.join(',')) : null;
+  const runDir=windRunDirectory(codes);
+  mkdirSync(runDir, { recursive: true });
   const db = new Database(path.join(ROOT, 'data/fundcal.db'), { readonly: true, fileMustExist: true });
   const basics = db.prepare('SELECT * FROM index_basic').all();
-  const scope = db.prepare(`SELECT b.*, count(d.end_date) n, min(d.end_date) first, max(d.end_date) last,
+  const scope = codes ? codes.map(code=>basics.find(b=>key(b.ts_code)===code)||{ts_code:code}) : db.prepare(`SELECT b.*, count(d.end_date) n, min(d.end_date) first, max(d.end_date) last,
     (SELECT count(*) FROM index_fund_tracker t WHERE t.index_ts_code=b.ts_code) funds
     FROM index_basic b LEFT JOIN index_daily d ON d.ts_code=b.ts_code
     GROUP BY b.ts_code HAVING n>0 OR funds>0 ORDER BY funds DESC, n DESC`).all();
   db.close();
   const byCode = new Map(basics.map(b => [key(b.ts_code), b]));
   const profiles = new Map();
-  const statusPath = path.join(DIR, 'sync-status.json');
+  const statusPath = path.join(runDir, 'sync-status.json');
   const status = resume ? JSON.parse(readFileSync(statusPath,'utf8')) : { startedAt: new Date().toISOString(), end, scopeCount: scope.length, state: 'discovering',
-    profiles: [], links: [], results: [], missingProfiles: [], unresolvedReturns: [], excluded: [] };
+    profiles: [], links: [], results: [], missingProfiles: [], unresolvedReturns: [], excluded: [], requestedCodes:codes };
   if(status.end!==end) throw new Error('--resume must use the original --end date');
   if(retryInvalid && !resume) throw new Error('--retry-invalid requires --resume');
   if(retryInvalid) status.results=status.results.filter(r=>r.status!=='invalid');
@@ -66,7 +79,7 @@ export async function syncWindIndices({ end, discoverOnly = false, resume = fals
   let writer;
   try {
     // Standard codes verified by the earlier Wind basic-info receipts.
-    if(!resume) await fetchProfiles(['881001.WI','8841431.WI','889033.WI'], 'Wind特色');
+    if(!resume && !codes) await fetchProfiles(['881001.WI','8841431.WI','889033.WI'], 'Wind特色');
     const eligible = scope.filter(b => {
       if (/\.(SGE|NYM|CFX|FX)$/i.test(b.ts_code)) { status.excluded.push({ code:b.ts_code, name:b.name, reason:'非指数标的，不走指数服务' }); return false; }
       return true;
@@ -205,5 +218,9 @@ export async function syncWindIndices({ end, discoverOnly = false, resume = fals
 if(process.argv[1] && path.resolve(process.argv[1])===fileURLToPath(import.meta.url)) {
   const args=process.argv.slice(2);
   const end=args[args.indexOf('--end')+1];
-  syncWindIndices({end,discoverOnly:args.includes('--discover-only'),resume:args.includes('--resume'),retryInvalid:args.includes('--retry-invalid')}).then(s=>console.log(JSON.stringify({state:s.state,targets:s.targetCount,results:s.results.length}))).catch(e=>{console.error(e.message);process.exitCode=1;});
+  const codesAt=args.indexOf('--codes');
+  try {
+    const codes=codesAt<0?null:parseWindCodes(args[codesAt+1]||'');
+    syncWindIndices({end,codes,discoverOnly:args.includes('--discover-only'),resume:args.includes('--resume'),retryInvalid:args.includes('--retry-invalid')}).then(s=>console.log(JSON.stringify({state:s.state,targets:s.targetCount,results:s.results.length,runDir:windRunDirectory(codes)}))).catch(e=>{console.error(e.message);process.exitCode=1;});
+  } catch(error) {console.error(error.message);process.exitCode=1;}
 }

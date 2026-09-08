@@ -7,7 +7,7 @@ test('empty and legacy selections always recover one available benchmark', () =>
   for (const items of [[], [fund], Array.from({ length: 10 }, (_, i) => ({ ...fund, code: String(i) }))]) {
     const result = ensureBenchmarkSelection(items, '债券');
     assert.equal(result.filter(item => item.isBenchmark).length, 1);
-    assert.equal(result.at(-1).code, '000300.SH');
+    assert.equal(result.at(-1).code, '000012.SH');
     assert.equal(result.length, items.length + 1);
   }
 });

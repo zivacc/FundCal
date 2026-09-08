@@ -140,10 +140,13 @@ export function insertWindRows(db, rows) {
 }
 
 export function selectTotalReturnCandidates(base, candidates) {
+  // An explicitly verified total-return series is usable itself, even when
+  // the provider leaves its associated-code field empty (e.g. 000012.SH).
+  if (indexReturnType(base) === 'total') return [base];
   const allowed = new Set(String(base['全收益指数代码'] || '').split(/[;,；]/).map(s => s.trim().toUpperCase()).filter(Boolean));
   const full = base['证券全称'] || '';
   const stem = full.replace(/(?:全收益|净收益|价格)?指数$/, '');
-  const names = new Set([`${stem}全收益指数`, `${stem}收益指数`, `${stem}全收益`, `${stem}R`, `${full}R`, `${full}全收益`, `${full}股息累计指数`, `${full}(总股息累计指数)`, `${full}（总股息累计指数）`]);
+  const names = new Set([`${stem}全收益指数`, `${stem}总回报指数`, `${stem}收益指数`, `${stem}全收益`, `${stem}R`, `${full}R`, `${full}全收益`, `${full}股息累计指数`, `${full}(总股息累计指数)`, `${full}（总股息累计指数）`]);
   return candidates.filter(row => {
     if (!allowed.has(String(row['Wind代码']).toUpperCase()) || indexReturnType(row) !== 'total') return false;
     if (row['Wind代码'].toUpperCase() === base['Wind代码'].toUpperCase()) return true;
