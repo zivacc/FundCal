@@ -529,6 +529,13 @@
 }
 
 /* 表格包装 */
+.cached-funds-selection-hint {
+  margin: 0 0 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
 .cached-funds-table-wrap {
   border: 1px solid var(--rule);
   border-radius: var(--radius-lg);

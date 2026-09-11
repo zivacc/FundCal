@@ -19,6 +19,7 @@ import {
   setResultHint,
 } from './filters.js';
 import { loadFundsPage, loadFilterOptions } from './data-loader.js';
+import { createListSelection } from './selection.js';
 
 const COMPARE_SESSION_KEY = 'fundCalCompareFromCache';
 
@@ -26,6 +27,7 @@ const COMPARE_SESSION_KEY = 'fundCalCompareFromCache';
 let currentRows = [];
 /** 选中比较: 保持插入顺序 + 同时持有 name (无全集可查) */
 const selectedCompare = new Map(); // code → name
+const selection = createListSelection(selectedCompare);
 /** 详情弹窗按需 fetch 后写入 */
 const fundDetailMap = {};
 
@@ -240,6 +242,7 @@ async function refresh() {
     if (signal.aborted) return;
     total = data.total || 0;
     currentRows = data.rows || [];
+    selection.resetAnchor();
     currentFallback = !!data.fallback;
     setProgress(1, 1);
     setStatus(`共 ${total} 只基金 (${(performance.now() - t0).toFixed(0)} ms)`);
@@ -358,27 +361,37 @@ function setupEvents() {
   // 表格行: 切换选中比较 / 触发爬虫补全
   const tbody = document.getElementById('cached-funds-tbody');
   if (tbody) {
-    const toggleRowSelect = (tr) => {
+    const selectRow = (tr, event, toggle = false) => {
       if (!tr || !tr.classList.contains('cached-fund-row')) return;
       const code = (tr.dataset.code || '').trim();
       if (!code) return;
-      if (selectedCompare.has(code)) {
-        selectedCompare.delete(code);
-      } else {
-        const row = currentRows.find(r => r.code === code);
-        selectedCompare.set(code, row?.name || code);
+      if (!selection.select(currentRows, code, {
+        shiftKey: event.shiftKey, ctrlKey: event.ctrlKey, metaKey: event.metaKey, toggle,
+      })) return;
+      for (const row of tbody.querySelectorAll('tr.cached-fund-row')) {
+        const selected = selectedCompare.has(row.dataset.code);
+        row.classList.toggle('cached-fund-row-selected', selected);
+        row.setAttribute('aria-selected', String(selected));
       }
-      tr.classList.toggle('cached-fund-row-selected', selectedCompare.has(code));
-      tr.setAttribute('aria-selected', selectedCompare.has(code) ? 'true' : 'false');
       updateCompareFab();
     };
+    const interactive = 'button, input, select, textarea, a, label, [contenteditable="true"]';
+    let pointerType = '';
+    tbody.addEventListener('pointerdown', e => { pointerType = e.pointerType; });
+    // Prevent native text-range selection without interfering with touch scrolling or drag handles.
+    tbody.addEventListener('mousedown', (e) => {
+      if (e.button === 0 && (e.shiftKey || e.ctrlKey || e.metaKey) && !e.target.closest(interactive)) {
+        e.preventDefault();
+      }
+    });
     tbody.addEventListener('click', (e) => {
-      if (e.target instanceof HTMLElement && e.target.closest('.cached-fund-json-btn')) return;
-      if (e.target instanceof HTMLElement && e.target.closest('.cached-fund-crawl-btn')) return;
+      if (e.target instanceof Element && e.target.closest(interactive)) return;
       const tr = e.target instanceof HTMLElement ? e.target.closest('tr.cached-fund-row') : null;
       if (!tr) return;
       if (tr.dataset.needsCrawl === 'true') return;
-      toggleRowSelect(tr);
+      // Older browsers emit MouseEvent for touch clicks; keyboard clicks have detail=0.
+      const inputType = e.pointerType || (e.detail > 0 ? pointerType : '');
+      selectRow(tr, e, inputType === 'touch' || inputType === 'pen');
     });
     tbody.addEventListener('click', async (e) => {
       const btn = e.target instanceof HTMLElement ? e.target.closest('.cached-fund-crawl-btn') : null;
@@ -413,11 +426,11 @@ function setupEvents() {
     tbody.addEventListener('keydown', (e) => {
       if (e.key !== 'Enter' && e.key !== ' ') return;
       const t = e.target;
-      if (!(t instanceof HTMLElement) || t.closest('button, input, a')) return;
+      if (!(t instanceof HTMLElement) || t.closest(interactive) || e.repeat) return;
       const tr = t.closest('tr.cached-fund-row');
       if (!tr) return;
       e.preventDefault();
-      toggleRowSelect(tr);
+      selectRow(tr, e, true);
     });
   }
 
