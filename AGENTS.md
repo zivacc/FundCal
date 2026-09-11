@@ -44,6 +44,8 @@ npm run crawl:all -- --force
 npm run merge-rules
 node scripts/nav/parse-share-class.js
 npm run crawl:eastmoney-nav -- --missing
+node scripts/nav/repair-fund-basics.js --run-dir data/repair-YYYYMMDD  # 补缺基础字段，随后 merge-rules
+node scripts/nav/crawl-overseas-nav.js --run-dir data/repair-YYYYMMDD # 968 中港互认基金空缺 NAV
 npm run sync:trade-cal
 npm run sync:index-basic
 npm run sync:index-daily
@@ -65,6 +67,8 @@ node docs/performance/search-load.mjs
 ```
 
 常规日更顺序：sync-fund-nav → replay-failed → crawl-eastmoney-nav --missing → build-all → health-check。基础信息/费率更新后还需执行字段裁决与份额解析，再构建。
+
+基础字段补缺可用 `repair-fund-basics.js`（`--resume --retry-empty` 重试空结果），只写缺失字段的 crawler 影子，不刷新费率、全量抓取时间或 source 标记；再由 `apply-merge-rules` 裁决。`968` 基金从海外基本资料页取公司/类型/成立日期。`crawl-overseas-nav.js` 按页面核验标准代码与内部代码后从 MethodJZ 专用接口补空缺，`--resume` 续跑；实际验证该海外接口支持 1000 行/页，不适用于境内 lsjz。保存原始单位/累计净值，未提供复权时 `adj_nav=NULL`，原币种不换算，缺币种记录在审计中计数，不能宣称为全收益序列。说明及本轮剩余缺口见 [2026-09-11 补数报告](docs/audits/2026-09-11-fund-data-repair.md)。
 
 [scripts/cron/fundcal-cron](scripts/cron/fundcal-cron) 仍包含 Linux `/var/www/fundcal` 路径和旧调度参数，**不是已确认安装的本机调度配置**；其中定时抓取缺少 `--force`、参数形式及失败可见性仍有审计待办，不要直接照搬安装。各 CLI 的参数格式并不统一，调用前核对解析代码。
 

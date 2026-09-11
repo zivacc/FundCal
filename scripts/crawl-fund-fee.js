@@ -210,11 +210,14 @@ async function fetchSohuOperationFees(code) {
  * - 成立日期（格式统一为 YYYY-MM-DD）
  * URL 形如：https://fundf10.eastmoney.com/jbgk_<code>.html
  */
-async function fetchFundBasicInfo(code) {
-  const url = `https://fundf10.eastmoney.com/jbgk_${code}.html`;
+async function fetchFundBasicInfo(code, { strict = false } = {}) {
+  const overseas = /^968\d{3}$/.test(code);
+  const url = overseas ? `https://overseas.1234567.com.cn/f10/FundBaseInfo/${code}`
+    : `https://fundf10.eastmoney.com/jbgk_${code}.html`;
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(30000), headers: { 'User-Agent': UA } });
     if (!res.ok) {
+      if (strict) throw new Error(`Basic info HTTP ${res.status}: ${code}`);
       return {
         trackingTarget: '',
         fundManager: '',
@@ -233,14 +236,16 @@ async function fetchFundBasicInfo(code) {
     let fundType = '';
     let netAssetScale = null;
     let establishmentDate = '';
+    let name = '';
     for (const row of rows) {
       for (let i = 0; i < row.length; i++) {
         const label = row[i];
         if (!label) continue;
-        if (!fundManager && /基金管理人/.test(label) && i + 1 < row.length) {
+        if (!name && /^基金名称$/.test(label) && i + 1 < row.length) name = row[i + 1].trim();
+        if (!fundManager && /^(?:基金管理人|基金公司)$/.test(label) && i + 1 < row.length) {
           fundManager = row[i + 1].trim();
         }
-        if (!performanceBenchmark && /业绩比较基准/.test(label) && i + 1 < row.length) {
+        if (!performanceBenchmark && /^(?:业绩比较基准|基准指数)$/.test(label) && i + 1 < row.length) {
           performanceBenchmark = row[i + 1].trim();
         }
         if (!trackingTarget && /跟踪标的/.test(label) && i + 1 < row.length) {
@@ -273,8 +278,12 @@ async function fetchFundBasicInfo(code) {
         }
       }
     }
-    return { trackingTarget, fundManager, performanceBenchmark, fundType, netAssetScale, establishmentDate };
-  } catch {
+    if (strict && !fundManager && !fundType && !performanceBenchmark && !establishmentDate) {
+      throw new Error(`Basic info fields absent: ${code}`);
+    }
+    return { name, trackingTarget, fundManager, performanceBenchmark, fundType, netAssetScale, establishmentDate };
+  } catch (error) {
+    if (strict) throw error;
     return {
       trackingTarget: '',
       fundManager: '',
@@ -323,26 +332,7 @@ async function fetchFundStageReturnsInfo(code) {
  * URL 形如：https://overseas.1234567.com.cn/f10/FundBaseInfo/<code>
  */
 async function fetchOverseasFundBaseInfo(code) {
-  const url = `https://overseas.1234567.com.cn/f10/FundBaseInfo/${code}`;
-  try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(30000), headers: { 'User-Agent': UA } });
-    if (!res.ok) return { name: '' };
-    const html = await res.text();
-    const rows = parseTableRows(html);
-    let name = '';
-    for (const row of rows) {
-      for (let i = 0; i < row.length; i++) {
-        const label = row[i];
-        if (!label) continue;
-        if (!name && /基金名称/.test(label) && i + 1 < row.length) {
-          name = row[i + 1].trim();
-        }
-      }
-    }
-    return { name };
-  } catch {
-    return { name: '' };
-  }
+  return fetchFundBasicInfo(code);
 }
 
 /**
@@ -364,8 +354,9 @@ async function fetchOverseasFundFee(code) {
 
   // 基金名称：优先从海外基金基本资料页获取，其次从费率页标题中提取
   let name = `基金${code}`;
+  let baseInfo = {};
   try {
-    const baseInfo = await fetchOverseasFundBaseInfo(code);
+    baseInfo = await fetchOverseasFundBaseInfo(code);
     if (baseInfo?.name && baseInfo.name.trim().length >= 2) {
       name = baseInfo.name.trim();
     }
@@ -459,6 +450,10 @@ async function fetchOverseasFundFee(code) {
     name,
     source: 'eastmoney-overseas',
     updatedAt: new Date().toISOString(),
+    fundManager: baseInfo.fundManager || '',
+    fundType: baseInfo.fundType || '',
+    performanceBenchmark: baseInfo.performanceBenchmark || '',
+    ...(baseInfo.establishmentDate ? { establishmentDate: baseInfo.establishmentDate } : {}),
     tradingStatus: null,
     operationFees,
     subscribeFrontSegments,
