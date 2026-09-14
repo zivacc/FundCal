@@ -297,6 +297,10 @@
               <option value="name-desc">名称 ↓</option>
               <option value="annual-desc">年化费率 ↓</option>
               <option value="annual-asc">年化费率 ↑</option>
+              <option value="morningstarImplicitFee-asc">晨星隐性费率 ↑</option>
+              <option value="morningstarImplicitFee-desc">晨星隐性费率 ↓</option>
+              <option value="morningstarTotalFee-asc">晨星综合费率 ↑</option>
+              <option value="morningstarTotalFee-desc">晨星综合费率 ↓</option>
               <option value="buy-desc">买入费率 ↓</option>
               <option value="buy-asc">买入费率 ↑</option>
             </select>
@@ -308,8 +312,9 @@
         </div>
 
         <p id="cached-funds-selection-hint" class="cached-funds-selection-hint">单击单选 · Ctrl / ⌘ 多选 · Shift 选本页区间 · Ctrl / ⌘ + Shift 追加区间 · 触屏点按多选</p>
+        <p id="cached-funds-morningstar-hint" class="cached-funds-selection-hint">晨星费率取各基金最新收录的同一期快照，日期见列内；隐性费率为估算值，综合费率为晨星显性＋隐性费率，不等于现行年化费率加隐性费率。缺失显示 —，仅供参考。</p>
         <div class="cached-funds-table-wrap">
-          <table class="cached-funds-table" aria-describedby="cached-funds-selection-hint">
+          <table class="cached-funds-table" aria-describedby="cached-funds-selection-hint cached-funds-morningstar-hint">
             <thead>
               <tr>
                 <th>原始数据</th>
@@ -319,6 +324,9 @@
                 <th data-sort-key="establishmentDate">成立日期</th>
                 <th data-sort-key="buyFee">买入费率</th>
                 <th data-sort-key="annualFee">年化费率</th>
+                <th data-sort-key="morningstarImplicitFee" title="晨星最新收录快照的隐性费率估算值；点击排序">晨星隐性费率</th>
+                <th data-sort-key="morningstarTotalFee" title="晨星同一期快照的综合费率原值；点击排序">晨星综合费率</th>
+                <th>晨星截至日期</th>
                 <th data-sort-key="sellFee">卖出费率分段</th>
                 <th data-sort-key="trackingTarget">跟踪标的</th>
                 <th data-sort-key="performanceBenchmark">业绩基准</th>

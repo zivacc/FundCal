@@ -20,6 +20,7 @@ import {
 } from './filters.js';
 import { loadFundsPage, loadFilterOptions } from './data-loader.js';
 import { createListSelection } from './selection.js';
+import { renderMorningstarCells } from './morningstar-cells.js';
 
 const COMPARE_SESSION_KEY = 'fundCalCompareFromCache';
 
@@ -96,6 +97,7 @@ function parseSortValue(val) {
   const [key, dir] = safe.split('-');
   const valid = new Set([
     'code','name','buy','annual','fundType','sellFee','trackingTarget',
+    'morningstarImplicitFee','morningstarTotalFee',
     'performanceBenchmark','fundManager','subscribe','redeem','updatedAt','establishmentDate',
   ]);
   const normKey = valid.has(key) ? key : 'code';
@@ -145,7 +147,7 @@ function renderRow(f) {
         <td><span class="cached-fund-status-badge ${badgeClass}">${badgeLabel}</span> ${escapeHtml(f.name)}</td>
         <td>${escapeHtml(f.fundType || '-')}</td>
         <td>${escapeHtml(f.establishmentDate || '-')}</td>
-        <td>-</td><td>-</td><td>-</td><td>-</td>
+        <td>-</td><td>-</td>${renderMorningstarCells(f.morningstar)}<td>-</td><td>-</td>
         <td>${escapeHtml(f.performanceBenchmark || '-')}</td>
         <td>${escapeHtml(f.fundManager || '-')}</td>
         <td>-</td><td>-</td><td>-</td>
@@ -166,6 +168,7 @@ function renderRow(f) {
       <td>${escapeHtml(f.establishmentDate || '-')}</td>
       <td>${formatPercent(f.buyFee)}</td>
       <td>${annualText}</td>
+      ${renderMorningstarCells(f.morningstar)}
       <td>${formatSellFeeSegments(f.sellFeeSegments)}</td>
       <td>${escapeHtml(f.trackingTarget || '-')}</td>
       <td>${escapeHtml(f.performanceBenchmark || '-')}</td>
@@ -213,7 +216,7 @@ function renderTable() {
   }
 
   if (!currentRows.length) {
-    tbody.innerHTML = `<tr><td colspan="14" class="cached-funds-empty">没有匹配的基金</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="17" class="cached-funds-empty">没有匹配的基金</td></tr>`;
     return;
   }
   tbody.innerHTML = currentRows.map(renderRow).join('');
@@ -320,6 +323,7 @@ function setupEvents() {
       const key = th.getAttribute('data-sort-key');
       if (!key) return;
       const keyMap = { name:'name', buyFee:'buy', annualFee:'annual', fundType:'fundType',
+        morningstarImplicitFee:'morningstarImplicitFee', morningstarTotalFee:'morningstarTotalFee',
         establishmentDate:'establishmentDate', sellFee:'sellFee', trackingTarget:'trackingTarget',
         performanceBenchmark:'performanceBenchmark', fundManager:'fundManager',
         subscribe:'subscribe', redeem:'redeem', updatedAt:'updatedAt' };

@@ -393,6 +393,11 @@ function loadListPaged(db, qs) {
       annualFee: row.annual_fee ?? 0,
       isFloatingAnnualFee: !!row.is_floating_annual_fee,
       sellFeeSegments: segs.sell,
+      morningstar: row.morningstar_as_of_date ? {
+        asOfDate: row.morningstar_as_of_date,
+        implicitFeePct: row.morningstar_implicit_fee_pct ?? null,
+        totalFeePct: row.morningstar_total_fee_pct ?? null,
+      } : null,
       redeemSegments: segs.redeem,
       fundType: smartPick(row.fund_type, row.fund_type_crawler) || '',
       trackingTarget: row.tracking_target || '',

@@ -554,6 +554,9 @@
   background: var(--bg-sunk);
 }
 
+.cached-funds-table .cached-fund-ms-value { text-align: right; font-variant-numeric: tabular-nums; }
+.cached-funds-table .cached-fund-ms-date { color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+
 .cached-funds-table th,
 .cached-funds-table td {
   padding: 9px 12px;

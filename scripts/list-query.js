@@ -13,6 +13,8 @@ const SORT_EXPR = {
   name:                 "COALESCE(NULLIF(b.name,''), m.name_crawler)",
   buyFee:               'm.buy_fee',
   annualFee:            'm.annual_fee',
+  morningstarImplicitFee: 'ms.implicit_fee_pct',
+  morningstarTotalFee:    'ms.total_fee_pct',
   fundType:             "COALESCE(NULLIF(b.fund_type,''), m.fund_type_crawler)",
   // sellFee 排序: 取 kind='sell' AND seq=0 的 rate (由 LEFT JOIN sf 提供)
   sellFee:              'sf.rate',
@@ -135,7 +137,6 @@ export function buildListQuery(params) {
     LEFT JOIN (
       SELECT ts_code, rate FROM fund_fee_segments WHERE kind='sell' AND seq=0
     ) sf ON sf.ts_code = m.ts_code
-    ${whereClause}
   `;
 
   const sql = `
@@ -143,14 +144,22 @@ export function buildListQuery(params) {
       m.ts_code, m.code, m.source,
       m.tracking_target, m.trading_subscribe, m.trading_redeem,
       m.buy_fee, m.annual_fee, m.is_floating_annual_fee,
+      ms.as_of_date AS morningstar_as_of_date,
+      ms.implicit_fee_pct AS morningstar_implicit_fee_pct,
+      ms.total_fee_pct AS morningstar_total_fee_pct,
       m.crawler_updated_at, m.found_date_normalized,
       m.name_crawler, m.fund_type_crawler, m.management_crawler, m.benchmark_crawler,
       b.name, b.management, b.fund_type, b.benchmark, b.status
     ${baseFrom}
+    LEFT JOIN morningstar_fund_fee ms ON ms.code = m.code AND ms.as_of_date = (
+      SELECT latest.as_of_date FROM morningstar_fund_fee latest
+      WHERE latest.code = m.code ORDER BY latest.as_of_date DESC LIMIT 1
+    )
+    ${whereClause}
     ${orderClause}
     LIMIT ${size} OFFSET ${offset}
   `;
-  const countSql = `SELECT COUNT(*) AS n ${baseFrom}`;
+  const countSql = `SELECT COUNT(*) AS n ${baseFrom} ${whereClause}`;
 
   return { sql, countSql, params: bind };
 }

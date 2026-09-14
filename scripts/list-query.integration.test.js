@@ -12,6 +12,8 @@ test('search-driven SQL preserves relevance, filters, pagination, sorting and em
     CREATE INDEX idx_fund_meta_code ON fund_meta(code);
     CREATE INDEX idx_fund_meta_source ON fund_meta(source);
     CREATE TABLE fund_basic (ts_code TEXT PRIMARY KEY, name, management, fund_type, benchmark, status);
+    CREATE TABLE morningstar_fund_fee(code,as_of_date,implicit_fee_pct,total_fee_pct,PRIMARY KEY(as_of_date,code));
+    CREATE INDEX idx_morningstar_fund_fee_code ON morningstar_fund_fee(code,as_of_date DESC);
     CREATE TABLE fund_fee_segments (ts_code, kind, seq, rate, PRIMARY KEY(ts_code,kind,seq));
     INSERT INTO fund_meta (ts_code,code,source,annual_fee,name_crawler,fund_type_crawler) VALUES
       ('000001.OF','000001','crawler',0.01,'沪深300甲','股票型'),
@@ -36,4 +38,22 @@ test('search-driven SQL preserves relevance, filters, pagination, sorting and em
     const plan = db.prepare('EXPLAIN QUERY PLAN ' + query.sql).all(...query.params).map(row => row.detail);
     assert.ok(plan.some(line => /SEARCH m USING INDEX idx_fund_meta_code/.test(line)), plan.join('\n'));
   }
+  // Multiple snapshots must not multiply list rows or fill latest nulls with older values.
+  db.exec(`INSERT INTO morningstar_fund_fee VALUES
+    ('000001','2024-12-31',99,100), ('000001','2025-12-31',0,1.4),
+    ('000002','2024-12-31',0.5,2), ('000002','2025-12-31',NULL,2.4),
+    ('000003','2025-12-31',0.3,3), ('000004','2024-12-31',0.2,NULL);`);
+  assert.deepEqual(run({ sort: 'morningstarImplicitFee:asc' }).rows, ['000001','000004','000002']);
+  assert.deepEqual(run({ sort: 'morningstarImplicitFee:desc' }).rows, ['000004','000001','000002']);
+  assert.deepEqual(run({ sort: 'morningstarTotalFee:asc' }).rows, ['000001','000002','000004']);
+  assert.deepEqual(run({ sort: 'morningstarTotalFee:desc' }).rows, ['000002','000001','000004']);
+  const msPage = run({ sort: 'morningstarImplicitFee:asc', size: 1, page: 2 });
+  assert.equal(msPage.count, 3); assert.deepEqual(msPage.rows, ['000004']);
+  assert.deepEqual(run({ q: '沪深', sort: 'morningstarImplicitFee:desc' }).rows, ['000001','000002']);
+  assert.deepEqual(run({ source: 'tushare', sort: 'morningstarTotalFee:desc' }).rows, ['000003']);
+  const latestRows = db.prepare(msPage.query.sql).all(...msPage.query.params);
+  assert.equal(latestRows[0].morningstar_as_of_date, '2024-12-31');
+  assert.equal(latestRows[0].morningstar_total_fee_pct, null);
+  const noData = run({q: '沪深', sort: 'morningstarImplicitFee:asc', page: 2, size: 1}).query;
+  assert.equal(db.prepare(noData.sql).get(...noData.params).morningstar_implicit_fee_pct, null);
 });

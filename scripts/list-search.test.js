@@ -12,6 +12,8 @@ test('shared search ranking survives SQL filters, count and pagination', () => {
       name_crawler,fund_type_crawler,management_crawler,benchmark_crawler);
       CREATE INDEX idx_fund_meta_code ON fund_meta(code);
       CREATE TABLE fund_basic(ts_code,name,management,fund_type,benchmark,status);
+      CREATE TABLE morningstar_fund_fee(code,as_of_date,implicit_fee_pct,total_fee_pct,PRIMARY KEY(as_of_date,code));
+      CREATE INDEX idx_morningstar_fund_fee_code ON morningstar_fund_fee(code,as_of_date DESC);
       CREATE TABLE fund_fee_segments(ts_code,kind,seq,rate);`);
     const idx = [
       {code:'001564',name:'东方红京东大数据混合A',initials:'dfhjddsjhha'},
