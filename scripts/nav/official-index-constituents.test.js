@@ -89,6 +89,7 @@ test('dry-run is read-only, live import reuses verified receipt, resume is idemp
     const dbPath=path.join(dir,'db.sqlite'),runRoot=path.join(dir,'runs');dbSetup(dbPath).close();let calls=0;
     const request=async url=>{calls++;if(url.includes('000905')){const e=new Error('HTTP 404');e.status=404;throw e;}return {buffer:workbook(csi()),fetchedAt:'2026-09-28T08:00:00Z',contentDisposition:''};};
     const options={end:opts.end,dbPath,runRoot,request,gapMs:0};
+    await assert.rejects(syncOfficialConstituents({...options,gapMs:NaN}),/Invalid request gap/);
     await syncOfficialConstituents({...options,dryRun:true});
     let db=new Database(dbPath,{readonly:true});assert.equal(db.prepare("SELECT count(*) n FROM sqlite_master WHERE name='index_constituent_snapshot'").get().n,0);db.close();
     await syncOfficialConstituents(options);assert.equal(calls,3);

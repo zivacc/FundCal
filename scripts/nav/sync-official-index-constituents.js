@@ -13,8 +13,9 @@ const DIR=path.join(ROOT,'data/wind/constituents');
 const hash=data=>createHash('sha256').update(data).digest('hex');
 const atomic=(file,data)=>{writeFileSync(`${file}.tmp`,JSON.stringify(data,null,2)+'\n');renameSync(`${file}.tmp`,file);};
 
-export async function syncOfficialConstituents({end,codes=null,resume=false,retryIncomplete=false,dryRun=false,dbPath=path.join(ROOT,'data/fundcal.db'),runRoot=DIR,request=downloadOfficialWeights,gapMs=500}={}) {
+export async function syncOfficialConstituents({end,codes=null,resume=false,retryIncomplete=false,dryRun=false,dbPath=path.join(ROOT,'data/fundcal.db'),runRoot=DIR,request=downloadOfficialWeights,gapMs=2000}={}) {
   if (!validDate(end)) throw new Error('--end YYYY-MM-DD is required');
+  if(!Number.isSafeInteger(gapMs)||gapMs<0||gapMs>60000)throw new Error('Invalid request gap');
   if(retryIncomplete&&!resume)throw new Error('--retry-incomplete requires --resume');
   mkdirSync(runRoot,{recursive:true});
   const lock=path.join(runRoot,'sync.lock'),fd=openSync(lock,'wx');
@@ -93,6 +94,10 @@ if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.ur
     const args=process.argv.slice(2),options={};
     for(let i=0;i<args.length;i++) {
       if(args[i]==='--end')options.end=args[++i];
+      else if(args[i]==='--gap-ms'){
+        options.gapMs=Number(args[++i]);
+        if(!Number.isSafeInteger(options.gapMs)||options.gapMs<500||options.gapMs>60000)throw new Error('--gap-ms must be 500..60000');
+      }
       else if(args[i]==='--codes'){
         options.codes=[...new Set((args[++i]||'').split(',').map(c=>c.trim().toUpperCase()))];
         if(options.codes.some(c=>! /^[A-Z0-9]+\.[A-Z]{2,4}$/.test(c)))throw new Error('Invalid --codes');
