@@ -13,6 +13,7 @@
  */
 
 import { filterSearchIndex } from '../../utils/search.js';
+import { restrictFundPool } from '../../utils/fund-pool.js';
 import {
   fetchFundListPageFromAPI,
   fetchFilterOptionsFromAPI,
@@ -39,7 +40,7 @@ export async function loadFundsPage(p) {
   }
   // 灾备: 纯静态部署用 search-index 拼极简行, 本地分页
   const idx = await fetchSearchIndexFromAPI();
-  const rows = Array.isArray(idx) ? idx : [];
+  const rows = restrictFundPool(Array.isArray(idx) ? idx : [], p.poolCodes);
   const q = (p.q || '').trim().toLowerCase();
   const filtered = q
     ? filterSearchIndex(rows, q, { limit: Infinity, kinds: ['fund'] })

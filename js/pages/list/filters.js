@@ -148,12 +148,12 @@ function updateFilterBadge() {
  * 显示 "N / Total 只基金符合条件"。
  * @param {number} filteredTotal API 返回的 total
  */
-export function setResultHint(filteredTotal) {
+export function setResultHint(filteredTotal, poolTotal = null) {
   const el = document.getElementById('cf-filter-result-hint');
   if (!el) return;
   const n = countActiveFilters();
   if (n === 0) { el.textContent = ''; return; }
-  const total = cachedOptions?.total ?? '?';
+  const total = poolTotal ?? cachedOptions?.total ?? '?';
   el.textContent = `${filteredTotal} / ${total} 只基金符合条件`;
 }
 
@@ -171,7 +171,7 @@ function readFiltersFromUI() {
   activeFilters.trackingTarget = (document.getElementById('cf-filter-trackingTarget')?.value || '').trim();
 }
 
-function resetFilters() {
+export function resetFilters() {
   activeFilters = makeEmptyState();
   managerSearchQuery = '';
   const mgrSearch = document.getElementById('cf-filter-fundManager-search');

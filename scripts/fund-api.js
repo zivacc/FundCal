@@ -525,7 +525,7 @@ export function createFundRouter() {
     //   否则 → 旧的全量返回 (灾备 / 兼容旧前端调用方)
     if (/^\/api\/fund\/list\/?$/.test(urlPath)) {
       try {
-        const data = (qs.page || qs.q || qs.sort)
+        const data = (qs.page || qs.q || qs.sort || qs.poolCodes != null)
           ? loadListPaged(db, qs)
           : loadList(db, qs.fields || 'summary', qs.source || '');
         jsonCached(req, res, data, { maxAge: 300, scope: 'public' });

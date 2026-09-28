@@ -6,6 +6,7 @@
  */
 
 import { filterSearchIndex } from '../js/utils/search.js';
+import { normalizePoolCodes } from '../js/utils/fund-pool.js';
 
 /** sort key 白名单 → SQL 表达式 (用于 ORDER BY) */
 const SORT_EXPR = {
@@ -65,7 +66,7 @@ export function parseListParams(qs = {}) {
     trackingTarget: (qs.trackingTarget || '').trim(),
   };
 
-  return { page, size, sort, q, filters };
+  return { page, size, sort, q, filters, poolCodes: normalizePoolCodes(qs.poolCodes) };
 }
 
 /**
@@ -77,6 +78,7 @@ export function buildListQuery(params) {
   const { page, size, sort, q, filters } = params;
   const where = [];
   const bind  = [];
+  const poolCodes = normalizePoolCodes(params.poolCodes);
 
   // Resolve matches with the same engine as browser suggestions, then paginate in SQL.
   let from = 'fund_meta m';
@@ -86,6 +88,17 @@ export function buildListQuery(params) {
     // 固定由小的匹配代码集合驱动索引查找，避免扫描全表后逐行展开 JSON。
     from = 'json_each(?) search_match CROSS JOIN fund_meta m INDEXED BY idx_fund_meta_code ON m.code = search_match.value';
     bind.push(JSON.stringify(codes));
+  }
+
+  if (poolCodes !== null) {
+    where.push('m.code IN (SELECT value FROM json_each(?))');
+    bind.push(JSON.stringify(poolCodes));
+    // 六位篮子引用只能对应一行；与单基金查询一致，优先场外 .OF。
+    where.push(`m.ts_code = (SELECT candidate.ts_code FROM fund_meta candidate
+      WHERE candidate.code = m.code
+      ORDER BY CASE WHEN candidate.ts_code LIKE '%.OF' THEN 0
+        WHEN candidate.ts_code LIKE '%.SH' OR candidate.ts_code LIKE '%.SZ' OR candidate.ts_code LIKE '%.BJ' THEN 1
+        ELSE 2 END, candidate.ts_code LIMIT 1)`);
   }
 
   // 多选筛选
@@ -102,7 +115,7 @@ export function buildListQuery(params) {
   // source: 默认仅 both,crawler (排除 tushare-only 占位行); 显式传值才覆盖
   if (filters.source.length) {
     inFilter('m.source', filters.source);
-  } else {
+  } else if (poolCodes === null) {
     where.push("m.source IN ('both','crawler')");
   }
 

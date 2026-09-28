@@ -45,6 +45,7 @@
 .basket-use-actions { display: flex; gap: 8px; margin-top: 8px; }
 .basket-use-actions button { flex: 1; }
 #basket-drop-zones { position: fixed; inset: 56px 0 0; z-index: 13000; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 22px; pointer-events: none; }
+#basket-drop-zones.basket-pool-zones { grid-template-columns: 1fr; }
 #basket-drop-zones [data-basket-drop] { pointer-events: auto; border: 2px dashed var(--accent); border-radius: 24px; background: color-mix(in srgb, var(--bg-raised) 90%, transparent); backdrop-filter: blur(3px); color: var(--text-primary); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 12px; }
 #basket-drop-zones strong { font-size: clamp(22px, 3vw, 40px); font-weight: 500; }
 #basket-drop-zones span { color: var(--text-secondary); font-size: 13px; text-align: center; }

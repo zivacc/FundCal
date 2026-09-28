@@ -38,6 +38,8 @@ export function setupNarrowFilterDrawer() {
   btn.id = 'cf-filter-toggle-btn';
   btn.className = 'cf-filter-toggle';
   btn.setAttribute('aria-label', '打开筛选');
+  btn.setAttribute('aria-expanded', 'false');
+  btn.setAttribute('aria-controls', 'cf-filter-panel');
   btn.innerHTML = '<span>筛选</span><span class="cf-filter-toggle-count" id="cf-filter-toggle-count"></span>';
   document.body.appendChild(btn);
 
@@ -52,24 +54,33 @@ export function setupNarrowFilterDrawer() {
   window.addEventListener('hashchange', () => {
     setVisible(isOnList());
     if (!isOnList()) {
-      sidebar.classList.remove('cf-sidebar-open');
-      backdrop.classList.remove('cf-sidebar-backdrop-open');
+      close();
     }
   });
 
   function open() {
     sidebar.classList.add('cf-sidebar-open');
     backdrop.classList.add('cf-sidebar-backdrop-open');
+    btn.setAttribute('aria-expanded', 'true');
+    btn.setAttribute('aria-label', '关闭筛选');
   }
   function close() {
     sidebar.classList.remove('cf-sidebar-open');
     backdrop.classList.remove('cf-sidebar-backdrop-open');
+    btn.setAttribute('aria-expanded', 'false');
+    btn.setAttribute('aria-label', '打开筛选');
   }
   btn.addEventListener('click', () => {
     if (sidebar.classList.contains('cf-sidebar-open')) close();
     else open();
   });
   backdrop.addEventListener('click', close);
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && sidebar.classList.contains('cf-sidebar-open')) {
+      close();
+      btn.focus({ preventScroll: true });
+    }
+  });
 
   // 应用 / 重置后顺手收起抽屉
   const applyBtn = document.getElementById('cf-filter-apply');

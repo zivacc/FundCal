@@ -1,5 +1,6 @@
 import { BASKET_DROP_DIAMETER, insideDropCircle, detailDropCode } from '../core/fund-drop.js';
-import { BASKET_KEY, createBasketStore, normalizeFundRefs } from '../data/basket-store.js';
+import { normalizeFundRefs } from '../data/basket-store.js';
+import { basket as store, basketStorageFailed } from '../data/basket.js';
 import { currentFundRoute, getFundReceiver, getPageFundSelection, escapeFundAttribute as escapeHtml } from '../core/fund-transfer.js';
 
 const trigger = document.getElementById('fund-basket-button');
@@ -30,16 +31,13 @@ const fundTab = document.querySelector('.top-rail-tab[data-route="fund"]');
 target.style.setProperty('--basket-drop-diameter', `${BASKET_DROP_DIAMETER}px`);
 let pickerItems = null, scrollFrame = 0;
 const selected = new Set();
-let toastTimer, storageFailed = false, busy = false, drag = null, candidate = null, suppressClickUntil = 0;
+let toastTimer, busy = false, drag = null, candidate = null, suppressClickUntil = 0;
 let hoverTimer, hoverRoute, lastFocus, cancelledPointer;
 function announce(message) {
   const status = root.querySelector('#basket-live-status');
   status.textContent = message; status.hidden = false;
   clearTimeout(toastTimer); toastTimer = setTimeout(() => { status.hidden = true; }, 5000);
 }
-let storage;
-try { storage = window.localStorage; } catch { storageFailed = true; }
-const store = createBasketStore(storage, () => { storageFailed = true; });
 function selectedItems() { return store.get().filter(item => selected.has(item.code)); }
 function useItems() { const items = selectedItems(); return items.length ? items : store.get(); }
 function render() {
@@ -70,11 +68,16 @@ function refreshContext() {
   root.querySelector('#basket-pending-label').textContent = `${getPageFundSelection(true).length ? '已选中' : '当前页面'} ${incoming.length} 只基金`;
   const receiver = getFundReceiver();
   const detail = currentFundRoute() === 'fund';
-  const routeName = detail ? '基金详情' : currentFundRoute() === 'nav' ? '净值比较' : '计算器';
-  root.querySelector('#basket-use-hint').textContent = receiver ? `${selected.size ? '所选' : '整篮'} ${useItems().length} 只 → ${routeName}` : '切换到计算器、净值比较或基金详情后使用篮子';
+  const pool = currentFundRoute() === 'list';
+  const routeName = detail ? '基金详情' : pool ? '基金列表' : currentFundRoute() === 'nav' ? '净值比较' : '计算器';
+  root.querySelector('#basket-use-hint').textContent = pool ? `整篮 ${store.get().length} 只 → 基金列表（清除搜索与筛选）` : receiver ? `${selected.size ? '所选' : '整篮'} ${useItems().length} 只 → ${routeName}` : '切换到计算器、基金列表、净值比较或基金详情后使用篮子';
   root.querySelectorAll('.basket-use-actions button').forEach(button => { button.disabled = busy || !receiver || !useItems().length; });
-  root.querySelector('[data-basket-action="replace"]').hidden = detail;
-  root.querySelector('[data-basket-action="add"]').textContent = detail ? '查看基金详情' : '添加到当前页';
+  root.querySelector('[data-basket-action="replace"]').hidden = detail || pool;
+  root.querySelector('[data-basket-action="add"]').textContent = detail ? '查看基金详情' : pool ? '查看整篮基金池' : '添加到当前页';
+  zones.classList.toggle('basket-pool-zones', pool);
+  zones.querySelector('[data-basket-drop="replace"]').hidden = pool;
+  zones.querySelector('[data-basket-drop="add"] strong').textContent = pool ? '查看整篮基金池' : '＋ 添加';
+  zones.querySelector('[data-basket-drop="add"] span').textContent = pool ? `限制为篮子中的全部 ${store.get().length} 只基金；清除搜索与筛选，可随时关闭模式` : '保留当前基金，去重后加入';
   document.body.classList.toggle('basket-detail-drag', !!drag && detail && drag.origin === 'basket');
   if (drag) {
     zones.hidden = drag.origin !== 'basket' || !receiver || detail;
@@ -104,7 +107,7 @@ function openPanel(show = panel.hidden) {
 function collect(items) {
   try {
     const count = store.add(items);
-    announce(`${count ? `已加入 ${count} 只基金` : '这些基金已在篮子中'}${storageFailed ? '；当前浏览器无法保存，仅本次会话有效' : ''}`);
+    announce(`${count ? `已加入 ${count} 只基金` : '这些基金已在篮子中'}${basketStorageFailed() ? '；当前浏览器无法保存，仅本次会话有效' : ''}`);
   } catch (error) { announce(error.message); }
 }
 async function applyToPage(items, mode) {
@@ -112,10 +115,11 @@ async function applyToPage(items, mode) {
   if (!receiver || busy || !items.length) return;
   if (currentFundRoute() === 'fund' && items.length > 1) { startDrag({ node: trigger, items, origin: 'basket' }, true); return; }
   busy = true; refreshContext();
-  announce(`正在${mode === 'replace' ? '替换' : '添加'} ${items.length} 只基金…`);
+  const pool = currentFundRoute() === 'list';
+  announce(pool ? '正在打开整篮基金池…' : `正在${mode === 'replace' ? '替换' : '添加'} ${items.length} 只基金…`);
   try {
     const count = await receiver(items, mode);
-    announce(`已${mode === 'replace' ? '替换' : '添加'} ${count ?? items.length} 只基金`);
+    announce(pool ? `已开启篮子基金池，范围 ${count} 只基金` : `已${mode === 'replace' ? '替换' : '添加'} ${count ?? items.length} 只基金`);
     openPanel(false);
   } catch (error) { announce(error.message || '基金操作失败，请重试'); }
   finally { busy = false; refreshContext(); }
@@ -158,7 +162,7 @@ function startDrag(source, keyboard = false) {
     if (!picker.hidden) choices.querySelector('[data-basket-drop]').focus();
     else if (!zones.hidden) zones.querySelector('[data-basket-drop]').focus();
     else if (!target.hidden) target.focus();
-    else { announce('请先切换到计算器、净值比较或基金详情'); stopDrag(); }
+    else { announce('请先切换到计算器、基金列表、净值比较或基金详情'); stopDrag(); }
   }
 }
 function onFundTab(x, y) {
@@ -284,7 +288,6 @@ window.addEventListener('hashchange', refreshContext);
 window.addEventListener('resize', () => { if (drag) { positionTarget(); positionDropLabels(); } });
 new ResizeObserver(() => { if (drag) positionDropLabels(); }).observe(panel);
 window.addEventListener('blur', () => { if (drag && !drag.keyboard) stopDrag(); });
-window.addEventListener('storage', event => { if (event.key === BASKET_KEY) store.sync(event.newValue); });
 // NAV 全屏隐藏顶栏时，保留同一个篮子入口；退出后归位。
 const triggerSlot = document.createComment('fund-basket-slot');
 trigger.before(triggerSlot);

@@ -209,7 +209,7 @@ export async function fetchFundListFromAPI() {
  * @param {AbortSignal} [params.signal]         可取消, 用于防竞态
  * @returns {Promise<{total:number,page:number,size:number,rows:Array<any>}|null>}
  */
-export async function fetchFundListPageFromAPI({ page = 1, size = 100, q = '', sort = '', filters = {}, signal } = {}) {
+export async function fetchFundListPageFromAPI({ page = 1, size = 100, q = '', sort = '', filters = {}, poolCodes = null, signal } = {}) {
   const base = getFeeApiBase();
   if (!base) return null;
   const sep = base.endsWith('/') ? '' : '/';
@@ -218,6 +218,7 @@ export async function fetchFundListPageFromAPI({ page = 1, size = 100, q = '', s
   usp.set('size', String(size));
   if (sort) usp.set('sort', sort);
   if (q)    usp.set('q', q);
+  if (poolCodes !== null) usp.set('poolCodes', poolCodes.join(','));
   const csv = (arr) => Array.isArray(arr) && arr.length ? arr.join(',') : '';
   const ft  = csv(filters.fundType);
   const fm  = csv(filters.fundManager);

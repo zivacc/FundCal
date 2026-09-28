@@ -34,6 +34,19 @@ test('search-driven SQL preserves relevance, filters, pagination, sorting and em
   assert.deepEqual(run({ q: '不存在' }).rows, []);
   assert.equal(run({ q: '不存在' }).count, 0);
   assert.deepEqual(run({ fundType: '债券型' }).rows, ['000004']);
+  assert.deepEqual(run({ poolCodes: '000001,000003,000001,999999' }).rows, ['000001', '000003']);
+  assert.equal(run({ poolCodes: '000001,000003', size: 1, page: 2 }).count, 2);
+  assert.deepEqual(run({ poolCodes: '000001,000003', size: 1, page: 2 }).rows, ['000003']);
+  assert.deepEqual(run({ poolCodes: '', q: '沪深' }).rows, []);
+  assert.equal(run({ poolCodes: 'bad' }).count, 0);
+  assert.deepEqual(run({ poolCodes: '000001,000003', q: '沪深', sort: 'annualFee:desc' }).rows, ['000003', '000001']);
+  assert.deepEqual(run({ poolCodes: '000001,000004', fundType: '债券型' }).rows, ['000004']);
+  assert.deepEqual(run({ poolCodes: '000001,000003', source: 'crawler' }).rows, ['000001']);
+  db.exec("INSERT INTO fund_meta(ts_code,code,source,name_crawler) VALUES('000003.SH','000003','tushare','同代码场内')");
+  assert.equal(run({ poolCodes: '000003' }).count, 1);
+  const poolQuery = run({ poolCodes: '000003' }).query;
+  assert.equal(db.prepare(poolQuery.sql).get(...poolQuery.params).ts_code, '000003.OF');
+  db.exec("DELETE FROM fund_meta WHERE ts_code='000003.SH'");
   for (const query of [page.query, run({ q: '沪深', source: 'tushare' }).query]) {
     const plan = db.prepare('EXPLAIN QUERY PLAN ' + query.sql).all(...query.params).map(row => row.detail);
     assert.ok(plan.some(line => /SEARCH m USING INDEX idx_fund_meta_code/.test(line)), plan.join('\n'));

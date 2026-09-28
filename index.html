@@ -269,7 +269,7 @@
           <div class="page-header-left">
             <span class="page-header-kicker">DATABASE</span>
             <h1>数据库基金列表</h1>
-            <p class="subtitle" id="cached-funds-status">正在加载数据库基金列表...（数据托管在 github，需一点时间）</p>
+            <p class="subtitle" id="cached-funds-status">正在加载数据库基金列表...</p>
           </div>
           <div class="page-header-right cached-funds-toolbar">
             <div class="cached-funds-search-wrap">
@@ -311,6 +311,10 @@
           <div class="cached-funds-progress-bar" id="cached-funds-progress-bar"></div>
         </div>
 
+        <section id="list-basket-pool" class="list-basket-pool" aria-label="基金池范围">
+          <label><input id="list-basket-mode" type="checkbox" role="switch" aria-describedby="list-basket-hint"> 篮子基金池</label>
+          <span id="list-basket-hint" role="status"></span>
+        </section>
         <p id="cached-funds-selection-hint" class="cached-funds-selection-hint">单击单选 · Ctrl / ⌘ 多选 · Shift 选本页区间 · Ctrl / ⌘ + Shift 追加区间 · 触屏点按多选</p>
         <p id="cached-funds-morningstar-hint" class="cached-funds-selection-hint">晨星费率取各基金最新收录的同一期快照，日期见列内；隐性费率为估算值，综合费率为晨星显性＋隐性费率，不等于现行年化费率加隐性费率。缺失显示 —，仅供参考。</p>
         <div class="cached-funds-table-wrap">
@@ -361,7 +365,6 @@
               <option value="100" selected>每页 100 条</option>
               <option value="200">每页 200 条</option>
               <option value="500">每页 500 条</option>
-              <option value="1000">每页 1000 条</option>
             </select>
           </div>
         </div>

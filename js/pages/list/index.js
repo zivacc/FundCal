@@ -1,4 +1,5 @@
-import { registerFundSource, notifyFundSelection, fundDragAttrs, fundDragHandle } from '../../core/fund-transfer.js';
+import { registerFundSource, registerFundReceiver, notifyFundSelection, fundDragAttrs, fundDragHandle } from '../../core/fund-transfer.js';
+import { basket } from '../../data/basket.js';
 /**
  * 基金列表页 (服务端分页重构, 2026)。
  *
@@ -17,6 +18,7 @@ import {
   applyOptions,
   getActiveFilters,
   setResultHint,
+  resetFilters,
 } from './filters.js';
 import { loadFundsPage, loadFilterOptions } from './data-loader.js';
 import { createListSelection } from './selection.js';
@@ -39,6 +41,16 @@ let totalPages = 1;
 let currentSort = { key: 'code', dir: 'asc' };
 let currentQuery = '';
 let currentFallback = false;   // 灾备模式 (纯静态部署) 时禁用筛选/排序
+let basketPoolEnabled = false;
+
+function updatePoolUI() {
+  document.getElementById('list-basket-mode').checked = basketPoolEnabled;
+  document.getElementById('list-basket-pool').classList.toggle('is-active', basketPoolEnabled);
+  const n = basket.get().length;
+  document.getElementById('list-basket-hint').textContent = basketPoolEnabled
+    ? (n ? `范围：篮子中的 ${n} 只基金 · 搜索和筛选仅在池内生效 · 篮子增删自动同步` : '篮子为空 · 加入基金后将自动显示；关闭开关可回到全库')
+    : `当前范围：全库 · 开启可限制为篮子中的 ${n} 只基金`;
+}
 
 /** AbortController, 每次新请求重建 */
 let inflightAbort = null;
@@ -225,7 +237,7 @@ function renderTable() {
 /* ========== 数据获取 (核心) ========== */
 
 /** 重新拉当前状态对应的一页数据并渲染 */
-async function refresh() {
+async function refresh({ throwOnError = false } = {}) {
   if (inflightAbort) { try { inflightAbort.abort(); } catch {} }
   inflightAbort = new AbortController();
   const signal = inflightAbort.signal;
@@ -240,22 +252,32 @@ async function refresh() {
       q: currentQuery,
       sort: `${toApiSortKey(currentSort.key)}:${currentSort.dir}`,
       filters: getActiveFilters(),
+      poolCodes: basketPoolEnabled ? basket.get().map(item => item.code) : null,
       signal,
     });
     if (signal.aborted) return;
     total = data.total || 0;
+    const lastPage = Math.max(1, Math.ceil(total / pageSize));
+    if (currentPage > lastPage) {
+      currentPage = lastPage;
+      return refresh({ throwOnError });
+    }
     currentRows = data.rows || [];
     selection.resetAnchor();
     currentFallback = !!data.fallback;
     setProgress(1, 1);
-    setStatus(`共 ${total} 只基金 (${(performance.now() - t0).toFixed(0)} ms)`);
-    setResultHint(total);
+    setStatus(`${basketPoolEnabled ? '篮子基金池 · ' : ''}共 ${total} 只基金 (${(performance.now() - t0).toFixed(0)} ms)`);
+    setResultHint(total, basketPoolEnabled ? basket.get().length : null);
     renderTable();
     updateCompareFab();
   } catch (err) {
     if (signal.aborted) return;
     console.error('[list] fetch failed:', err);
+    currentRows = [];
+    total = 0;
+    renderTable();
     setStatus('加载失败: ' + (err?.message || err), true);
+    if (throwOnError) throw err;
   }
 }
 
@@ -465,6 +487,29 @@ function setupEvents() {
 
 export function pageInit() {
   registerFundSource('list', 'list', () => [...selectedCompare].map(([code, name]) => ({ code, name })));
+  registerFundReceiver('list', async () => {
+    // 拖入总是查看整篮，而不是浮窗内勾选的子集；清除旧筛选以展示整池。
+    basketPoolEnabled = true;
+    currentQuery = '';
+    document.getElementById('cached-funds-search').value = '';
+    document.querySelector('.cached-funds-search-wrap').classList.remove('has-value');
+    resetFilters();
+    currentPage = 1;
+    updatePoolUI();
+    await refresh({ throwOnError: true });
+    return basket.get().length;
+  });
+  document.getElementById('list-basket-mode').addEventListener('change', event => {
+    basketPoolEnabled = event.target.checked;
+    currentPage = 1;
+    updatePoolUI();
+    void refresh();
+  });
+  basket.subscribe(() => {
+    updatePoolUI();
+    if (basketPoolEnabled) { currentPage = 1; void refresh(); }
+  });
+  updatePoolUI();
   setupEvents();
   setupFilters({ onChange: () => { currentPage = 1; refresh(); } });
   setupNarrowFilterDrawer();
