@@ -14,6 +14,7 @@ import { planNavBasketTransfer } from './basket-transfer.js';
 import { setupNavFullscreen } from './fullscreen.js';
 import { buildExtremaUpdates, extremaWindow } from './chart-extrema.js';
 import { periodStartIndex } from './period-window.js';
+import { resolveBaseline } from './baseline.js';
 import { ensureBenchmarkSelection, replaceBenchmarkSelection } from './benchmark-selection.js';
 import { createTypeahead } from '../../components/typeahead.js';
 import { fetchNavCompareCached, fetchIndexSearchIndexFromAPI, periodToRange } from '../../data/nav-api.js';
@@ -803,26 +804,15 @@ function renderChart({ interaction = false } = {}) {
   const mainSeries = [];
   const subplotSeries = [];
 
-  // 基准日决策：
-  //   1) 用户手动拖过 (state.baseline 非空)
-  //      a) 仍在当前显示区间 → 用 state.baseline（不刷新）
-  //      b) 已被划出区间   → 弃用，走自动兜底
-  //   2) 从未拖过        → 自动兜底
-  // 自动兜底：
-  //   - 单基金：viewStart
-  //   - 多基金：max(viewStart, commonStart) ——
-  //     即所有基金都有数据的最早日，且不早于当前视图起点（保证 marker 在视图内）
-  let effectiveBaseline = state.baseline || null;
-  if (effectiveBaseline) {
-    const inView = (!state.viewStart || effectiveBaseline >= state.viewStart)
-                && (!state.viewEnd   || effectiveBaseline <= state.viewEnd);
-    if (!inView) effectiveBaseline = null;
-  }
-  if (!effectiveBaseline) {
-    const cs = commonStartISO(series);
-    if (cs && state.viewStart) effectiveBaseline = cs > state.viewStart ? cs : state.viewStart;
-    else effectiveBaseline = cs || state.viewStart || null;
-  }
+  // 原基准优先使用手动日期，否则使用多序列共同起点（单序列跟随视图起点）。
+  // 原基准移出画面时，临时以画面第一天归零；回到画面内后恢复。
+  // 仅计算本次显示值，不覆盖 state.baseline，避免缩放丢失原基准。
+  const effectiveBaseline = resolveBaseline({
+    baseline: state.baseline,
+    commonStart: commonStartISO(series),
+    viewStart: state.viewStart,
+    viewEnd: state.viewEnd,
+  });
 
   // 视图窗口对应的 [sIdx..eIdx]，用于把 markPoint 的极值搜索限定在可见范围内。
   // 关键：state.viewStart/End 是 ISO；这里转回紧凑 YYYYMMDD 与 allDates 比较。
