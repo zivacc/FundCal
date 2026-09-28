@@ -8,6 +8,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { ensureIndexReturnLinks } from './wind-index-data.js';
+import { ensureIndexConstituents } from './index-constituents.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, '..', '..', 'data');
@@ -29,6 +30,7 @@ export function getDb() {
   ensureTushareShadowColumns(_db);
   ensureNavSourceColumn(_db);
   ensureIndexReturnLinks(_db);
+  ensureIndexConstituents(_db);
   return _db;
 }
 

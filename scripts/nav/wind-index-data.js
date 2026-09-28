@@ -39,7 +39,13 @@ export function windTables(outer) {
 }
 
 export async function callWindIndex(tool, params, { cacheDir = path.join(ROOT, 'data/wind/raw') } = {}) {
-  const hash = createHash('sha256').update(JSON.stringify({ tool, params })).digest('hex');
+  return callWindData('index_data', tool, params, { cacheDir });
+}
+
+export async function callWindData(server, tool, params, { cacheDir = path.join(ROOT, 'data/wind/raw') } = {}) {
+  // Retain the existing index receipt keys; other services use separate identities.
+  const identity = server === 'index_data' ? { tool, params } : { server, tool, params };
+  const hash = createHash('sha256').update(JSON.stringify(identity)).digest('hex');
   await mkdir(cacheDir, { recursive: true });
   const cachedPath = path.join(cacheDir, `${hash}.json`);
   try {
@@ -54,7 +60,7 @@ export async function callWindIndex(tool, params, { cacheDir = path.join(ROOT, '
   let result;
   try {
     result = await new Promise((resolve, reject) => {
-      const child = spawn(process.execPath, ['scripts/cli.mjs', 'call', 'index_data', tool, `@${requestFile}`], {
+      const child = spawn(process.execPath, ['scripts/cli.mjs', 'call', server, tool, `@${requestFile}`], {
         cwd: SKILL, env: { ...process.env, WIND_SKILL_AUTO_UPDATE: '0' }, stdio: ['ignore', 'pipe', 'pipe'],
       });
       let stdout = '', stderr = '', failure;
@@ -72,7 +78,7 @@ export async function callWindIndex(tool, params, { cacheDir = path.join(ROOT, '
           const response = JSON.parse(stdout);
           windTables(response);
           if (code !== 0) throw new Error(`Wind CLI exit ${code}: ${stderr}`);
-          resolve({ requestedAt: new Date().toISOString(), tool, params, response });
+          resolve({ requestedAt: new Date().toISOString(), server, tool, params, response });
         } catch (e) { reject(e); }
       });
     });

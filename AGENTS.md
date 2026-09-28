@@ -49,6 +49,8 @@ node scripts/nav/crawl-overseas-nav.js --run-dir data/repair-YYYYMMDD # 968 中�
 npm run sync:trade-cal
 npm run sync:index-basic
 npm run sync:index-daily
+npm run sync:index-constituents -- --end YYYY-MM-DD  # Wind 最新完整成分权重快照，独立补数
+npm run report:index-constituents                   # 只读 DB，写本地覆盖报告
 npm run crawl:em-index
 npm run import:custom-index      # CSV 指数，source=6
 npm run import:morningstar-fee   # 晨星 XLSX 历史快照，独立参考表
@@ -132,10 +134,14 @@ DB → build-allfund-from-db 等构建脚本 → data/allfund/* 公共分片
 | index_basic / index_source_map | ts_code / ts_code + source；指数信息与多源代码映射 |
 | index_daily / index_fund_tracker | ts_code + end_date / index_ts_code + fund_ts_code；指数行情和跟踪关系 |
 | index_return_links | index_ts_code + return_ts_code；Wind 核验的全收益版本关联及时间 |
+| index_constituent_snapshot | id；指数 + 日期 + 来源唯一，完整快照及回执校验信息 |
+| index_constituent_weight | snapshot_id + constituent_code；完整成分权重，weight_pct 为百分数 |
 | morningstar_fee_snapshot | as_of_date；源文件、SHA256 和导入统计 |
 | morningstar_fund_fee | as_of_date + code；各期综合费率、排名及参考指标 |
 
 `getDb()` 会初始化 schema，并调用 `ensureTushareShadowColumns()`、`ensureNavSourceColumn()`。新增列应补幂等迁移并接入初始化；**当前 `share_class` 仍由 `scripts/nav/parse-share-class.js` 添加/填充**，不能把正式库已有列当作空库也一定具备。空库构建问题尚未全部解决。
+
+指数成分权重由 `scripts/nav/index-constituents.js` 幂等建表，通过 Wind `analytics_data.get_financial_data` 独立补充。只写入数量、日期、代码身份、权重单位及合计均通过校验的完整快照，缺权重不能按等权或ETF持仓推算。不同收益版本不自动复用；同日期已有快照冲突时停止审核。私有回执、备份、锁和进度在 `data/wind/constituents/`；`--resume` 续跑，`--retry-incomplete` 重验不完整结果，仍复用相同请求缓存。覆盖率以 `report:index-constituents` 为准，尚未加入日更或前端/API。
 
 晨星导入通过系统 `unzip` 读取 XLSX，原始文件在被忽略的 `data/morningstar_full_fund_fee/`。晨星表不写入 fund_basic/fund_meta，也不参与字段裁决；`*_pct` 使用百分数单位，现行费用计算中的 rate 使用小数比例，展示/换算时勿混用。
 

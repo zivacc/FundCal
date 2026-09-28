@@ -24,6 +24,8 @@
     "sync:index-basic": "node scripts/nav/sync-index-basic.js",
     "sync:index-daily": "node scripts/nav/sync-index-daily.js",
     "sync:index-wind": "node scripts/nav/sync-wind-index.js",
+    "sync:index-constituents": "node scripts/nav/sync-index-constituents.js",
+    "report:index-constituents": "node scripts/nav/report-index-constituents.js",
     "report:index-returns": "node scripts/nav/wind-coverage-report.js",
     "build-index-search": "node scripts/build-index-search.js",
     "crawl:em-index": "node scripts/nav/crawl-em-index.js",

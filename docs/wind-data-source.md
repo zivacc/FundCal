@@ -48,6 +48,30 @@
 
 场外 `.OF` 基金的净值走 `get_fund_performance`，不走 ETF/LOF 行情 K 线。基金持仓随报告披露更新，不代表实时完整组合。指数档案工具明确不含成份明细与权重；不能因为 Wind 金融终端有这些功能，就宣称本 skill 的档案接口也直接支持。
 
+### 指数成分权重（2026-09-28 接入）
+
+指数专项工具不提供成分明细，因此通过契约允许的 `analytics_data.get_financial_data` 补充取数。沪深300、万得微盘、创业板、恒生等样本已通过完整性校验写入正式库；全范围实际覆盖以 `npm run report:index-constituents` 的只读报告为准，不代表所有指数都已具备权重。
+
+新增 `index_constituent_snapshot`（指数、实际日期、来源、成分数、权重合计、抓取时间和回执SHA256/路径）与 `index_constituent_weight`（快照ID、证券标准代码、名称、`weight_pct`）两表。`getDb()` 执行幂等建表；同步器仅确保这两张表，不触发其他业务迁移。权重保存百分数：1表示1%，不能按小数比例直接使用。
+
+```bash
+npm run sync:index-constituents -- --end 2026-09-28
+npm run sync:index-constituents -- --end 2026-09-28 --resume
+npm run sync:index-constituents -- --end 2026-09-28 --resume --retry-incomplete
+npm run sync:index-constituents -- --end 2026-09-28 --codes 000300.SH,HSI.HI
+npm run report:index-constituents
+```
+
+默认处理已有日线或基金跟踪关系的指数，排除黄金等非指数标的。指定代码范围的进度独立保存，续跑须保持日期和代码集合一致。首次导入前使用 SQLite online backup 保存了一致性备份，位于忽略目录 `data/wind/constituents/fundcal-before-20260928.db`。
+
+Wind 默认回答可能只有100行，即使请求了全部成分。同步器按代码升序请求分表；不完整/空结果允许改写一次，并验证实际日期、指数身份、单位、去重后数量与提供方总数、全部权重非空、合计接近100%且与提供方汇总一致。`cli_meta.completeness=not_asserted` 不作为完整性证明。当前百分数合计容差为0.1个百分点，与汇总误差不超过0.001个百分点；不自动重归一化。
+
+一个完整快照以事务写入，同指数/日期/来源幂等；已有快照出现修订冲突时停止，需单独审核，避免静默覆写。缺失权重、名单不全、日期混杂等只保留回执和失败原因，不写入权重表，也不以ETF持仓或等权推算补齐。不同收益版本逐只核验，`index_return_links` 不自动授权共用成分。
+
+同步串行执行，认证/额度/服务错误立即停止批次，已提交快照保留。`data/wind/constituents/<日期>-<范围>/status.json` 保存成功、缺口与待处理代码；`--retry-incomplete` 会重验已有回执，原请求仍优先复用缓存，不代表强制刷新上游。锁 `data/wind/constituents/sync.lock` 防止同时写入，异常终止后应先确认没有同步进程再移除残留锁。该同步尚未加入自动日更，前端/API尚未展示成分数据。当前实现的来源为Wind，官方指数机构与Tushare为后续备用适配；不能宣称已自动切换。
+
+本轮在 `931573.CSI` 遇到账户积分不足后停止，正式库已保留 **21个指数版本、4,860条权重**，实际日期均为2026-09-28；852个候选中831个尚无完整快照（含未处理标的，不等于全部已确认无数据）。全范围本轮32个结果中17个新写入、1个已存在、14个未通过校验，另有先前探针导入的快照。恢复额度后使用原截止日和 `--resume` 继续。完成但有缺口时CLI退出码为2，服务阻断为1，全部已处理且完整为0。
+
 其他服务包括债券档案/行情估值/发行人财务、财经新闻、宏观/行业/汇率 EDB 指标，以及跨标的聚合计算。各类数据的具体覆盖期、字段与账户权限仍须实测。
 
 契约来源：[股票](../.agents/skills/wind-mcp-skill/references/stock.md)、[基金](../.agents/skills/wind-mcp-skill/references/fund.md)、[指数](../.agents/skills/wind-mcp-skill/references/index.md)、[公告](../.agents/skills/wind-mcp-skill/references/financial-docs.md)。
