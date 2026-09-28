@@ -55,10 +55,10 @@
 新增 `index_constituent_snapshot`（指数、实际日期、来源、成分数、权重合计、抓取时间和回执SHA256/路径）与 `index_constituent_weight`（快照ID、证券标准代码、名称、`weight_pct`）两表。`getDb()` 执行幂等建表；同步器仅确保这两张表，不触发其他业务迁移。权重保存百分数：1表示1%，不能按小数比例直接使用。
 
 ```bash
-npm run sync:index-constituents -- --end 2026-09-28
-npm run sync:index-constituents -- --end 2026-09-28 --resume
-npm run sync:index-constituents -- --end 2026-09-28 --resume --retry-incomplete
-npm run sync:index-constituents -- --end 2026-09-28 --codes 000300.SH,HSI.HI
+npm run sync:index-constituents-wind -- --end 2026-09-28
+npm run sync:index-constituents-wind -- --end 2026-09-28 --resume
+npm run sync:index-constituents-wind -- --end 2026-09-28 --resume --retry-incomplete
+npm run sync:index-constituents-wind -- --end 2026-09-28 --codes 000300.SH,HSI.HI
 npm run report:index-constituents
 ```
 
@@ -68,9 +68,9 @@ Wind 默认回答可能只有100行，即使请求了全部成分。同步器按
 
 一个完整快照以事务写入，同指数/日期/来源幂等；已有快照出现修订冲突时停止，需单独审核，避免静默覆写。缺失权重、名单不全、日期混杂等只保留回执和失败原因，不写入权重表，也不以ETF持仓或等权推算补齐。不同收益版本逐只核验，`index_return_links` 不自动授权共用成分。
 
-同步串行执行，认证/额度/服务错误立即停止批次，已提交快照保留。`data/wind/constituents/<日期>-<范围>/status.json` 保存成功、缺口与待处理代码；`--retry-incomplete` 会重验已有回执，原请求仍优先复用缓存，不代表强制刷新上游。锁 `data/wind/constituents/sync.lock` 防止同时写入，异常终止后应先确认没有同步进程再移除残留锁。该同步尚未加入自动日更，前端/API尚未展示成分数据。当前实现的来源为Wind，官方指数机构与Tushare为后续备用适配；不能宣称已自动切换。
+同步串行执行，认证/额度/服务错误立即停止批次，已提交快照保留。`data/wind/constituents/<日期>-<范围>/status.json` 保存成功、缺口与待处理代码；`--retry-incomplete` 会重验已有回执，原请求仍优先复用缓存，不代表强制刷新上游。锁 `data/wind/constituents/sync.lock` 防止同时写入，异常终止后应先确认没有同步进程再移除残留锁。该同步尚未加入自动日更，前端/API尚未展示成分数据。默认主源现已改为中证/国证官方完整文件，Wind 为独有与缺口的独立命令，不自动耗用额度，见[完整成分权重](index-constituents.md)。
 
-本轮在 `931573.CSI` 遇到账户积分不足后停止，正式库已保留 **21个指数版本、4,860条权重**，实际日期均为2026-09-28；852个候选中831个尚无完整快照（含未处理标的，不等于全部已确认无数据）。全范围本轮32个结果中17个新写入、1个已存在、14个未通过校验，另有先前探针导入的快照。恢复额度后使用原截止日和 `--resume` 继续。完成但有缺口时CLI退出码为2，服务阻断为1，全部已处理且完整为0。
+Wind 首轮在 `931573.CSI` 遇到账户积分不足后停止，当时正式库保留 **21个指数版本、4,860条权重**，实际日期均为2026-09-28；852个候选中831个尚无完整快照（含未处理标的，不等于全部已确认无数据）。全范围本轮32个结果中17个新写入、1个已存在、14个未通过校验，另有先前探针导入的快照。恢复额度后使用原截止日和 `--resume` 继续。完成但有缺口时CLI退出码为2，服务阻断为1，全部已处理且完整为0。
 
 其他服务包括债券档案/行情估值/发行人财务、财经新闻、宏观/行业/汇率 EDB 指标，以及跨标的聚合计算。各类数据的具体覆盖期、字段与账户权限仍须实测。
 

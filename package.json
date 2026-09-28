@@ -24,7 +24,8 @@
     "sync:index-basic": "node scripts/nav/sync-index-basic.js",
     "sync:index-daily": "node scripts/nav/sync-index-daily.js",
     "sync:index-wind": "node scripts/nav/sync-wind-index.js",
-    "sync:index-constituents": "node scripts/nav/sync-index-constituents.js",
+    "sync:index-constituents": "node scripts/nav/sync-official-index-constituents.js",
+    "sync:index-constituents-wind": "node scripts/nav/sync-index-constituents.js",
     "report:index-constituents": "node scripts/nav/report-index-constituents.js",
     "report:index-returns": "node scripts/nav/wind-coverage-report.js",
     "build-index-search": "node scripts/build-index-search.js",
@@ -40,6 +41,7 @@
     "query:nav": "node scripts/nav/query-nav.js"
   },
   "dependencies": {
-    "better-sqlite3": "^12.9.0"
+    "better-sqlite3": "^12.9.0",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   }
 }

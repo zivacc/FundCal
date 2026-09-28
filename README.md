@@ -330,7 +330,8 @@ npm run replay-failed                          # 实际重跑近 7 天失败
 | `npm run sync:index-basic`      | Tushare 指数清单                            |
 | `npm run sync:index-daily`      | Tushare 指数日线                            |
 | `npm run sync:index-wind -- --end YYYY-MM-DD` | Wind 指数及关联全收益历史补缺；同截止日可加 `--resume` |
-| `npm run sync:index-constituents -- --end YYYY-MM-DD` | Wind 完整成分权重快照；支持 `--codes`、`--resume` |
+| `npm run sync:index-constituents -- --end YYYY-MM-DD` | 中证/国证官方完整权重文件；支持 `--codes`、`--dry-run`、`--resume`，见[数据源说明](docs/index-constituents.md) |
+| `npm run sync:index-constituents-wind -- --end YYYY-MM-DD --codes …` | Wind 独有指数与缺口补数；支持 `--resume`、`--retry-incomplete` |
 | `npm run report:index-constituents` | 只读正式库，输出成分权重覆盖与缺口 |
 | `npm run report:index-returns` | 基金全收益基准覆盖缺口（本地 JSON） |
 | `npm run build-index-search` | 仅重建公共指数搜索目录 |

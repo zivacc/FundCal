@@ -26,6 +26,9 @@ export function ensureIndexConstituents(db) {
   );
   CREATE INDEX IF NOT EXISTS idx_constituent_code ON index_constituent_weight(constituent_code);
   CREATE INDEX IF NOT EXISTS idx_constituent_snapshot_date ON index_constituent_snapshot(index_ts_code, as_of_date DESC);`);
+  if (!db.prepare('PRAGMA table_info(index_constituent_snapshot)').all().some(c => c.name === 'validation_basis')) {
+    db.exec("ALTER TABLE index_constituent_snapshot ADD COLUMN validation_basis TEXT NOT NULL DEFAULT 'provider_totals' CHECK(validation_basis IN ('provider_totals','official_full_file'))");
+  }
 }
 
 export function validDate(value) {
@@ -95,24 +98,26 @@ export function normalizeConstituents(response, indexCode, end, totalsResponse =
   return { indexCode, asOfDate, expectedCount, declaredSum, weightSum: sum, rows: sorted };
 }
 
-export function insertConstituentSnapshot(db, snapshot, { receipt, receiptPath, fetchedAt }) {
+export function insertConstituentSnapshot(db, snapshot, { receipt, receiptPath, fetchedAt, source = 'wind' }) {
   // Revalidate the normalized boundary too, so callers cannot bypass completeness checks.
   const { indexCode, asOfDate, expectedCount, declaredSum, rows } = snapshot;
+  const basis = snapshot.validationBasis || 'provider_totals';
+  if (!['wind','csindex','cnindex'].includes(source) || basis !== (source === 'wind' ? 'provider_totals' : 'official_full_file')) throw new Error('Invalid source or validation basis');
   if (!validDate(asOfDate) || !Number.isSafeInteger(expectedCount) || expectedCount < 1 || rows.length !== expectedCount || new Set(rows.map(r=>r.code)).size !== expectedCount) throw new Error('Invalid snapshot');
   if (!receiptPath || !receipt || !Number.isFinite(Date.parse(fetchedAt))) throw new Error('Missing provenance');
   if (rows.some(r=>typeof r.weight_pct !== 'number' || !Number.isFinite(r.weight_pct) || r.weight_pct < 0 || r.weight_pct > 100 || !r.code || !r.name)) throw new Error('Invalid weight row');
   const sum = rows.reduce((s,r)=>s+r.weight_pct,0);
   if (!Number.isFinite(declaredSum) || Math.abs(sum-100)>0.1 || Math.abs(sum-declaredSum)>0.001) throw new Error('Invalid weight sum');
   return db.transaction(() => {
-    const old = db.prepare("SELECT * FROM index_constituent_snapshot WHERE index_ts_code=? AND as_of_date=? AND source='wind'").get(indexCode,asOfDate);
+    const old = db.prepare('SELECT * FROM index_constituent_snapshot WHERE index_ts_code=? AND as_of_date=? AND source=?').get(indexCode,asOfDate,source);
     if (old) {
       const existing = db.prepare('SELECT constituent_code code,name,weight_pct FROM index_constituent_weight WHERE snapshot_id=? ORDER BY constituent_code').all(old.id);
       const ordered = [...rows].sort((a,b)=>a.code < b.code ? -1 : a.code > b.code ? 1 : 0);
       if (old.constituent_count !== expectedCount || JSON.stringify(existing)!==JSON.stringify(ordered)) throw new Error('Existing snapshot conflict; explicit revision review required');
       return { id: old.id, inserted: 0 };
     }
-    const result=db.prepare(`INSERT INTO index_constituent_snapshot(index_ts_code,as_of_date,source,fetched_at,expected_count,constituent_count,weight_sum_pct,declared_weight_sum_pct,validation,receipt_sha256,receipt_path)
-      VALUES(?,?,'wind',?,?,?,?,?,'complete',?,?)`).run(indexCode,asOfDate,fetchedAt,expectedCount,rows.length,sum,declaredSum,createHash('sha256').update(receipt).digest('hex'),receiptPath);
+    const result=db.prepare(`INSERT INTO index_constituent_snapshot(index_ts_code,as_of_date,source,fetched_at,expected_count,constituent_count,weight_sum_pct,declared_weight_sum_pct,validation,receipt_sha256,receipt_path,validation_basis)
+      VALUES(?,?,?,?,?,?,?,?,'complete',?,?,?)`).run(indexCode,asOfDate,source,fetchedAt,expectedCount,rows.length,sum,declaredSum,createHash('sha256').update(receipt).digest('hex'),receiptPath,basis);
     const add=db.prepare('INSERT INTO index_constituent_weight(snapshot_id,constituent_code,name,weight_pct) VALUES(?,?,?,?)');
     for (const r of rows) add.run(result.lastInsertRowid,r.code,r.name,r.weight_pct);
     return { id: Number(result.lastInsertRowid), inserted: rows.length };
