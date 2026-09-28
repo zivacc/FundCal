@@ -124,7 +124,7 @@ function renderSummary(total) {
     <div class="fund-stats-summary-card fund-stats-fade-in">
       <div class="fund-stats-summary-number">${total}</div>
       <div class="fund-stats-summary-label">已缓存基金总数<span class="fund-stats-summary-extra" id="fund-stats-summary-extra"></span></div>
-      <div class="fund-stats-summary-sub">基于本地 allfund.json 聚合统计</div>
+      <div class="fund-stats-summary-sub">数据库聚合统计 · API 优先，公共快照兜底</div>
     </div>
   `;
 }

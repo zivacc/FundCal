@@ -1,5 +1,6 @@
 import { registerFundSource, registerFundReceiver, notifyFundSelection, fundDragAttrs, fundDragHandle } from '../../core/fund-transfer.js';
 import { planNavBasketTransfer } from './basket-transfer.js';
+import { seriesColors } from '../../core/chart-palette.js';
 /**
  * 净值比较页 (NAV Compare)
  *
@@ -55,7 +56,7 @@ import { chartLayout, niceAxisBounds } from './chart-layout.js';
 import { filterSearchIndex } from '../../utils/search.js';
 import { resizeRangeBoundary } from './range-selection.js';
 
-const COLORS = ['#c47a3d', '#2a8e6c', '#3f6cc4', '#b8732d', '#c0412d', '#7e6cc4', '#5d8aa8', '#9b6b3f'];
+let COLORS = seriesColors(document.documentElement.dataset.theme === 'dark');
 
 const state = {
   selected: [],   // [{code, name, color}]
@@ -387,9 +388,9 @@ function renderChartLegend() {
     const codeText = f.isBenchmark ? '基准' : escapeHtml(f.code);
     const nameSlot = f.isBenchmark
       ? renderBenchmarkSelect(f.code)
-      : `<span class="nav-chart-legend-name">${escapeHtml(f.name)}</span>`;
+      : `<span class="nav-chart-legend-name" title="${escapeHtml(f.name)}">${escapeHtml(f.name)}</span>`;
     return `
-      <span class="${cls}"
+      <span class="${cls}" style="--legend-color:${f.color}"
             ${fundDragAttrs(f)} data-code="${escapeHtml(f.code)}"
             data-idx="${i}"
             role="button"
@@ -1578,6 +1579,9 @@ function setupEvents() {
 
   // 主题切换：监听 data-theme 变化重绘
   const observer = new MutationObserver(() => {
+    COLORS = seriesColors(document.documentElement.dataset.theme === 'dark');
+    state.selected.forEach((fund, i) => { fund.color = COLORS[i % COLORS.length]; });
+    renderChartLegend();
     if (state.chart) renderChart();
   });
   observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });

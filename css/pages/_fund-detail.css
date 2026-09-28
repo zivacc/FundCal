@@ -12,7 +12,14 @@
 
 .fd-search-wrap {
   position: relative;
-  min-width: 280px;
+  width: 320px;
+  min-width: min(280px, 100%);
+  max-width: 100%;
+}
+
+@media (max-width: 768px) {
+  .page-fund-detail .page-header-right { width: 100%; }
+  .fd-search-wrap { width: 100%; }
 }
 
 .fd-empty {
@@ -54,6 +61,7 @@
 
 .fd-card-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
@@ -191,12 +199,14 @@
 
 /* ── 阶段业绩：涨幅着色 ── */
 .fd-stage-pos { color: var(--pink); font-weight: 500; }
-.fd-stage-neg { color: #2a8e6c; font-weight: 500; }
+.fd-stage-neg { color: var(--success); font-weight: 500; }
 
 /* ── 净值图表 ── */
 .fd-nav-chart {
   width: 100%;
   height: 360px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .fd-nav-hint {
@@ -242,7 +252,7 @@
 .fd-peer-link:hover { text-decoration: underline; }
 
 /* ── 原始数据 ── */
-.fd-raw-actions { display: flex; gap: 0.5rem; }
+.fd-raw-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 
 .fd-raw-body {
   max-height: 480px;

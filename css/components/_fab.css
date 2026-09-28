@@ -79,6 +79,12 @@
   display: none !important;
 }
 
+@media (max-width: 768px) {
+  .cached-funds-compare-fab { bottom: calc(76px + env(safe-area-inset-bottom)); max-width: calc(100vw - 32px); flex-wrap: wrap; justify-content: flex-end; }
+  .fund-detail-floating-actions { max-width: calc(100vw - 32px); flex-wrap: wrap; justify-content: flex-end; }
+  .page-list .cf-main { padding-bottom: 150px; }
+}
+
 .cached-funds-compare-btn {
   padding: 12px 22px;
   font-size: 13px;

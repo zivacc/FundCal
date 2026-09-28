@@ -14,9 +14,12 @@ import { fetchSearchIndexFromAPI, fetchFundRawFromAPI, fetchStatsDetailFromAPI }
 import { fetchNavCompareCached, periodToRange, pickInterval } from '../../data/nav-api.js';
 import { createMorningstarHistory } from './morningstar.js';
 import { formatRate } from '../../utils/format.js';
+import { getChartTheme } from '../../core/theme.js';
+import { navAppearance } from './nav-appearance.js';
 
 let morningstarHistory;
 let fundLoadVersion = 0;
+let navLoadVersion = 0;
 
 const els = {};
 const state = {
@@ -253,6 +256,7 @@ function disposeChart() {
 }
 
 async function renderNavChart(code) {
+  const version = ++navLoadVersion;
   const wrap = $('fd-nav-chart');
   const hint = $('fd-nav-hint');
   if (!wrap) return;
@@ -267,9 +271,11 @@ async function renderNavChart(code) {
   try {
     data = await fetchNavCompareCached({ codes: [code], start, end, interval });
   } catch (err) {
+    if (version !== navLoadVersion) return;
     hint.textContent = `净值加载失败: ${err.message || err}`;
     return;
   }
+  if (version !== navLoadVersion || code !== state.currentCode) return;
   const s = data && data.series && data.series[0];
   if (!s || !s.dates || !s.dates.length) {
     disposeChart();
@@ -297,6 +303,7 @@ async function renderNavChart(code) {
       { name: '复权净值', type: 'line', data: adjNavs, showSymbol: false, smooth: false, lineStyle: { width: 1.5, type: 'dashed' } },
     ],
   });
+  state.chart.setOption(navAppearance(getChartTheme(), document.documentElement.dataset.theme === 'dark'));
   hint.textContent = `共 ${s.dates.length} 个交易日 · ${s.dates[0]} → ${s.dates[s.dates.length - 1]}`;
 }
 
@@ -418,6 +425,8 @@ function setupRawActions() {
 
 async function loadFund(code) {
   const version = ++fundLoadVersion;
+  ++navLoadVersion;
+  disposeChart();
   morningstarHistory.load(code);
   if (!code) {
     $('fd-empty').hidden = false;
@@ -491,6 +500,15 @@ export function pageInit() {
   setupSearch();
   setupNavPeriodSwitch();
   setupRawActions();
+  const resizeNav = () => {
+    const wrap = $('fd-nav-chart');
+    if (state.chart && wrap?.clientWidth && wrap.clientHeight) state.chart.resize();
+  };
+  new ResizeObserver(resizeNav).observe($('fd-nav-chart'));
+  window.addEventListener('fundcal-route-ready', resizeNav);
+  window.addEventListener('fundcal-theme-change', () => {
+    state.chart?.setOption(navAppearance(getChartTheme(), document.documentElement.dataset.theme === 'dark'));
+  });
   window.addEventListener('hashchange', onHashChange);
   const code = parseHashCode();
   loadFund(code);

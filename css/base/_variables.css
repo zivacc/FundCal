@@ -30,9 +30,9 @@
   --ink: #1a1918;
   --text-secondary: #54514b;    /* 次文字 */
   --ink-2: #54514b;
-  --text-tertiary: #8a867d;     /* 三级文字 */
-  --ink-3: #8a867d;
-  --text-muted: #8a867d;
+  --text-tertiary: #716d64;     /* 辅助文字也保持可读对比度 */
+  --ink-3: #716d64;
+  --text-muted: #716d64;
   --text-inverse: #fbfaf7;
 
   /* ── 主色调：暖陶土 ── */
@@ -127,7 +127,7 @@
 
   /* ── 图表 ── */
   --chart-grid: #ebe8e1;
-  --chart-axis: #8a867d;
+  --chart-axis: #716d64;
   --chart-cross-fill: #fbfaf7;
   --chart-cross-stroke: #1a1918;
 
@@ -162,9 +162,9 @@
   --ink: #f2efe6;
   --text-secondary: #a8a398;
   --ink-2: #a8a398;
-  --text-tertiary: #6e6a5f;
-  --ink-3: #6e6a5f;
-  --text-muted: #6e6a5f;
+  --text-tertiary: #a09b8e;
+  --ink-3: #a09b8e;
+  --text-muted: #a09b8e;
   --text-inverse: #18170f;
 
   --accent: #e8a373;
@@ -210,7 +210,7 @@
   --shadow-glow-strong: 0 0 0 5px rgba(232, 163, 115, 0.26);
 
   --chart-grid: #2e2c22;
-  --chart-axis: #6e6a5f;
+  --chart-axis: #a09b8e;
   --chart-cross-fill: #18170f;
   --chart-cross-stroke: #f2efe6;
 
