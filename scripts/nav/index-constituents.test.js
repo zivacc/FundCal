@@ -18,6 +18,14 @@ test('complete split tables accept identical overlap and preserve raw percentage
   const r=fixture();r.data.push(structuredClone(r.data[2]));
   const s=normalize(r);assert.equal(s.rows.length,2);assert.equal(s.weightSum,100);assert.equal(s.rows[0].weight_pct,60);
 });
+test('provider count named 成分个数 is reusable without another Wind request',()=>{
+  const r=fixture();r.data[0].columns[0].name='2026年9月28日沪深300指数的成分个数';
+  assert.equal(normalize(r).expectedCount,2);
+  r.data[0].rows[0][0]=3;
+  assert.throws(()=>normalize(r),/Incomplete constituents/);
+  r.data[0].rows.push([2]);
+  assert.throws(()=>normalize(r),/Missing or conflicting constituent count/);
+});
 test('incomplete, mixed dates/indexes, missing weights, conflicting duplicates and unknown units fail closed',()=>{
   const changes=[
     r=>r.data[2].rows.pop(),r=>r.data[2].rows[0][3]='2026-09-27',r=>r.data[2].rows[0][3]='2026-09-29',

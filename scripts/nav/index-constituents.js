@@ -48,7 +48,7 @@ export function constituentTotals(response) {
   for (const t of tables) {
     if (t.columns.length !== 1 || t.rows.length !== 1) continue;
     const c = t.columns[0];
-    if (/成[份分].*(数量|总数)|总成[份分]数/.test(c.name)) counts.push(number(t.rows[0][0]));
+    if (/成[份分].*(数量|总数|个数)|总成[份分]数/.test(c.name)) counts.push(number(t.rows[0][0]));
     if (/权重.*(合计|总和)/.test(c.name)) {
       if (c.unit !== '%') throw new Error('Unknown total weight unit');
       sums.push(number(t.rows[0][0]));

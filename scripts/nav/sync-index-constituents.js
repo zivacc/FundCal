@@ -62,7 +62,7 @@ export async function syncConstituents({end,codes=null,resume=false,retryIncompl
         if(!total) {
           // A count-only reply still permits a single targeted rewrite.
           try {
-            const counts=windTables(first.response).filter(t=>t.columns.length===1&&t.rows.length===1&&/成[份分].*(数量|总数)|总成[份分]数/.test(t.columns[0].name)).map(t=>t.rows[0][0]);
+            const counts=windTables(first.response).filter(t=>t.columns.length===1&&t.rows.length===1&&/成[份分].*(数量|总数|个数)|总成[份分]数/.test(t.columns[0].name)).map(t=>t.rows[0][0]);
             if(counts.length===1&&Number.isSafeInteger(counts[0])&&counts[0]>0)total={expectedCount:counts[0]};
           }catch{}
         }
