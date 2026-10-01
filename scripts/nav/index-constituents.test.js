@@ -26,6 +26,16 @@ test('provider count named 成分个数 is reusable without another Wind request
   r.data[0].rows.push([2]);
   assert.throws(()=>normalize(r),/Missing or conflicting constituent count/);
 });
+test('provider 实际总权重 scalar is accepted while conflicting totals and wrong units fail closed',()=>{
+  const r=fixture();r.data[1].columns[0].name='2026年9月28日实际总权重';
+  assert.equal(normalize(r).declaredSum,100);
+  r.data.push({columns:[{name:'指数成份权重合计',unit:'%'}],rows:[[99.999]]});
+  assert.throws(()=>normalize(r),/conflicting total weight/);
+  r.data.pop();r.data[1].columns[0].unit='ratio';
+  assert.throws(()=>normalize(r),/Unknown total weight unit/);
+  r.data[1].columns[0].unit='%';r.data[1].rows.push([100]);
+  assert.throws(()=>normalize(r),/Missing or conflicting total weight/);
+});
 test('incomplete, mixed dates/indexes, missing weights, conflicting duplicates and unknown units fail closed',()=>{
   const changes=[
     r=>r.data[2].rows.pop(),r=>r.data[2].rows[0][3]='2026-09-27',r=>r.data[2].rows[0][3]='2026-09-29',
