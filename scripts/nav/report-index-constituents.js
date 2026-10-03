@@ -8,7 +8,7 @@ export function constituentCoverage(db) {
   const exists=db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='index_constituent_snapshot'").get();
   const snapshots=exists?db.prepare(`SELECT s.*,count(w.constituent_code) stored_count,sum(w.weight_pct) stored_sum_pct
     FROM index_constituent_snapshot s LEFT JOIN index_constituent_weight w ON w.snapshot_id=s.id
-    GROUP BY s.id ORDER BY s.as_of_date DESC,CASE s.source WHEN 'csindex' THEN 0 WHEN 'cnindex' THEN 0 WHEN 'eastmoney' THEN 1 WHEN 'wind' THEN 2 ELSE 3 END,s.index_ts_code`).all():[];
+    GROUP BY s.id ORDER BY s.as_of_date DESC,CASE s.source WHEN 'csindex' THEN 0 WHEN 'cnindex' THEN 0 WHEN 'tushare' THEN 1 WHEN 'eastmoney' THEN 1 WHEN 'wind' THEN 2 ELSE 3 END,s.index_ts_code`).all():[];
   const byCode=new Map();for(const s of snapshots)if(!byCode.has(s.index_ts_code))byCode.set(s.index_ts_code,s);
   const scope=db.prepare(`SELECT b.ts_code,b.name FROM index_basic b
     WHERE EXISTS(SELECT 1 FROM index_daily d WHERE d.ts_code=b.ts_code) OR EXISTS(SELECT 1 FROM index_fund_tracker t WHERE t.index_ts_code=b.ts_code)

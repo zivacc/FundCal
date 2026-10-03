@@ -29,6 +29,32 @@ export function ensureIndexConstituents(db) {
   if (!db.prepare('PRAGMA table_info(index_constituent_snapshot)').all().some(c => c.name === 'validation_basis')) {
     db.exec("ALTER TABLE index_constituent_snapshot ADD COLUMN validation_basis TEXT NOT NULL DEFAULT 'provider_totals' CHECK(validation_basis IN ('provider_totals','official_full_file'))");
   }
+  migrateApiValidationBasis(db);
+}
+
+// SQLite cannot extend a column CHECK in place. Preserve the parent table's
+// schema, rows, indexes and triggers; child rows retain the original parent name.
+function migrateApiValidationBasis(db) {
+  const sql=db.prepare("SELECT sql FROM sqlite_master WHERE name='index_constituent_snapshot'").get().sql;
+  if (sql.includes("'api_full_result'")) return;
+  if (db.inTransaction) throw new Error('Constituent schema migration requires an outer transaction boundary');
+  const check=/CHECK\s*\(\s*validation_basis\s+IN\s*\(\s*'provider_totals'\s*,\s*'official_full_file'\s*\)\s*\)/i;
+  if (!check.test(sql)) throw new Error('Unknown constituent validation schema');
+  const replacement=sql.replace(/^CREATE TABLE\s+(?:"index_constituent_snapshot"|index_constituent_snapshot)/i,'CREATE TABLE index_constituent_snapshot_migration')
+    .replace(check,"CHECK(validation_basis IN ('provider_totals','official_full_file','api_full_result'))");
+  const objects=db.prepare("SELECT sql FROM sqlite_master WHERE tbl_name='index_constituent_snapshot' AND type IN ('index','trigger') AND sql IS NOT NULL").all();
+  const columns=db.prepare('PRAGMA table_info(index_constituent_snapshot)').all().map(c=>`"${c.name.replaceAll('"','""')}"`).join(',');
+  const foreignKeys=db.pragma('foreign_keys',{simple:true});
+  db.pragma('foreign_keys=OFF');
+  try {
+    db.transaction(()=>{
+      db.exec(replacement);
+      db.exec(`INSERT INTO index_constituent_snapshot_migration(${columns}) SELECT ${columns} FROM index_constituent_snapshot`);
+      db.exec('DROP TABLE index_constituent_snapshot; ALTER TABLE index_constituent_snapshot_migration RENAME TO index_constituent_snapshot');
+      for (const object of objects) db.exec(object.sql);
+      if (db.pragma('foreign_key_check(index_constituent_weight)').length) throw new Error('Constituent migration foreign key failure');
+    }).immediate();
+  } finally { db.pragma(`foreign_keys=${foreignKeys?'ON':'OFF'}`); }
 }
 
 export function validDate(value) {
@@ -102,7 +128,12 @@ export function insertConstituentSnapshot(db, snapshot, { receipt, receiptPath, 
   // Revalidate the normalized boundary too, so callers cannot bypass completeness checks.
   const { indexCode, asOfDate, expectedCount, declaredSum, rows } = snapshot;
   const basis = snapshot.validationBasis || 'provider_totals';
-  if (!['wind','csindex','cnindex'].includes(source) || basis !== (source === 'wind' ? 'provider_totals' : 'official_full_file')) throw new Error('Invalid source or validation basis');
+  const bases={wind:'provider_totals',csindex:'official_full_file',cnindex:'official_full_file',tushare:'api_full_result'};
+  if (!Object.hasOwn(bases,source) || basis !== bases[source]) throw new Error('Invalid source or validation basis');
+  if (source==='tushare') {
+    const proof=snapshot.completeness;
+    if (proof?.method!=='index_weight_pagination' || proof.expectedCount!==expectedCount || proof.terminalOffset!==expectedCount || proof.terminalLimit!==1 || proof.terminalRows!==0) throw new Error('Missing API completeness evidence');
+  }
   if (!validDate(asOfDate) || !Number.isSafeInteger(expectedCount) || expectedCount < 1 || rows.length !== expectedCount || new Set(rows.map(r=>r.code)).size !== expectedCount) throw new Error('Invalid snapshot');
   if (!receiptPath || !receipt || !Number.isFinite(Date.parse(fetchedAt))) throw new Error('Missing provenance');
   if (rows.some(r=>typeof r.weight_pct !== 'number' || !Number.isFinite(r.weight_pct) || r.weight_pct < 0 || r.weight_pct > 100 || !r.code || !r.name)) throw new Error('Invalid weight row');
