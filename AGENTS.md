@@ -142,7 +142,7 @@ DB → build-allfund-from-db 等构建脚本 → data/allfund/* 公共分片
 
 `getDb()` 会初始化 schema，并调用 `ensureTushareShadowColumns()`、`ensureNavSourceColumn()`。新增列应补幂等迁移并接入初始化；**当前 `share_class` 仍由 `scripts/nav/parse-share-class.js` 添加/填充**，不能把正式库已有列当作空库也一定具备。空库构建问题尚未全部解决。
 
-指数成分权重由 `scripts/nav/index-constituents.js` 幂等建表/迁移，默认使用中证/国证官方完整文件，Wind `analytics_data.get_financial_data` 为独有指数和缺口补充（单独命令，不自动耗用额度）。只写入日期、代码身份、全部权重及合计通过校验的完整快照，缺权重不能按等权或ETF持仓推算。`validation_basis` 区分 Wind 提供方汇总校验与官方完整文件，详见 [成分数据说明](docs/index-constituents.md)。不同收益版本不自动复用；同日期同来源已有快照冲突时停止审核，跨来源独立保存。最新日期优先，同日期官方优先。私有回执、备份、锁和进度继续在 `data/wind/constituents/`；`--resume` 续跑，Wind 的 `--retry-incomplete` 重验不完整结果，仍复用相同请求缓存。覆盖率以 `report:index-constituents` 为准，尚未加入日更或前端/API。
+指数成分权重由 `scripts/nav/index-constituents.js` 幂等建表/迁移，默认使用中证/国证官方完整文件，Wind `analytics_data.get_financial_data` 为独有指数和缺口补充（单独命令，不自动耗用额度）。Tushare月度权重已通过 `scripts/nav/tushare-index-constituents.js` 完成本批适配及导入，尚未新增常规同步CLI。只写入日期、代码身份、全部权重及合计通过校验的完整快照，缺权重不能按等权或ETF持仓推算。`validation_basis` 区分 Wind `provider_totals`、官方 `official_full_file` 和 Tushare `api_full_result`；后者以完整响应及分页终点验证，计数/合计来自响应本身，不冒充独立汇总，已知名单冲突拒绝。扩展此列CHECK的迁移须在外层事务之外调用，会在内部事务重建快照父表并保留子表、索引和触发器。详见 [成分数据说明](docs/index-constituents.md)。不同收益版本不自动复用；同日期同来源已有快照冲突时停止审核，跨来源独立保存。最新日期优先，同日期官方、Tushare、Wind依次优先。私有回执、备份、锁和进度继续在 `data/wind/constituents/`；`--resume` 续跑，Wind 的 `--retry-incomplete` 重验不完整结果，仍复用相同请求缓存。覆盖率以 `report:index-constituents` 为准，尚未加入日更或前端/API。
 
 晨星导入通过系统 `unzip` 读取 XLSX，原始文件在被忽略的 `data/morningstar_full_fund_fee/`。晨星表不写入 fund_basic/fund_meta，也不参与字段裁决；`*_pct` 使用百分数单位，现行费用计算中的 rate 使用小数比例，展示/换算时勿混用。
 

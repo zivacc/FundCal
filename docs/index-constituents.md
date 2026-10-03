@@ -16,6 +16,8 @@
 
 [2026-10-03 Tushare代理实测](audits/2026-10-03-tushare-constituents-assessment.md)：逐一测试523个缺口的2026年8月权重，407个返回数据；扣除1个名单差异及2个证券标识待核验项，得到404个候选、50,696条权重。HTTP/MCP均实取成功，发现代码大小写影响返回结果；候选尚需完整性校验及独立来源适配，本轮未导入，正式覆盖率不变。
 
+[2026-10-03 Tushare正式导入及Wind续补](audits/2026-10-03-tushare-import-wind-retry.md)：上述404个候选补齐名称、验证分页终点后全部入库，新增50,696条权重，覆盖733/852、缺口119。Wind另发5次请求，未取得可入库快照，富时中国A50（830009.XI）120秒超时后停止，未确认积分耗尽。
+
 2026-09-29补充：[Parallels掘金SDK实测](gm-index-constituents.md)已证明部分指数可取完整日频权重；同时发现10份既有Wind快照的日期标签与实际权重期可能不一致，不能将其认作已核实的9月28日权重。详见该报告的日期疑点，当前覆盖报告按原标签排序仍有这一限制。没有核实到任何公开服务承诺匿名、不限频率、永久稳定；采用串行、缓存与断点续跑，避免依赖这种承诺。
 
 ## 来源核验
@@ -29,6 +31,7 @@
 | [同花顺 SuperMind](https://quant.10jqka.com.cn/view/help/4?from=ifind) | `get_index_weight`；部分等权指数不返回权重 | 平台接口，未实测账户授权；另一个产品[iFinD的FAQ](https://quantapi.51ifind.com/gwstatic/static/ds_web/quantapi-web/help-center/faq.html)有账户/QPS限制，不可混为匿名公开接口 |
 | [通达信量化平台](https://help.tdx.com.cn/quant/docs/markdown/mindoc-1hho7blr2j340/mindoc-1hhoaleti08f0/mindoc-1hhob9ldbiqak.html) | 文档提供 `get_index_weight` | 未实测；不能推断普通行情协议或[Mac后台 SDK](https://help.tdx.com.cn/quant/docs/markdown/mindoc-1hjbgqpdhv114.html)同样提供这一能力，后台 SDK 还涉及 Key |
 | [Wind](wind-data-source.md) | 已接入完整成分及汇总验证 | 备用/独有指数单独调用；本轮因额度不足停止，原数据保留 |
+| [Tushare index_weight](https://tushare.pro/document/2?doc_id=96) | 月度权重；用户指定代理已实测并导入404个缺口 | 以独立 `tushare` 来源存储；API完整结果与分页终点校验，保留真实日期与身份资料；本次未改为常规日更 |
 
 东财公开接口（仅研究核验，未作为入库适配器）：
 
@@ -66,10 +69,11 @@ npm run report:index-constituents
 
 每个指数/日期/来源独立事务、幂等导入；同源同日数据变化报冲突，不静默覆写。原 Wind 最新快照与较旧官方月末快照并存；覆盖报告先选最新真实日期，同日再选官方，旧官方数据不会压过新 Wind 数据。该选择目前用于报告，尚无成分 API/页面。用户已在Codex本会话设置北京时间每日16:00的缺口补数任务，2026-10-01首次续跑；每次补到Wind积分不足，全部完整权重补齐后停用。这是固定范围的断点补数，不是重抓已有快照的日更，也未安装仓库中的旧Linux调度配置。
 
-`validation_basis` 是幂等新增列，已有快照默认为 `provider_totals`：
+`validation_basis` 是幂等迁移列，已有快照默认为 `provider_totals`；扩展API校验类型时事务重建快照父表，保留行、索引、触发器和子表引用：
 
 - `provider_totals`：Wind 返回独立成分数量/权重总数，与完整明细核对。
 - `official_full_file`：完整权重下载文件是全体样本，验证文件内全部行、无重复、每行权重有效、日期一致且合计距100%不超过0.1个百分点。中证逐行核验指数代码及交易所，国证以官方响应文件名核验所请求指数，仅接受明确的股票代码范围。`expected_count` 为文件行数；兼容旧schema的 `declared_weight_sum_pct` 保存文件计算总和，**此模式不是上游另行声明的汇总**。
+- `api_full_result`：Tushare完整月度API结果，按准确代码、实际日期、证券身份、名称、权重和去重核验，再用同日 `offset=明细行数, limit=1` 空页确认接口结果已耗尽。代码仅转换大小写，不借用其他版本。计数与合计来自完整响应，不声称是独立提供方汇总；已知外部名单冲突仍拒绝。名称资料与权重分别保存来源，不能借名称资料改变权重日期。截止2026-10-03只完成本批入库及复用适配，尚未新增常规同步CLI。
 
 不从不完整名单、前十大权重、ETF持仓推算，不将舍入后的权重归一化。非股票国证文件/未知交易所或证券代码暂拒绝；国证文件省略交易所时，旧4/8开头证券不能凭前缀认作北交所股票（也可能是新三板）。中证有明确交易所的港股数字代码补足5位，已有后缀须与交易所一致。不同收益版本按精确代码取数，不借用关联价格指数成分。某个指数有完整快照不代表所有历史日期都有完整权重。
 
