@@ -193,7 +193,7 @@ Tushare API ──→ sync-fund-basic / sync-fund-nav ──┐
                                        data/allfund/* 静态分片
                                                    │
                                                    v
-                                       前端 / API / Pages / Workers
+                                       本机静态服务 → Tunnel → 前端
 ```
 
 ### 字段裁决矩阵（摘要）
