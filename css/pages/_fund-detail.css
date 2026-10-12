@@ -250,6 +250,9 @@
 }
 
 .fd-peer-link:hover { text-decoration: underline; }
+.fd-index-links { display: flex; flex-wrap: wrap; gap: 0.3rem 0.6rem; margin-top: 0.25rem; font-size: 0.82rem; }
+.fd-index-links a { overflow-wrap: anywhere; }
+.fd-peer-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--radius-sm); }
 
 /* ── 原始数据 ── */
 .fd-raw-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }

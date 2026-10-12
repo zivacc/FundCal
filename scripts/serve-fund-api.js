@@ -3,6 +3,7 @@
  * 路由分派：
  *   /api/fund/*  → fund-api.js (SQLite 后端)
  *   /api/nav/*   → nav-api.js  (SQLite NAV)
+ *   /api/index/* → index-detail-api.js (read-only index detail)
  *   /api/fund/all-codes  → 远程拉天天基金完整代码列表（保留旧行为）
  *
  * 使用：node scripts/serve-fund-api.js [端口，默认 3457]
@@ -15,6 +16,7 @@ import { fileURLToPath } from 'node:url';
 import { parseQuery, InvalidQueryError } from './http-query.js';
 import { createNavRouter } from './nav/nav-api.js';
 import { createFundRouter, warmFundSearchIndex } from './fund-api.js';
+import { createIndexDetailRouter } from './nav/index-detail-api.js';
 
 const FUND_LIST_URL = 'http://fund.eastmoney.com/js/fundcode_search.js';
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
@@ -66,6 +68,7 @@ function serveAllCodes(res) {
 export function createApiServer({
   navRouter = createNavRouter(),
   fundRouter = createFundRouter(),
+  indexRouter = createIndexDetailRouter(),
   onError = error => console.error('[API]', error),
 } = {}) {
   return http.createServer(async (req, res) => {
@@ -98,6 +101,9 @@ export function createApiServer({
       if (/^\/api\/fund(?:\/|$)/.test(urlPath)) {
         if (await fundRouter(req, res)) return;
       }
+      if (/^\/api\/index(?:\/|$)/.test(urlPath)) {
+        if (await indexRouter(req, res)) return;
+      }
       res.setHeader('Content-Type', 'application/json; charset=utf-8');
       res.writeHead(404);
       res.end(JSON.stringify({ error: 'Not Found' }));
@@ -119,6 +125,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   createApiServer().listen(port, '127.0.0.1', () => {
     console.log(`Fund API: http://localhost:${port}/api/fund/*`);
     console.log(`NAV  API: http://localhost:${port}/api/nav/*`);
+    console.log(`Index API: http://localhost:${port}/api/index/*`);
     setImmediate(() => {
       try { warmFundSearchIndex(); }
       catch (error) { console.error('[search-index warmup]', error); }

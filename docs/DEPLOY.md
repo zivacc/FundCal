@@ -46,7 +46,7 @@ node --test scripts/list-query.test.js
 
 Tunnel 的其他主机规则独立保留。DNS、边缘认证、缓存和 ingress 由 Cloudflare 管理；仓库内的本地测试不能代替公网核验。
 
-前端 `getFeeApiBase()` 会将 `localhost` / `127.0.0.1` 连接到 `http://localhost:3457/api/fund`，普通域名使用同源 `/api/fund`；NAV 请求使用 `/api/nav/*`。
+前端 `getFeeApiBase()` 会将 `localhost` / `127.0.0.1` 连接到 `http://localhost:3457/api/fund`，普通域名使用同源 `/api/fund`；NAV 请求使用 `/api/nav/*`，指数详情使用 `/api/index/*`，均由现有 `/api/*` Tunnel 规则转发。
 
 Tunnel token 保存在项目目录之外的 `/Users/ziva/.config/FundCal/fundcal-tunnel.token`。目录权限为 `0700`，文件为 `0600`；运行时通过 `--token-file` 读取；token 内容不写入 Git、前端、plist 或命令行参数。cloudflared 二进制位于 `/Users/ziva/.local/bin/cloudflared`。
 

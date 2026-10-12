@@ -1,4 +1,4 @@
-import { registerFundSource, registerFundReceiver, notifyFundSelection, fundDragAttrs, fundDragHandle } from '../../core/fund-transfer.js';
+import { registerFundSource, registerFundReceiver, notifyFundSelection, fundDragAttrs, fundDragHandle, escapeFundAttribute } from '../../core/fund-transfer.js';
 import { planNavBasketTransfer } from './basket-transfer.js';
 import { seriesColors } from '../../core/chart-palette.js';
 /**
@@ -23,6 +23,7 @@ import { fetchSearchIndexFromAPI } from '../../data/fund-api.js';
 import { BENCHMARK_CANDIDATES } from '../../core/benchmarks.js';
 import { detectKind, KIND } from '../../core/code-kind.js';
 import { indexReturnLabel } from '../../domain/index-return.js';
+import { indexDetailHref } from '../../utils/index-links.js';
 
 const MAX_SELECTED = 10;
 import { loadTradeCalendar, isTradingDay } from '../../data/trade-calendar.js';
@@ -385,9 +386,13 @@ function renderChartLegend() {
   el.innerHTML = state.selected.map((f, i) => {
     const hidden = state.hiddenCodes.has(f.code);
     const cls = `nav-chart-legend-item${hidden ? ' is-hidden' : ''}${f.isBenchmark ? ' is-benchmark' : ''}`;
-    const codeText = f.isBenchmark ? '基准' : escapeHtml(f.code);
+    const indexHref = indexDetailHref(f.code);
+    const codeText = f.isBenchmark && indexHref
+      ? `<a class="nav-index-detail-link" href="${indexHref}" title="查看基准 ${escapeHtml(f.code)} 的指数详情">基准 ↗</a>`
+      : f.isBenchmark ? '基准' : escapeHtml(f.code);
     const nameSlot = f.isBenchmark
       ? renderBenchmarkSelect(f.code)
+      : indexHref ? `<a class="nav-chart-legend-name nav-index-detail-link" href="${indexHref}" title="查看 ${escapeFundAttribute(f.name)}（${escapeFundAttribute(f.code)}）的指数详情">${escapeHtml(f.name)} ↗</a>`
       : `<span class="nav-chart-legend-name" title="${escapeHtml(f.name)}">${escapeHtml(f.name)}</span>`;
     return `
       <span class="${cls}" style="--legend-color:${f.color}"
@@ -466,7 +471,7 @@ function onLegendToggleClick(e) {
   if (!target) return;
 
   // 基准下拉的点击不应触发 hide/show 切换 (用户只是想展开 select)
-  if (target.closest('[data-typeahead-skip], .nav-chart-legend-bm-select')) return;
+  if (target.closest('[data-typeahead-skip], .nav-chart-legend-bm-select, .nav-index-detail-link')) return;
 
   // × 删除按钮：优先级高于 item 切换，命中即走 removeFund
   const removeBtn = target.closest('.nav-chart-legend-remove');
@@ -1395,9 +1400,13 @@ function renderStatsTable(stats) {
     const dotColor = sel?.color || '#999';
     const totalCls = s.totalReturn != null ? (s.totalReturn >= 0 ? 'nav-stats-pos' : 'nav-stats-neg') : '';
     const cagrCls = s.cagr != null ? (s.cagr >= 0 ? 'nav-stats-pos' : 'nav-stats-neg') : '';
+    const indexHref = indexDetailHref(s.code);
+    const name = indexHref
+      ? `<a class="nav-index-detail-link" href="${indexHref}" title="查看指数详情">${escapeHtml(s.name || s.code)} ↗</a>`
+      : escapeHtml(s.name || '');
     return `
       <tr ${fundDragAttrs(sel || s)}>
-        <td>${fundDragAttrs(sel || s) ? fundDragHandle() : ''}<span class="nav-stats-dot" style="background:${dotColor}"></span>${escapeHtml(s.name || '')}</td>
+        <td>${fundDragAttrs(sel || s) ? fundDragHandle() : ''}<span class="nav-stats-dot" style="background:${dotColor}"></span>${name}</td>
         <td class="mono">${escapeHtml(s.code)}</td>
         <td class="mono">${fmt(s.startNav, '')}</td>
         <td class="mono">${fmt(s.endNav, '')}</td>

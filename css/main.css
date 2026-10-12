@@ -32,6 +32,7 @@
 @import 'pages/_nav-chart.css';
 @import 'pages/_nav-fullscreen.css';
 @import 'pages/_fund-detail.css';
+@import 'pages/_index-detail.css';
 
 /* Utilities - 工具类 */
 @import 'utilities/_animations.css';

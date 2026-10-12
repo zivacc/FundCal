@@ -16,6 +16,7 @@ import { createMorningstarHistory } from './morningstar.js';
 import { formatRate } from '../../utils/format.js';
 import { getChartTheme } from '../../core/theme.js';
 import { navAppearance } from './nav-appearance.js';
+import { indexDetailHref } from '../../utils/index-links.js';
 
 let morningstarHistory;
 let fundLoadVersion = 0;
@@ -141,6 +142,12 @@ function renderOverview(d) {
   if (!el) return;
   const scale = d.netAssetScale;
   const scaleText = scale ? (scale.text || scale.amountText || '') : '';
+  const indexLinks = (d.trackingIndexes || []).map(ref => {
+    const href = indexDetailHref(ref.code);
+    if (!href) return '';
+    const hint = ref.matchType === 'fuzzy' ? '数据库名称近似匹配，供参考；查看指数详情' : '查看数据库关联的指数详情';
+    return `<a class="fd-peer-link" href="${href}" title="${hint}">${escapeHtml(ref.name || ref.code)} · ${escapeHtml(ref.code)} ↗</a>`;
+  }).join('');
   el.innerHTML = `
     <div class="fd-kv-grid">
       ${kv('基金代码', escapeHtml(d.code || state.currentCode))}
@@ -148,7 +155,7 @@ function renderOverview(d) {
       ${kv('基金公司', escapeHtml(fmtText(d.fundManager)))}
       ${kv('成立日期', escapeHtml(fmtText(d.establishmentDate)))}
       ${kv('资产规模', escapeHtml(scaleText || '—') + (scale && scale.asOfDate ? ` <span style="color:var(--text-tertiary);font-size:0.78rem">(${escapeHtml(scale.asOfDate)})</span>` : ''))}
-      ${kv('跟踪标的', escapeHtml(fmtText(d.trackingTarget)))}
+      ${kv('跟踪标的', escapeHtml(fmtText(d.trackingTarget)) + (indexLinks ? `<span class="fd-index-links">${indexLinks}</span>` : ''))}
       ${kv('业绩基准', escapeHtml(fmtText(d.performanceBenchmark)))}
       ${kv('更新时间', escapeHtml(fmtText(d.updatedAt)))}
     </div>

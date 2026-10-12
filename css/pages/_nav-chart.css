@@ -276,6 +276,10 @@
   color: var(--text-secondary);
 }
 
+.nav-index-detail-link { color: var(--accent); text-decoration: none; }
+.nav-index-detail-link:hover { text-decoration: underline; }
+.nav-index-detail-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--radius-sm); }
+
 /* 窄屏把名称与数值分两行，避免工具栏挤占后基金名逐字竖排。 */
 @media (max-width: 640px) {
   .nav-chart-header { flex-wrap: wrap; }

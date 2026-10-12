@@ -29,8 +29,8 @@ function success(req, res) {
 test('malformed queries return 400 before any router or database work; server stays usable', async t => {
   let routed = 0;
   const route = (req, res) => { routed++; return success(req, res); };
-  const request = await startServer(t, { fundRouter: route, navRouter: route });
-  for (const path of ['/api/fund/list?q=%', '/api/nav/compare?codes=%E4%B8']) {
+  const request = await startServer(t, { fundRouter: route, navRouter: route, indexRouter: route });
+  for (const path of ['/api/fund/list?q=%', '/api/nav/compare?codes=%E4%B8', '/api/index/000300.SH?snapshot=%']) {
     const response = await request(path);
     assert.equal(response.status, 400);
     assert.equal(response.headers['cache-control'], 'no-store');
@@ -43,7 +43,7 @@ test('malformed queries return 400 before any router or database work; server st
   assert.equal(routed, 1);
 });
 
-for (const kind of ['fund', 'nav']) {
+for (const kind of ['fund', 'nav', 'index']) {
   test(`${kind} router async failure returns 500 and the next request succeeds`, async t => {
     const errors = [];
     let fail = true;
@@ -65,11 +65,11 @@ for (const kind of ['fund', 'nav']) {
   });
 }
 
-test('lookalike prefixes do not enter fund or NAV routers', async t => {
+test('lookalike prefixes do not enter fund, NAV or index routers', async t => {
   let routed = 0;
   const route = () => { routed++; };
-  const request = await startServer(t, { fundRouter: route, navRouter: route });
-  for (const path of ['/api/fundamental', '/api/navigation', '/unknown']) {
+  const request = await startServer(t, { fundRouter: route, navRouter: route, indexRouter: route });
+  for (const path of ['/api/fundamental', '/api/navigation', '/api/indexes/000300.SH', '/unknown']) {
     assert.equal((await request(path)).status, 404);
   }
   assert.equal(routed, 0);

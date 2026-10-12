@@ -12,6 +12,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { pinyin } from 'pinyin-pro';
 import { getDb, closeDb } from './nav/db.js';
+import { loadTrackingIndexMap, groupTrackingIndexes } from './index-tracking-links.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ALLFUND_DIR = path.join(__dirname, '..', 'data', 'allfund');
@@ -29,7 +30,7 @@ function getInitials(text) {
 
 function buildStats(db) {
   const rows = db.prepare(`
-    SELECT m.code, m.tracking_target,
+    SELECT m.ts_code, m.code, m.tracking_target,
       COALESCE(b.management, m.management_crawler) AS manager,
       COALESCE(b.benchmark, m.benchmark_crawler) AS benchmark,
       COALESCE(b.fund_type, m.fund_type_crawler) AS fund_type
@@ -38,6 +39,7 @@ function buildStats(db) {
   `).all();
 
   const trackingMap = new Map();
+  const trackingIndexes = groupTrackingIndexes(rows, loadTrackingIndexMap(db));
   const managerMap = new Map();
   const benchmarkMap = new Map();
   const fundTypeMap = new Map();
@@ -74,6 +76,7 @@ function buildStats(db) {
   const tracking = toSortedArray(trackingMap).map(item => ({
     ...item,
     initials: getInitials(item.label),
+    indexes: trackingIndexes.get(item.label) || [],
   }));
 
   return {

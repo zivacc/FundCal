@@ -6,6 +6,7 @@ import { getChartTheme } from '../../core/theme.js';
 import { renderFundDetailTable } from '../../components/fund-detail-table.js';
 import { createTypeahead } from '../../components/typeahead.js';
 import { filterSearchIndex } from '../../utils/search.js';
+import { indexDetailHref } from '../../utils/index-links.js';
 
 const MAX_DROPDOWN_ITEMS = 30;
 const MAX_FUNDS_LOAD = 220;
@@ -204,8 +205,12 @@ function renderChips() {
   }
   els.chips.innerHTML = state.selectedIndexes.map((item, idx) => `
     <span class="index-page-chip">
-      ${escapeHtml(item.label || '')}
+      <span class="index-page-chip-label">${escapeHtml(item.label || '')}</span>
       <em>${item.count || 0}</em>
+      ${(item.indexes || []).map(ref => {
+        const href = indexDetailHref(ref.code);
+        return href ? `<a class="index-page-detail-link" href="${href}" title="查看 ${escapeFundAttribute(ref.name || ref.code)}（${escapeFundAttribute(ref.code)}）的指数详情">${item.indexes.length === 1 ? '详情' : escapeHtml(ref.code)} ↗</a>` : '';
+      }).join('')}
       <button type="button" class="index-page-chip-remove" data-idx="${idx}" aria-label="移除">&times;</button>
     </span>
   `).join('');

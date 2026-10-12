@@ -12,6 +12,16 @@ test('drag metadata escapes names and rejects nonfund sources',()=>{
  assert.equal(fundDragAttrs({code:'000300.SH'}),'');
 });
 
+test('hyphenated index detail route exposes only its selected tracking funds', t => {
+  const oldWindow = globalThis.window;
+  t.after(() => { if (oldWindow === undefined) delete globalThis.window; else globalThis.window = oldWindow; });
+  globalThis.window = { location: { hash: '#/index-detail/399300.SZ' }, dispatchEvent() {} };
+  registerFundSource('test-index-detail', 'index-detail', () => [{ code: '110020', name: '场外跟踪基金' }], 10);
+  assert.deepEqual(getPageFundSelection(true), [{ code: '110020', name: '场外跟踪基金' }]);
+  window.location.hash = '#/index';
+  assert.deepEqual(getPageFundSelection(true), []);
+});
+
 test('explicit column selection wins; a page fund drag stays single without explicit selection', t => {
   const oldWindow = globalThis.window;
   t.after(() => { if (oldWindow === undefined) delete globalThis.window; else globalThis.window = oldWindow; });

@@ -3,7 +3,7 @@ export const escapeFundAttribute = value => String(value ?? '').replace(/[&<>"']
 
 const sources = new Map();
 const receivers = new Map();
-export const currentFundRoute = () => (window.location.hash.match(/^#\/(\w+)/)?.[1] || 'calc');
+export const currentFundRoute = () => (window.location.hash.match(/^#\/([\w-]+)/)?.[1] || 'calc');
 export const notifyFundSelection = () => window.dispatchEvent(new Event('fundcal-selection-change'));
 export function registerFundSource(key, route, getSelection, priority = 0, explicitSelection = true) {
   sources.set(key, { route, getSelection, priority, explicitSelection }); notifyFundSelection();

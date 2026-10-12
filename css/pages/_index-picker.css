@@ -310,6 +310,7 @@
 
 .index-page-chip {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.3rem;
   border: 1px solid var(--rule-strong);
@@ -319,7 +320,19 @@
   color: var(--text-primary);
   background: var(--bg-sunk);
   transition: border-color var(--transition-fast);
+  max-width: 100%;
 }
+
+.index-page-chip-label { min-width: 0; overflow-wrap: anywhere; }
+.index-page-detail-link {
+  color: var(--accent);
+  white-space: nowrap;
+  text-decoration: none;
+  padding: 0.15rem 0.25rem;
+  border-radius: var(--radius-sm);
+}
+.index-page-detail-link:hover { background: var(--accent-subtle); text-decoration: underline; }
+.index-page-detail-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .index-page-chip:hover {
   border-color: var(--accent);
@@ -343,6 +356,7 @@
   font-size: 0.85rem;
   cursor: pointer;
   transition: background var(--transition-fast), color var(--transition-fast);
+  flex-shrink: 0;
 }
 
 .index-page-chip-remove:hover {

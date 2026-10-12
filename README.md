@@ -19,6 +19,7 @@
 | **按代码拉取费率** | 输入 6 位基金代码，自动从数据中加载该基金的完整费率信息                                             |
 | **搜索联想**    | 支持按基金代码、名称、拼音首字母搜索，实时下拉匹配                                                 |
 | **按指数选基金**  | 点击「指数」按钮，按跟踪标的批量浏览和添加基金                                                   |
+| **指数详情** | `#/index-detail/<完整代码>`：指数资料、历史走势、场外跟踪基金和历史完整成分权重；保留来源与快照日期 |
 | **批量导入/导出** | 支持从文本、CSV、Excel、`.ziva` 快照文件导入基金，也可导出当前状态                                 |
 | **缓存基金列表**  | 浏览全部已缓存基金，支持搜索、筛选、排序、分页                                                   |
 | **统计分析**    | 按跟踪标的、基金公司、业绩基准三个维度聚合统计，支持搜索和展开详情                                         |
@@ -39,7 +40,7 @@
 
 浏览器访问 `http://localhost:3456`。一次启动:
 - 静态文件服务 (3456) — 浏览器访问入口
-- API 服务 (3457) — `/api/fund/*` + `/api/nav/*` 同一进程
+- API 服务 (3457) — `/api/fund/*` + `/api/nav/*` + `/api/index/*` 同一进程
 
 ---
 
@@ -93,6 +94,7 @@ FundCal/
 │   │   ├── calc/                       #/calc 费率计算 (卡片 / 图表 / 交叉点 / 导入)
 │   │   ├── list/                       #/list 缓存基金列表
 │   │   ├── index-picker/               #/index 按指数选基金
+│   │   ├── index-detail/               #/index-detail/<code> 指数资料 / 跟踪基金 / 权重
 │   │   ├── nav/                        #/nav 多基金/指数 NAV 比较 + 指标
 │   │   └── stats/                      #/stats 三维统计聚合
 │   ├── components/                     可复用 UI (typeahead / 详情表 / 阶段收益图)
@@ -241,7 +243,7 @@ npm run replay-failed                          # 实际重跑近 7 天失败
 
 ## API 接口
 
-本地 API 服务 (`node scripts/serve-fund-api.js`, 默认端口 3457) 同时承载 `/api/fund/*` 与 `/api/nav/*` 两组路由。生产由 Nginx 反代 + 微缓存 + Cloudflare 边缘 ETag 304 短路。
+本地 API 服务 (`node scripts/serve-fund-api.js`, 默认端口 3457) 承载 `/api/fund/*`、`/api/nav/*` 与 `/api/index/*`。当前部署通过 Cloudflare Tunnel 转发，见 [部署说明](docs/DEPLOY.md)。
 
 ### `/api/fund/*` (基金费率 / 元数据)
 
@@ -268,6 +270,16 @@ npm run replay-failed                          # 实际重跑近 7 天失败
 | `GET /api/nav/{code}/history`     | 历史净值 (`?start=&end=&limit=`)                     |
 | `GET /api/nav/{code}/range`       | 数据日期范围                                        |
 | `GET /api/nav/compare?codes=...`  | 多基金 / 指数 NAV 比较 + 统计 + 指标 (见下)            |
+
+### `/api/index/*`（指数详情，只读）
+
+| 接口 | 说明 |
+| --- | --- |
+| `GET /api/index/search-index` | 详情专用搜索池：包含有行情、场外跟踪或完整权重的指数；不扩大 NAV 比较池 |
+| `GET /api/index/{完整代码}` | 基础资料、最新库内收盘与行情水位、已核验关联版本、跟踪基金、全部可用快照与默认完整权重 |
+| `GET /api/index/{完整代码}?snapshot={id}` | 选择该指数的指定完整权重快照，跨指数或无效快照拒绝 |
+
+权重按原始百分数展示，不归一化；默认最新标注日期优先，同日官方、Tushare、Wind 依次优先。行情和权重分别标明日期，不借用关联版本的基金或权重。日期疑点与来源校验口径见 [成分数据说明](docs/index-constituents.md)。接口不暴露私有回执或文件路径，不执行迁移或补数。单基金 API 的 `trackingIndexes`、统计 `tracking[].indexes` 提供基于库内关系的详情入口。
 
 ### `/api/nav/compare` 协议
 

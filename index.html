@@ -43,6 +43,7 @@
         <a href="#/nav" class="top-rail-tab" data-route="nav" role="tab">净值比较</a>
         <a href="#/stats" class="top-rail-tab" data-route="stats" role="tab">统计</a>
         <a href="#/fund" class="top-rail-tab" data-route="fund" role="tab">基金详情</a>
+        <a href="#/index-detail" class="top-rail-tab" data-route="index-detail" role="tab">指数详情</a>
       </div>
     </div>
     <div class="top-rail-right">
@@ -792,6 +793,86 @@
           </div>
           <div class="fd-card-body fd-raw-body" id="fd-raw-body"></div>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="page page-index-detail" data-route="index-detail">
+    <div class="container">
+      <header class="page-header id-page-header">
+        <div>
+          <span class="page-header-kicker">INDEX · DETAIL</span>
+          <h1>指数详情</h1>
+          <p class="subtitle">指数资料、历史走势、跟踪基金与完整成分权重</p>
+        </div>
+        <div class="fund-search-wrap id-search-wrap">
+          <input type="text" id="id-search-input" class="fund-search-input" placeholder="指数代码 / 名称 / 拼音首字母" aria-label="搜索指数" autocomplete="off" disabled>
+          <ul id="id-search-dropdown" class="fund-search-dropdown" role="listbox" aria-hidden="true"></ul>
+        </div>
+      </header>
+      <div id="id-status" class="id-empty" role="status" aria-live="polite">
+        <p>搜索一只指数，查看资料、跟踪基金和已有权重快照。</p>
+        <div class="id-actions">
+          <a class="btn btn-sm btn-secondary" href="#/index-detail/399300.SZ">沪深300</a>
+          <a class="btn btn-sm btn-secondary" href="#/index-detail/399006.SZ">创业板指</a>
+          <a class="btn btn-sm btn-secondary" href="#/index-detail/HSI.HI">恒生指数</a>
+        </div>
+      </div>
+      <div id="id-content" class="id-content" hidden>
+        <article id="id-hero" class="id-card id-hero"></article>
+        <section class="id-card" aria-labelledby="id-info-title">
+          <h2 id="id-info-title">基础资料</h2>
+          <dl id="id-info" class="id-info-grid"></dl>
+          <p id="id-description" class="id-description"></p>
+          <div id="id-return-links" class="id-version-links"></div>
+        </section>
+        <section class="id-card" aria-labelledby="id-chart-title">
+          <div class="id-section-header">
+            <h2 id="id-chart-title">指数走势</h2>
+            <div id="id-periods" class="id-periods" aria-label="走势图范围">
+              <button type="button" data-period="1Y" aria-pressed="false">1年</button>
+              <button type="button" data-period="3Y" aria-pressed="false">3年</button>
+              <button type="button" data-period="5Y" aria-pressed="false">5年</button>
+              <button type="button" data-period="MAX" aria-pressed="true">全部</button>
+            </div>
+          </div>
+          <div id="id-chart" class="id-chart" role="img" aria-label="指数历史收盘点位"></div>
+          <p id="id-chart-hint" class="id-hint" role="status"></p>
+        </section>
+        <section class="id-card" aria-labelledby="id-funds-title">
+          <div class="id-section-header">
+            <h2 id="id-funds-title">跟踪基金 <span id="id-fund-count" class="id-count"></span></h2>
+            <button type="button" id="id-add-basket" class="btn btn-sm btn-secondary" disabled>加入篮子</button>
+          </div>
+          <div class="id-toolbar">
+            <input id="id-fund-query" type="search" class="id-filter" placeholder="筛选基金代码 / 名称" aria-label="筛选跟踪基金">
+            <label>排序 <select id="id-fund-sort" class="toggle-select"><option value="fee">年化费率升序</option><option value="name">名称</option><option value="code">代码</option></select></label>
+          </div>
+          <p class="id-hint">仅展示该指数代码的场外基金跟踪关系；模糊匹配需核对。年化费率为管理费＋托管费＋销售服务费，不含晨星隐性费率。</p>
+          <div class="id-table-wrap" tabindex="0" role="region" aria-label="跟踪基金表格，可横向滚动">
+            <table class="id-table"><thead><tr><th><input type="checkbox" id="id-fund-select-page" aria-label="选择本页基金"></th><th>基金</th><th>类型 / 公司</th><th class="id-numeric">年化费率</th><th>匹配</th><th>拖动</th></tr></thead><tbody id="id-fund-rows"></tbody></table>
+          </div>
+          <nav id="id-fund-pages" class="id-pagination" aria-label="跟踪基金分页"></nav>
+          <p id="id-basket-status" class="id-hint" role="status" aria-live="polite"></p>
+        </section>
+        <section class="id-card" aria-labelledby="id-weights-title">
+          <div class="id-section-header">
+            <h2 id="id-weights-title">成分权重</h2>
+            <label class="id-snapshot-label">权重快照 <select id="id-snapshot" class="toggle-select" aria-label="选择权重快照"></select></label>
+          </div>
+          <p id="id-weight-meta" class="id-hint" role="status" aria-live="polite"></p>
+          <p id="id-weight-warning" class="id-warning" hidden></p>
+          <div id="id-weight-summary" class="id-weight-summary"></div>
+          <ol id="id-top-weights" class="id-top-weights" aria-label="前十大成分权重"></ol>
+          <div id="id-weight-controls" class="id-toolbar">
+            <input id="id-weight-query" type="search" class="id-filter" placeholder="筛选成分代码 / 名称" aria-label="筛选指数成分">
+            <label>排序 <select id="id-weight-sort" class="toggle-select"><option value="weight">权重降序</option><option value="code">代码</option><option value="name">名称</option></select></label>
+          </div>
+          <div id="id-weight-table-wrap" class="id-table-wrap" tabindex="0" role="region" aria-label="完整成分表格，可横向滚动">
+            <table class="id-table"><thead><tr><th>排名</th><th>证券代码</th><th>证券名称</th><th class="id-numeric">权重</th></tr></thead><tbody id="id-weight-rows"></tbody></table>
+          </div>
+          <nav id="id-weight-pages" class="id-pagination" aria-label="成分权重分页"></nav>
+        </section>
       </div>
     </div>
   </section>

@@ -24,6 +24,7 @@ import { getDb } from './nav/db.js';
 import { jsonCached } from './nav/http-cache.js';
 import { parseListParams, buildListQuery } from './list-query.js';
 import { loadMorningstarHistory } from './morningstar-history.js';
+import { loadTrackingIndexMap, groupTrackingIndexes } from './index-tracking-links.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
@@ -59,7 +60,7 @@ function json(res, status, data) {
 }
 
 /** 单基金 row → 旧 JSON 结构 */
-function rowToFundObject(row, segs, stages) {
+function rowToFundObject(row, segs, stages, trackingIndexes = []) {
   const name = smartPick(row.name, row.name_crawler) || '';
   const fundType = smartPick(row.fund_type, row.fund_type_crawler) || '';
   const fundManager = smartPick(row.management, row.management_crawler) || '';
@@ -74,6 +75,7 @@ function rowToFundObject(row, segs, stages) {
     needsCrawl: row.source === 'tushare',
     updatedAt: row.crawler_updated_at || '',
     trackingTarget: row.tracking_target || '',
+    trackingIndexes,
     fundManager,
     performanceBenchmark: benchmark,
     fundType,
@@ -127,7 +129,8 @@ function deriveLifecycle(status) {
 }
 
 function loadOne(db, code) {
-  const row = db.prepare(`${FULL_SELECT} WHERE m.code = ?`).get(code);
+  const row = db.prepare(`${FULL_SELECT} WHERE m.code = ?
+    ORDER BY CASE WHEN m.ts_code = ? THEN 0 ELSE 1 END, m.ts_code LIMIT 1`).get(code, `${code}.OF`);
   if (!row) return null;
   const segRows = db.prepare(`
     SELECT kind, seq, to_days, rate FROM fund_fee_segments
@@ -146,7 +149,8 @@ function loadOne(db, code) {
     returnPct: r.return_pct,
     returnText: r.return_text || '',
   }));
-  return rowToFundObject(row, segs, stages);
+  const indexes = loadTrackingIndexMap(db, { fundCode: code }).get(row.ts_code) || [];
+  return rowToFundObject(row, segs, stages, indexes);
 }
 
 /** list?fields=summary|full → 大数据集，一次查全 + 内存聚合 */
@@ -224,10 +228,12 @@ function loadList(db, fields, sourceFilter) {
       period: r.period, returnPct: r.return_pct, returnText: r.return_text || '',
     });
   }
+  const trackingIndexes = loadTrackingIndexMap(db);
   return rows.map(row => rowToFundObject(
     row,
     segMap.get(row.ts_code) || {},
     stageMap.get(row.ts_code) || [],
+    trackingIndexes.get(row.ts_code) || [],
   ));
 }
 
@@ -238,7 +244,7 @@ export function warmFundSearchIndex() { searchIndexStore.warm(getDb()); }
 function loadStats(db) {
   // 四维聚合 (tracking/manager/benchmark/fundType)，仅取 crawler-having
   const rows = db.prepare(`
-    SELECT m.code, m.tracking_target,
+    SELECT m.ts_code, m.code, m.tracking_target,
       COALESCE(b.management, m.management_crawler) AS manager,
       COALESCE(b.benchmark, m.benchmark_crawler) AS benchmark,
       COALESCE(b.fund_type, m.fund_type_crawler) AS fund_type
@@ -247,6 +253,7 @@ function loadStats(db) {
   `).all();
 
   const trackingMap = new Map();
+  const trackingIndexes = groupTrackingIndexes(rows, loadTrackingIndexMap(db));
   const managerMap = new Map();
   const benchmarkMap = new Map();
   const fundTypeMap = new Map();
@@ -281,7 +288,8 @@ function loadStats(db) {
   return {
     total: rows.length,
     trackingFundCount,
-    tracking: toArray(trackingMap).filter(x => !x.label.includes('无跟踪标的')),
+    tracking: toArray(trackingMap).filter(x => !x.label.includes('无跟踪标的'))
+      .map(item => ({ ...item, indexes: trackingIndexes.get(item.label) || [] })),
     manager: toArray(managerMap),
     benchmark: toArray(benchmarkMap),
     fundType: toArray(fundTypeMap),
@@ -482,11 +490,11 @@ const runCrawl = createCrawlRunner(code => runCrawlerProcess(path.join(__dirname
  * 参见 docs/audit-data-flow.md 表格 P0 #2。
  */
 
-export function createFundRouter() {
+export function createFundRouter({ getDatabase = getDb } = {}) {
   return async function fundRouter(req, res) {
     const urlPath = (req.url || '').split('?')[0];
     const qs = req.query ?? parseQuery(req.url || '');
-    const db = getDb();
+    const db = getDatabase();
 
     // POST /api/fund/:code/crawl —— 爬取 + 自动入 DB
     if (req.method === 'POST') {
