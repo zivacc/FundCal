@@ -125,6 +125,10 @@ cat /Users/ziva/.config/FundCal/deploy/state.json
 
 2026-10-12 已在 mini 安装上述任务，检查间隔为 60 秒。本地 Node24.16.0 与 mini Node24.14.1 均通过 378 项测试；首次初始化记录当前健康版本，不重启现有服务。安装前数据库与本地配置核验基线保存在私有状态目录中。
 
+## 数据库同步到 mini
+
+数据库发布与 GitHub 代码部署分开。源机使用 SQLite 一致性备份生成快照；mini 校验后持部署共享锁、保留旧库、原子切换并重启 API。当前 Codex 设备连接不等同 SSH/rsync 通道，尚未安装持续数据同步计划。工具、切换约束与 `sqlite3_rsync` 自动化评估见 [数据库同步说明](database-sync-mini.md)。
+
 ## 例行数据更新
 
 数据流见 [`data-flow.md`](data-flow.md)。迁移安装服务不代表已安装日更任务；旧 Linux cron 文件不应直接照搬到 mini。
