@@ -123,7 +123,7 @@ cat /Users/ziva/.config/FundCal/deploy/state.json
 
 关闭自动部署前先等当前部署结束，再使用 `launchctl bootout "gui/$(id -u)" /Users/ziva/Library/LaunchAgents/me.z-c.fundcal.deploy.plist`。这些服务与自动部署任务均依赖 `ziva` 的登录会话。
 
-2026-10-12 已在 mini 安装上述任务，检查间隔为 60 秒。本地 Node24.16.0 与 mini Node24.14.1 均通过 374 项测试；首次初始化记录当前健康版本，不重启现有服务。安装前数据库与本地配置核验基线保存在私有状态目录中。
+2026-10-12 已在 mini 安装上述任务，检查间隔为 60 秒。本地 Node24.16.0 与 mini Node24.14.1 均通过 378 项测试；首次初始化记录当前健康版本，不重启现有服务。安装前数据库与本地配置核验基线保存在私有状态目录中。
 
 ## 例行数据更新
 
