@@ -2,6 +2,12 @@
 
 源机正式库为 `/Users/ziva/projects/FundCal/data/fundcal.db`；mini 为 `/Users/ziva/Documents/FundCal/data/fundcal.db`。同步方向固定为源机向 mini 发布，数据库同步与 GitHub 代码部署分开。2026-10-12 的 mini 只通过 Codex 设备连接可达，没有 SSH 监听或 SSH 私钥；因此当前连接不能直接运行远程 rsync。
 
+## 2026-10-12 实测结果
+
+北京时间 16:41 已完成正式库切换。数据库 SHA256 为 `98577a5c16d2c593c23bc67bada222743ef39907817bb7e82e3aedb2e6b35a9f`，quick_check 通过，16 张表行数一致。基金档案及元数据各 35,480 行，NAV 37,529,905 行，最新日期 2026-10-09；指数权重 99,797 行。本机和公网首页/API 检查通过，私有路径拒绝访问。mini 旧库及 WAL/SHM 备份保留在项目的 `data/repair-mini-sync-20261012/backup-original/`，源端复核回执在同批次目录的 `result.json`。
+
+仅重启了 API，静态服务及 Tunnel 保持运行；mini Git 工作区干净，公共静态 JSON 与本地凭据保持原样。临时隧道、下载服务和两端认证配置已关闭或删除。此次未安装持续数据同步计划。
+
 ## 已准备的工具
 
 使用 Node24，在源机生成包含已提交 WAL 数据的一致性快照、完整表行数、最新净值日期、schema 摘要及 SHA256：
