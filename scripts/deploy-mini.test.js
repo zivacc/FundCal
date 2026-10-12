@@ -36,10 +36,10 @@ async function fixture(t) {
   await fs.writeFile(path.join(repo, '.env.local'), 'PRIVATE CONFIG');
   await fs.mkdir(path.join(repo, 'node_modules')); await fs.writeFile(path.join(repo, 'node_modules/version.txt'), 'baseline dependencies');
   const baseline = (await gitAt(repo, ['rev-parse', 'HEAD'])).stdout.trim();
-  const controls = { loaded: new Set(labels), npmFailure: null, failHealthFor: null, stoppedError: false, commands: [], npmCalls: [], healthCalls: 0, portsClosedCalls: 0 };
+  const controls = { loaded: new Set(labels), npmFailure: null, failHealthFor: null, stoppedError: false, acceptedButStuck: false, unloadDelay: 0, unloading: new Map(), clock: Date.now(), commands: [], npmCalls: [], healthCalls: 0, portsClosedCalls: 0 };
   const options = { repo, stateDir, domain: 'gui/501', healthTimeoutMs: 0 };
   const io = {
-    log: () => {}, sleep: async () => {}, healthTimeoutMs: 0,
+    log: () => {}, now: () => controls.clock, sleep: async ms => { controls.clock += ms; }, healthTimeoutMs: 0, stopTimeoutMs: 1000,
     run: async (command, args, runOptions = {}) => {
       controls.commands.push({ command, args, cwd: runOptions.cwd });
       if (path.basename(command) === 'npm') {
@@ -57,9 +57,19 @@ async function fixture(t) {
       }
       if (path.basename(command) === 'launchctl') {
         const label = args.at(-1).split('/').at(-1).replace(/\.plist$/, '');
-        if (args[0] === 'print') return { code: controls.loaded.has(label) ? 0 : 113, stdout: '', stderr: '' };
+        if (args[0] === 'print') {
+          if (controls.unloading.has(label)) {
+            const left = controls.unloading.get(label);
+            if (left > 0) controls.unloading.set(label, left - 1);
+            else { controls.loaded.delete(label); controls.unloading.delete(label); }
+          }
+          return { code: controls.loaded.has(label) ? 0 : 113, stdout: '', stderr: '' };
+        }
         if (args[0] === 'bootout') {
-          if (!(controls.stoppedError && label === labels[1])) controls.loaded.delete(label);
+          if (controls.stoppedError && label === labels[1]) return { code: controls.acceptedButStuck ? 0 : 1, stdout: '', stderr: '' };
+          if (controls.unloadDelay && !controls.unloading.has(label)) controls.unloading.set(label, controls.unloadDelay);
+          else if (controls.unloadDelay) { /* a repeated request does not restart an in-flight unload */ }
+          else controls.loaded.delete(label);
           return { code: 0, stdout: '', stderr: '' };
         }
         if (args[0] === 'bootstrap') controls.loaded.add(label);
@@ -166,6 +176,41 @@ test('partial bootout failure restores the already stopped agent without changin
   assert.deepEqual([...f.controls.loaded].sort(), [...labels].sort());
   assert.equal((await f.state()).pending, null);
   await f.assertPrivate();
+});
+
+test('acknowledged bootout waits for delayed job removal before activating code', async t => {
+  const f = await fixture(t); await f.initialize(); const target = await f.publish(); f.controls.unloadDelay = 3;
+  assert.equal((await runDeployment(f.options, f.io)).status, 'deployed');
+  assert.equal(await f.liveHead(), target);
+  assert.equal(f.controls.portsClosedCalls, 1);
+  assert.deepEqual([...f.controls.loaded].sort(), [...labels].sort());
+  const commands = f.controls.commands;
+  const stop = commands.findIndex(c => c.args[0] === 'bootout');
+  const otherStop = commands.findIndex((c, i) => i > stop && c.args[0] === 'bootout');
+  const nextPrint = commands.findIndex((c, i) => i > stop && c.args[0] === 'print');
+  assert.ok(otherStop > stop && nextPrint > otherStop, 'request both unloads before polling');
+  assert.equal((await f.state()).pending, null); await f.assertPrivate();
+});
+
+test('accepted bootout that never removes its job cannot be mistaken for successful rollback', async t => {
+  const f = await fixture(t); await f.initialize(); await f.publish();
+  f.controls.stoppedError = true; f.controls.acceptedButStuck = true;
+  await assert.rejects(runDeployment(f.options, f.io), /needs recovery/);
+  assert.equal(await f.liveHead(), f.baseline);
+  const state = await f.state(); assert.ok(state.pending); assert.ok(state.pending.unloading.includes(labels[1]));
+  assert.deepEqual([...f.controls.loaded].sort(), [...labels].sort());
+  assert.equal(f.controls.commands.some(c => c.args.includes('merge')), false);
+  assert.equal(f.controls.portsClosedCalls, 0); await f.assertPrivate();
+});
+
+test('a late accepted unload finishes during rollback before healthy old jobs are recorded', async t => {
+  const f = await fixture(t); await f.initialize(); await f.publish(); f.controls.unloadDelay = 5;
+  await assert.rejects(runDeployment(f.options, f.io), /did not stop before the deadline/);
+  assert.equal(await f.liveHead(), f.baseline);
+  assert.equal(await fs.readFile(path.join(f.repo, 'node_modules/version.txt'), 'utf8'), 'baseline dependencies');
+  const state = await f.state(); assert.equal(state.pending, null); assert.equal(state.lastSuccessful, f.baseline);
+  assert.equal(f.controls.commands.filter(c => c.args[0] === 'bootstrap').length, 2);
+  assert.deepEqual([...f.controls.loaded].sort(), [...labels].sort()); await f.assertPrivate();
 });
 
 test('dirty tracked/index state and non-fast-forward origin are rejected before validation', async t => {
@@ -282,6 +327,23 @@ test('pending staging symlinks are rejected before tracked rollback or dependenc
   await assert.rejects(runDeployment(f.options, f.io), /recovery requires attention/);
   assert.equal(await f.liveHead(), target); assert.equal(await fs.readFile(path.join(external, 'private.txt'), 'utf8'), 'KEEP');
   assert.equal(await fs.readFile(path.join(f.repo, 'node_modules/version.txt'), 'utf8'), 'baseline dependencies'); await f.assertPrivate();
+});
+
+test('fresh-process recovery honors persisted unload intent before restoring old service jobs', async t => {
+  const f = await fixture(t); await f.initialize(); const target = await f.publish();
+  const stageDir = await fs.mkdtemp(path.join(f.stateDir, 'candidate-'));
+  await fs.mkdir(path.join(stageDir, 'release/node_modules'), { recursive: true });
+  const state = await f.state();
+  state.pending = { oldHead: f.baseline, target, stageDir, hadModules: true, phase: 'prepared', unloading: [labels[0]] };
+  await fs.writeFile(path.join(f.stateDir, 'state.json'), JSON.stringify(state));
+  f.controls.unloadDelay = 2;
+  assert.equal((await runDeployment(f.options, f.io)).status, 'backoff');
+  assert.equal(await f.liveHead(), f.baseline);
+  const stopped = f.controls.commands.findIndex(c => c.args[0] === 'bootout');
+  const restored = f.controls.commands.findIndex(c => c.args[0] === 'bootstrap');
+  assert.ok(stopped >= 0 && restored > stopped);
+  assert.deepEqual([...f.controls.loaded].sort(), [...labels].sort());
+  assert.equal((await f.state()).pending, null); await f.assertPrivate();
 });
 
 test('pending state outside the private staging directory is rejected without deleting anything', async t => {

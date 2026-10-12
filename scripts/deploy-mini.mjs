@@ -145,6 +145,7 @@ async function readState(config) {
   if (state.pending) {
     const p = state.pending;
     if (!SHA.test(p.oldHead) || !SHA.test(p.target) || path.dirname(p.stageDir) !== config.stateDir || !path.basename(p.stageDir).startsWith('candidate-')) throw new Error('invalid pending deployment state');
+    if (p.unloading !== undefined && (!Array.isArray(p.unloading) || p.unloading.some(label => !['me.z-c.fundcal.static', 'me.z-c.fundcal.api'].includes(label)))) throw new Error('invalid pending unload state');
   }
   return state;
 }
@@ -271,18 +272,44 @@ export async function runDeployment(options = {}, io = {}) {
   if (await fs.realpath(config.repo) !== config.repo || (await git(['rev-parse', '--show-toplevel'])).stdout.trim() !== config.repo) throw new Error('repository path must be its ordinary Git root');
   let state = await readState(config);
   const labels = ['me.z-c.fundcal.static', 'me.z-c.fundcal.api'];
+  const unloading = new Set(state.pending?.unloading ?? []);
   const loaded = async label => (await run('/bin/launchctl', ['print', `${config.domain}/${label}`], { acceptFailure: true, timeoutMs: 10000 })).code === 0;
+  const waitUnloaded = async selected => {
+    const deadline = now() + (io.stopTimeoutMs ?? 30000);
+    do {
+      const statuses = await Promise.all(selected.map(async label => ({ label, loaded: await loaded(label) })));
+      let changed = false;
+      for (const status of statuses) if (!status.loaded && unloading.delete(status.label)) changed = true;
+      if (changed && state.pending) { state.pending.unloading = [...unloading]; await writeState(config, state); }
+      if (statuses.every(status => !status.loaded)) return;
+      await (io.sleep ?? sleep)(250);
+    } while (now() < deadline);
+    throw new Error('LaunchAgent did not stop before the deadline');
+  };
   const stop = async () => {
-    let problem;
     for (const label of labels) {
-      await run('/bin/launchctl', ['bootout', `${config.domain}/${label}`], { acceptFailure: true, timeoutMs: 15000 });
-      if (await loaded(label)) problem = new Error('LaunchAgent did not stop');
+      const wasUnloading = unloading.has(label);
+      unloading.add(label);
+      if (state.pending) { state.pending.unloading = [...unloading]; await writeState(config, state); }
+      const result = await run('/bin/launchctl', ['bootout', `${config.domain}/${label}`], { acceptFailure: true, timeoutMs: 15000 });
+      // bootout acknowledgement precedes job removal. Remember accepted requests
+      // so rollback never mistakes a still-unloading old job for a restored one.
+      if (result.code !== 0 && !wasUnloading) {
+        unloading.delete(label);
+        if (state.pending) { state.pending.unloading = [...unloading]; await writeState(config, state); }
+      }
     }
-    if (problem) throw problem;
+    await waitUnloaded(labels);
     await (io.portsClosed ?? waitForPortsClosed)(config);
   };
   const start = async (allowLoaded = false) => {
     for (const label of labels) {
+      if (unloading.has(label)) {
+        // A persisted intent may precede the actual bootout when the supervisor
+        // was killed. Reissue it before waiting, then load a fresh old-code job.
+        await run('/bin/launchctl', ['bootout', `${config.domain}/${label}`], { acceptFailure: true, timeoutMs: 15000 });
+        await waitUnloaded([label]);
+      }
       if (await loaded(label)) {
         if (!allowLoaded) throw new Error('LaunchAgent was unexpectedly still loaded');
         continue;
