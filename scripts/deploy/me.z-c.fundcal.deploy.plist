@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>me.z-c.fundcal.deploy</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/ziva/.nvm/versions/node/v24.14.1/bin/node</string>
+    <string>/Users/ziva/Documents/FundCal/scripts/deploy-mini.mjs</string>
+    <string>--repo</string><string>/Users/ziva/Documents/FundCal</string>
+    <string>--state-dir</string><string>/Users/ziva/.config/FundCal/deploy</string>
+  </array>
+  <key>WorkingDirectory</key><string>/Users/ziva/.config/FundCal/deploy</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key><string>/Users/ziva/.nvm/versions/node/v24.14.1/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    <key>GIT_TERMINAL_PROMPT</key><string>0</string>
+  </dict>
+  <key>RunAtLoad</key><true/>
+  <key>StartInterval</key><integer>60</integer>
+  <key>Umask</key><integer>63</integer>
+  <key>StandardOutPath</key><string>/Users/ziva/Library/Logs/FundCal/deploy.stdout.log</string>
+  <key>StandardErrorPath</key><string>/Users/ziva/Library/Logs/FundCal/deploy.stderr.log</string>
+</dict>
+</plist>

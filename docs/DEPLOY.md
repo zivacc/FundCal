@@ -85,6 +85,44 @@ launchctl bootout "gui/$(id -u)" /Users/ziva/Library/LaunchAgents/me.z-c.fundcal
 launchctl bootstrap "gui/$(id -u)" /Users/ziva/Library/LaunchAgents/me.z-c.fundcal.api.plist
 ```
 
+## GitHub main 自动部署
+
+mini 的用户 LaunchAgent `me.z-c.fundcal.deploy` 每 60 秒检查 GitHub `main`，登录时也检查一次。有新提交时，在 `/Users/ziva/.config/FundCal/deploy` 下生成候选代码，使用 Node24 执行完整 `npm ci --include=dev` 和 `npm test`；验证通过后快进项目的 `main`，重启静态/API 服务并检查本机 HTTP 响应。无新提交时不安装依赖或重启。一次部署可能超过检查间隔，实际生效时间取决于下载、安装与测试耗时。
+
+部署只更新 Git 跟踪的代码与依赖，不复制、删除或重建 mini 的数据库、单基金缓存、`.env`、Wind 本地配置和 Tunnel token，也不安装数据同步任务。新增跟踪的私有/运行时路径或指向这些目录的符号链接会被拒绝；本地有代码修改或分支无法快进时停止部署。Tunnel 保持运行。
+
+候选版本安装或测试失败时，当前服务继续运行；激活后检查失败会尝试恢复之前的代码和依赖。部署器不还原数据库；API 启动仍执行应用自带的 schema 初始化/迁移，因此涉及不兼容 schema 的改动应另行安排备份与迁移。相同失败提交会退避重试，新的提交重新验证。
+
+安装模板见 [`scripts/deploy/me.z-c.fundcal.deploy.plist`](../scripts/deploy/me.z-c.fundcal.deploy.plist)，脚本见 [`scripts/deploy-mini.mjs`](../scripts/deploy-mini.mjs)。模板固定了当前 mini 的用户、Node 和路径；更换运行时后同步修改。首次安装时，确认项目 `main` 与 GitHub 一致且服务健康，再记录基线并加载任务：
+
+```bash
+mkdir -p /Users/ziva/.config/FundCal/deploy
+chmod 700 /Users/ziva/.config/FundCal/deploy
+/Users/ziva/.nvm/versions/node/v24.14.1/bin/node /Users/ziva/Documents/FundCal/scripts/deploy-mini.mjs \
+  --repo /Users/ziva/Documents/FundCal --state-dir /Users/ziva/.config/FundCal/deploy --initialize
+cp /Users/ziva/Documents/FundCal/scripts/deploy/me.z-c.fundcal.deploy.plist /Users/ziva/Library/LaunchAgents/
+plutil -lint /Users/ziva/Library/LaunchAgents/me.z-c.fundcal.deploy.plist
+launchctl bootstrap "gui/$(id -u)" /Users/ziva/Library/LaunchAgents/me.z-c.fundcal.deploy.plist
+```
+
+任务使用 macOS `lockf` 内核锁，计划任务和手动运行共享同一把锁，进程结束后释放。状态在 `deploy/state.json`，候选验证输出在 `deploy/validation.log`；任务日志为 `~/Library/Logs/FundCal/deploy.stdout.log` 和 `deploy.stderr.log`，均不属于公开资源或 Git 内容。
+
+```bash
+launchctl print "gui/$(id -u)/me.z-c.fundcal.deploy"
+launchctl kickstart "gui/$(id -u)/me.z-c.fundcal.deploy"  # 空闲时立即检查，勿用 -k 打断部署
+tail -n 40 /Users/ziva/Library/Logs/FundCal/deploy.stdout.log
+cat /Users/ziva/.config/FundCal/deploy/state.json
+```
+
+修复失败原因后可手动提前重试：
+
+```bash
+/Users/ziva/.nvm/versions/node/v24.14.1/bin/node /Users/ziva/Documents/FundCal/scripts/deploy-mini.mjs \
+  --repo /Users/ziva/Documents/FundCal --state-dir /Users/ziva/.config/FundCal/deploy --retry-now
+```
+
+关闭自动部署前先等当前部署结束，再使用 `launchctl bootout "gui/$(id -u)" /Users/ziva/Library/LaunchAgents/me.z-c.fundcal.deploy.plist`。这些服务与自动部署任务均依赖 `ziva` 的登录会话。
+
 ## 例行数据更新
 
 数据流见 [`data-flow.md`](data-flow.md)。迁移安装服务不代表已安装日更任务；旧 Linux cron 文件不应直接照搬到 mini。
