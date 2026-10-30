@@ -17,8 +17,10 @@ import { formatRate } from '../../utils/format.js';
 import { getChartTheme } from '../../core/theme.js';
 import { navAppearance } from './nav-appearance.js';
 import { indexDetailHref } from '../../utils/index-links.js';
+import { createFundRelations } from './relations.js';
 
 let morningstarHistory;
+let fundRelations;
 let fundLoadVersion = 0;
 let navLoadVersion = 0;
 
@@ -121,6 +123,7 @@ function renderHero(d) {
       ${redBadge}
       ${d.fundManager ? `<span>${escapeHtml(d.fundManager)}</span>` : ''}
       ${d.establishmentDate ? `<span>成立 ${escapeHtml(d.establishmentDate)}</span>` : ''}
+      <a class="btn btn-sm btn-secondary" href="#/compare/${escapeHtml(d.code || state.currentCode)}">比较此基金</a>
     </div>
   `;
 }
@@ -331,6 +334,7 @@ function setupNavPeriodSwitch() {
 /* ── 同跟踪标的基金 ── */
 
 async function renderPeers(d) {
+  const version = fundLoadVersion;
   const el = $('fd-peers-body');
   if (!el) return;
   const target = d.trackingTarget;
@@ -340,6 +344,7 @@ async function renderPeers(d) {
   }
   el.innerHTML = '<div class="fd-table-empty">加载中…</div>';
   const list = await fetchStatsDetailFromAPI('tracking', target);
+  if (version !== fundLoadVersion) return;
   if (!list || !list.length) {
     el.innerHTML = `<div class="fd-table-empty">未找到同跟踪「${escapeHtml(target)}」的其他基金</div>`;
     return;
@@ -435,6 +440,7 @@ async function loadFund(code) {
   ++navLoadVersion;
   disposeChart();
   morningstarHistory.load(code);
+  fundRelations.load(code);
   if (!code) {
     $('fd-empty').hidden = false;
     $('fd-content').hidden = true;
@@ -504,6 +510,11 @@ export function pageInit() {
   if (initialized) return;
   initialized = true;
   morningstarHistory = createMorningstarHistory($('fd-morningstar'));
+  const relatedCard = document.createElement('div');
+  relatedCard.id = 'fd-card-related';
+  relatedCard.className = 'fd-card fd-card-related';
+  $('fd-card-hero').after(relatedCard);
+  fundRelations = createFundRelations(relatedCard);
   setupSearch();
   setupNavPeriodSwitch();
   setupRawActions();

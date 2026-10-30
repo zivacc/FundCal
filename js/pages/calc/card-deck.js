@@ -17,26 +17,33 @@ export function setupCardDeck() {
     lightFrame = 0;
     const bounds = stage.getBoundingClientRect();
     if (!bounds.width) return;
-    const x = pointer && !reduced.matches ? Math.max(0, Math.min(1, (pointer.x - bounds.x) / bounds.width)) : .42;
-    const y = pointer && !reduced.matches ? Math.max(0, Math.min(1, (pointer.y - bounds.y) / bounds.height)) : .12;
+    const x = pointer && !reduced.matches ? (pointer.x - bounds.x) / bounds.width : .42;
+    const y = pointer && !reduced.matches ? (pointer.y - bounds.y) / Math.max(1, bounds.height) : .12;
+    // 光源可以位于舞台之外；仅限制投影强度，避免滚动后远处光标产生过长阴影。
+    const shadowX = Math.max(-1, Math.min(2, x));
+    const shadowY = Math.max(-1, Math.min(2, y));
     // 所有反射都由同一个舞台光源投射，先读取位置，再批量写入样式。
     const surfaces = cards.filter(card => card.style.visibility !== 'hidden').map(card => ({ card, box: card.getBoundingClientRect() }));
     stage.style.setProperty('--light-x', `${x * 100}%`);
     stage.style.setProperty('--light-y', `${y * 100}%`);
-    stage.style.setProperty('--light-angle', `${100 + (x - .5) * 55}deg`);
-    stage.style.setProperty('--shadow-x', `${(.5 - x) * 26}px`);
-    stage.style.setProperty('--shadow-y', `${22 + (.5 - y) * 12}px`);
+    stage.style.setProperty('--light-angle', `${100 + (shadowX - .5) * 55}deg`);
+    stage.style.setProperty('--shadow-x', `${(.5 - shadowX) * 26}px`);
+    stage.style.setProperty('--shadow-y', `${22 + (.5 - shadowY) * 12}px`);
     for (const { card, box } of surfaces) {
       card.style.setProperty('--reflection-x', `${(bounds.x + x * bounds.width - box.x) / Math.max(1, box.width) * 100}%`);
       card.style.setProperty('--reflection-y', `${(bounds.y + y * bounds.height - box.y) / Math.max(1, box.height) * 100}%`);
     }
   }
   function light() { if (!lightFrame) lightFrame = requestAnimationFrame(paintLight); }
-  stage.addEventListener('pointermove', event => {
-    if (event.pointerType !== 'mouse' || reduced.matches) return;
-    pointer = { x: event.clientX, y: event.clientY }; light();
+  window.addEventListener('pointermove', event => {
+    if (event.pointerType !== 'mouse') return;
+    pointer = { x: event.clientX, y: event.clientY };
+    if (!reduced.matches && stage.closest('.page')?.classList.contains('active')) light();
+  }, { passive: true, capture: true });
+  // 页面滚动会改变舞台相对光标的位置；离开舞台/窗口时保留最后光源。
+  window.addEventListener('scroll', () => {
+    if (pointer && !reduced.matches && stage.closest('.page')?.classList.contains('active')) light();
   }, { passive: true });
-  stage.addEventListener('pointerleave', () => { pointer = null; light(); });
   const resize = new ResizeObserver(measure);
   function measure() {
     width = rail.clientWidth;
@@ -155,7 +162,7 @@ export function setupCardDeck() {
   rail.addEventListener('click', event => { if (suppressClick) { suppressClick = false; event.preventDefault(); event.stopImmediatePropagation(); } }, true);
   new MutationObserver(refresh).observe(rail, { childList: true });
   resize.observe(rail);
-  reduced.addEventListener('change', () => { pointer = null; schedule(); });
+  reduced.addEventListener('change', schedule);
   window.addEventListener('fundcal-route-ready', measure);
   refresh();
 }

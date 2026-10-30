@@ -1,5 +1,6 @@
 import { pinyin } from 'pinyin-pro';
 import { indexReturnType } from '../../js/domain/index-return.js';
+import { estimateIndexWeightChange, readIndexTurnoverDisclosure } from './index-turnover.js';
 
 const INDEX_FIELDS = 'ts_code,code,name,fullname,publisher,category,market,index_type,base_date,base_point,list_date,weight_rule,description,primary_source';
 const SOURCE_PRIORITY = { csindex: 0, cnindex: 0, tushare: 1, wind: 2 };
@@ -54,6 +55,19 @@ function publicSnapshot(row) {
     weightSumPct: row.actual_sum, validationBasis: row.validation_basis };
 }
 
+function snapshotRows(db, snapshot) {
+  return snapshot ? db.prepare(`SELECT constituent_code code,name,weight_pct weightPct FROM index_constituent_weight
+    WHERE snapshot_id=? ORDER BY weight_pct DESC,constituent_code`).all(snapshot.id) : [];
+}
+
+function snapshotTurnover(db, code, selected, allSnapshots, rows) {
+  // A different vendor's snapshot is not a comparable historical observation.
+  const previous = selected && allSnapshots.find(row => row.source === selected.source && row.as_of_date < selected.as_of_date);
+  const dto = (snapshot, values) => snapshot ? { ...publicSnapshot(snapshot), indexCode: code, rows: values } : null;
+  return { disclosed: readIndexTurnoverDisclosure(db, code),
+    estimate: estimateIndexWeightChange(dto(previous, snapshotRows(db, previous)), dto(selected, rows)) };
+}
+
 function trackingFunds(db, code) {
   if (!hasTable(db, 'index_fund_tracker') || !hasTable(db, 'fund_basic')) return [];
   const meta = hasTable(db, 'fund_meta');
@@ -99,12 +113,13 @@ function readIndexDetail(db, code, { snapshotId = null } = {}) {
   const daily = hasTable(db, 'index_daily');
   const quote = daily ? db.prepare('SELECT end_date,close,pct_chg,source FROM index_daily WHERE ts_code=? ORDER BY end_date DESC LIMIT 1').get(tsCode) : null;
   const history = daily ? db.prepare('SELECT min(end_date) start,max(end_date) end,count(*) count FROM index_daily WHERE ts_code=?').get(tsCode) : { start: null, end: null, count: 0 };
+  const rows = snapshotRows(db, selected);
   return { index: { ...basic, returnType: indexReturnType(basic) }, quote: quote || null, history,
     returnLinks: returnLinks(db, tsCode), trackingFunds: trackingFunds(db, tsCode),
+    turnover: snapshotTurnover(db, tsCode, selected, allSnapshots, rows),
     snapshots: allSnapshots.map(publicSnapshot), constituents: {
       snapshot: selected ? publicSnapshot(selected) : null,
-      rows: selected ? db.prepare(`SELECT constituent_code code,name,weight_pct weightPct FROM index_constituent_weight
-        WHERE snapshot_id=? ORDER BY weight_pct DESC,constituent_code`).all(selected.id) : [],
+      rows,
     } };
 }
 

@@ -39,6 +39,7 @@
       <div class="top-rail-tabs" role="tablist">
         <a href="#/calc" class="top-rail-tab" data-route="calc" role="tab">计算器</a>
         <a href="#/list" class="top-rail-tab" data-route="list" role="tab">基金列表</a>
+        <a href="#/compare" class="top-rail-tab" data-route="compare" role="tab">基金比较</a>
         <a href="#/index" class="top-rail-tab" data-route="index" role="tab">指数选基</a>
         <a href="#/nav" class="top-rail-tab" data-route="nav" role="tab">净值比较</a>
         <a href="#/stats" class="top-rail-tab" data-route="stats" role="tab">统计</a>
@@ -797,13 +798,42 @@
     </div>
   </section>
 
+  <section class="page page-fund-compare" data-route="compare">
+    <div class="container">
+      <header class="page-header fc-header">
+        <div><span class="page-header-kicker">FUND · COMPARE</span><h1>基金比较</h1><p class="subtitle">并排查看基本资料、费用与换手率，找到每一项差异</p></div>
+        <span class="fc-count" id="fc-count">0 / 8</span>
+      </header>
+      <div class="fc-toolbar">
+        <div class="fund-search-wrap fc-search-wrap">
+          <input id="fc-search" class="fund-search-input" type="search" placeholder="基金代码 / 名称 / 拼音首字母" aria-label="搜索并添加比较基金" autocomplete="off" aria-controls="fc-dropdown">
+          <ul id="fc-dropdown" class="fund-search-dropdown" role="listbox" aria-hidden="true"></ul>
+        </div>
+        <button id="fc-add-code" type="button" class="btn btn-sm btn-secondary">添加代码</button>
+        <button id="fc-from-basket" type="button" class="btn btn-sm btn-secondary">从篮子添加</button>
+        <button id="fc-clear" type="button" class="btn btn-sm btn-secondary" disabled>清空比较</button>
+      </div>
+      <p id="fc-status" class="fc-hint" role="status" aria-live="polite"></p>
+      <div id="fc-empty" class="fc-empty"><strong>把基金放在一起看</strong><p>搜索添加基金，或在基金列表选择后点击“去比较”。最多 8 只，支持从篮子拖入。</p></div>
+      <div id="fc-content" hidden>
+        <div class="fc-actions">
+          <label>晨星报告期 <select id="fc-period" class="toggle-select"><option value="latest">各基金最新收录</option></select></label>
+          <div class="fc-actions"><button id="fc-refresh" type="button" class="btn btn-sm btn-secondary">刷新资料</button><button id="fc-calculate" type="button" class="btn btn-sm btn-secondary">去计算持有成本</button></div>
+        </div>
+        <div class="fc-table-wrap" tabindex="0" role="region" aria-label="基金比较表，可横向滚动"><table id="fc-table" class="fc-table"></table></div>
+        <p class="fc-hint">现行费率来自基金资料，申购费率未施加渠道折扣；具体金额分段与特殊条件请查看基金详情及基金文件。晨星费用为历史参考，隐性及综合费率含估算，综合费率已包含显性费用，不应再叠加现行年化费率。换手率沿用原始报告期与口径，不折算为日换手或未来预测。</p>
+        <p class="fc-hint">“各基金最新收录”可能对应不同日期；选择指定报告期可按同一期比较，缺失字段不跨期回填。同类百分位为本地计算：越高表示换手越高，分类不同不作同类排名比较。阶段业绩各列日期可能不同，未重新计算统一区间收益。</p>
+      </div>
+    </div>
+  </section>
+
   <section class="page page-index-detail" data-route="index-detail">
     <div class="container">
       <header class="page-header id-page-header">
         <div>
           <span class="page-header-kicker">INDEX · DETAIL</span>
           <h1>指数详情</h1>
-          <p class="subtitle">指数资料、历史走势、跟踪基金与完整成分权重</p>
+          <p class="subtitle">指数资料、历史走势、换手参考、跟踪基金与完整成分权重</p>
         </div>
         <div class="fund-search-wrap id-search-wrap">
           <input type="text" id="id-search-input" class="fund-search-input" placeholder="指数代码 / 名称 / 拼音首字母" aria-label="搜索指数" autocomplete="off" disabled>
@@ -826,6 +856,7 @@
           <p id="id-description" class="id-description"></p>
           <div id="id-return-links" class="id-version-links"></div>
         </section>
+        <section id="id-turnover" class="id-card" aria-labelledby="id-turnover-title"></section>
         <section class="id-card" aria-labelledby="id-chart-title">
           <div class="id-section-header">
             <h2 id="id-chart-title">指数走势</h2>
@@ -850,7 +881,7 @@
           </div>
           <p class="id-hint">仅展示该指数代码的场外基金跟踪关系；模糊匹配需核对。年化费率为管理费＋托管费＋销售服务费，不含晨星隐性费率。</p>
           <div class="id-table-wrap" tabindex="0" role="region" aria-label="跟踪基金表格，可横向滚动">
-            <table class="id-table"><thead><tr><th><input type="checkbox" id="id-fund-select-page" aria-label="选择本页基金"></th><th>基金</th><th>类型 / 公司</th><th class="id-numeric">年化费率</th><th>匹配</th><th>拖动</th></tr></thead><tbody id="id-fund-rows"></tbody></table>
+            <table class="id-table"><thead><tr><th><input type="checkbox" id="id-fund-select-page" aria-label="选择本页基金"></th><th>基金</th><th>类型 / 公司</th><th class="id-numeric">年化费率</th><th>匹配</th></tr></thead><tbody id="id-fund-rows"></tbody></table>
           </div>
           <nav id="id-fund-pages" class="id-pagination" aria-label="跟踪基金分页"></nav>
           <p id="id-basket-status" class="id-hint" role="status" aria-live="polite"></p>

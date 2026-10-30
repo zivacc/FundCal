@@ -7,6 +7,7 @@ import { indexDetailHref } from '../../utils/index-links.js';
 import { getChartTheme, cssVar } from '../../core/theme.js';
 import { fundDragAttrs, fundDragHandle, registerFundSource, notifyFundSelection, escapeFundAttribute } from '../../core/fund-transfer.js';
 import { basket } from '../../data/basket.js';
+import { turnoverHtml } from './turnover.js';
 import { parseIndexRoute, dateLabel, numberLabel, percentLabel, sourceLabel, returnLabel,
   tableRows, pageRows, weightSummary, snapshotWarning } from './presentation.js';
 
@@ -85,17 +86,18 @@ function renderFunds() {
   state.fundPage = result.page;
   $('fund-rows').innerHTML = result.rows.length ? result.rows.map(row => `<tr ${fundDragAttrs(row)}>
     <td><input type="checkbox" data-code="${row.code}" aria-label="选择 ${escapeFundAttribute(row.name)}" ${state.selected.has(row.code) ? 'checked' : ''}></td>
-    <td><a class="id-fund-name" href="#/fund/${row.code}">${escapeHtml(row.name)}</a><span class="id-sub id-mono">${row.code}</span></td>
+    <td><a class="id-fund-name" href="#/fund/${row.code}">${escapeHtml(row.name)}</a><span class="id-sub id-mono">${row.code}</span>${fundDragHandle()}</td>
     <td>${escapeHtml(row.fundType || '—')}<span class="id-sub">${escapeHtml(row.management || '—')}</span></td>
     <td class="id-numeric id-mono">${row.annualFee == null ? '—' : percentLabel(row.annualFee * 100)}</td>
-    <td>${escapeHtml(({ exact: '精确', fullname: '全名', name: '名称', fuzzy: '模糊', manual: '人工' })[row.matchType] || row.matchType || '—')}</td><td>${fundDragHandle()}</td></tr>`).join('')
-    : `<tr><td colspan="6">${funds.length ? '没有匹配的基金' : '暂无该代码的场外跟踪关系；可查看上方已核验关联版本。'}</td></tr>`;
+    <td>${escapeHtml(({ exact: '精确', fullname: '全名', name: '名称', fuzzy: '模糊', manual: '人工' })[row.matchType] || row.matchType || '—')}</td></tr>`).join('')
+    : `<tr><td colspan="5">${funds.length ? '没有匹配的基金' : '暂无该代码的场外跟踪关系；可查看上方已核验关联版本。'}</td></tr>`;
   pagination($('fund-pages'), result, 'fund');
   updateSelection();
 }
 
 function renderWeights() {
   const { snapshots, constituents } = state.data;
+  $('turnover').innerHTML = turnoverHtml(state.data.turnover);
   const snapshot = constituents.snapshot;
   $('snapshot').innerHTML = snapshots.length ? snapshots.map(s =>
     `<option value="${s.id}" ${s.id === snapshot?.id ? 'selected' : ''}>${dateLabel(s.asOfDate)} · ${escapeHtml(sourceLabel(s.source))} · ${s.count} 成分</option>`).join('')
@@ -235,7 +237,7 @@ async function switchSnapshot() {
   try {
     const next = await fetchIndexDetail(state.code, { snapshot: requested, signal: state.snapshotController.signal });
     if (version !== state.snapshotVersion || indexVersion !== state.version) return;
-    state.data = { ...state.data, snapshots: next.snapshots, constituents: next.constituents };
+    state.data = { ...state.data, snapshots: next.snapshots, constituents: next.constituents, turnover: next.turnover };
     state.weightPage = 1; renderWeights();
   } catch (error) {
     if (version !== state.snapshotVersion || indexVersion !== state.version || error.name === 'AbortError') return;

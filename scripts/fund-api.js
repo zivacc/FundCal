@@ -25,6 +25,9 @@ import { jsonCached } from './nav/http-cache.js';
 import { parseListParams, buildListQuery } from './list-query.js';
 import { loadMorningstarHistory } from './morningstar-history.js';
 import { loadTrackingIndexMap, groupTrackingIndexes } from './index-tracking-links.js';
+import { loadFundRelations, readFeederRelations } from './fund-relations.js';
+import { createFofHoldingsLoader } from './fof-holdings.js';
+import { createFeederMasterLoader } from './feeder-master.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
@@ -84,13 +87,13 @@ function rowToFundObject(row, segs, stages, trackingIndexes = []) {
       redeem: row.trading_redeem || '',
     } : null,
     operationFees: {
-      managementFee: row.mgmt_fee ?? 0,
-      custodyFee: row.custody_fee ?? 0,
-      salesServiceFee: row.sales_service_fee ?? 0,
-      total: row.operation_fee_total ?? 0,
+      managementFee: row.mgmt_fee ?? null,
+      custodyFee: row.custody_fee ?? null,
+      salesServiceFee: row.sales_service_fee ?? null,
+      total: row.operation_fee_total ?? null,
     },
-    buyFee: row.buy_fee ?? 0,
-    annualFee: row.annual_fee ?? 0,
+    buyFee: row.buy_fee ?? null,
+    annualFee: row.annual_fee ?? null,
     isFloatingAnnualFee: !!row.is_floating_annual_fee,
     netAssetScale: row.net_asset_text ? {
       text: row.net_asset_text,
@@ -490,7 +493,8 @@ const runCrawl = createCrawlRunner(code => runCrawlerProcess(path.join(__dirname
  * 参见 docs/audit-data-flow.md 表格 P0 #2。
  */
 
-export function createFundRouter({ getDatabase = getDb } = {}) {
+export function createFundRouter({ getDatabase = getDb, getFeederRelations = readFeederRelations,
+  loadHoldings = createFofHoldingsLoader(), resolveFeederMaster = createFeederMasterLoader() } = {}) {
   return async function fundRouter(req, res) {
     const urlPath = (req.url || '').split('?')[0];
     const qs = req.query ?? parseQuery(req.url || '');
@@ -520,6 +524,22 @@ export function createFundRouter({ getDatabase = getDb } = {}) {
     }
 
     if (req.method !== 'GET') return false;
+
+    const relatedMatch = urlPath.match(/^\/api\/fund\/(\d{6})\/(related|holdings)\/?$/);
+    if (relatedMatch) {
+      try {
+        let data = relatedMatch[2] === 'related'
+          ? loadFundRelations(db, relatedMatch[1], getFeederRelations())
+          : await loadHoldings(db, relatedMatch[1]);
+        if (data && relatedMatch[2] === 'related' && qs.resolveMaster === '1') data = await resolveFeederMaster(db, data);
+        if (!data) json(res, 404, { error: 'Fund not found' });
+        else if (data.status === 'busy' || data.status === 'error' || ['busy', 'error'].includes(data.masterLookup?.status)) json(res, 200, data);
+        else jsonCached(req, res, data, { maxAge: 300, scope: 'public' });
+      } catch {
+        json(res, 500, { error: 'Fund related data unavailable' });
+      }
+      return true;
+    }
 
     const morningstarMatch = urlPath.match(/^\/api\/fund\/(\d{6})\/morningstar\/?$/);
     if (morningstarMatch) {

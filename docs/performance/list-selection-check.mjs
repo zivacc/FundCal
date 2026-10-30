@@ -48,7 +48,8 @@ try {
     }
     const before = await selection();
     await cell(3).click(); assert.deepEqual(await selection(), before);
-    await row(4).locator('.fund-drag-handle').click();
+    await row(4).locator('.fund-drag-handle').focus();
+    await page.keyboard.press('Enter');
     await page.locator('#basket-drop-target').waitFor();
     assert.deepEqual(await selection(), before);
     await page.keyboard.press('Escape');
@@ -59,8 +60,8 @@ try {
     assert.equal(await page.locator('#fund-basket-list [data-basket-row]').count(), selectedCount);
     await page.locator('[data-basket-action="close"]').click();
     // Drag an already selected row: the entire selection must remain intact.
-    await row(10).locator('.fund-drag-handle').scrollIntoViewIfNeeded();
-    const box = await row(10).locator('.fund-drag-handle').boundingBox();
+    await cell(10).scrollIntoViewIfNeeded();
+    const box = await cell(10).boundingBox();
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await page.mouse.down(); await page.mouse.move(box.x + 50, box.y + 30, { steps: 5 });
     await page.locator('#basket-drop-target').waitFor();

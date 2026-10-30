@@ -24,6 +24,12 @@
 .id-info-grid div { min-width: 0; }
 .id-info-grid dt { color: var(--text-tertiary); font-size: .8rem; }
 .id-info-grid dd { margin: .2rem 0 0; font-size: .94rem; overflow-wrap: anywhere; }
+.id-turnover-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-top: 1rem; }
+.id-turnover-grid article { min-width: 0; padding: 1rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-subtle); }
+.id-turnover-grid h3 { margin: 0 0 .5rem; font-size: .9rem; font-weight: 500; }
+.id-turnover-value { font-family: var(--font-mono); font-size: 1.6rem; font-weight: 500; color: var(--accent); }
+.id-turnover-method { margin-top: 1rem; }
+.id-turnover-method summary { cursor: pointer; color: var(--text-secondary); font-size: .85rem; }
 .id-description { line-height: 1.7; font-size: .9rem; color: var(--text-secondary); white-space: pre-line; }
 .id-version-links { border-top: 1px solid var(--border); padding-top: .75rem; font-size: .85rem; }
 .id-version-links:empty { display: none; }
@@ -49,7 +55,6 @@
 .id-table .id-fund-name { display: block; min-width: 180px; max-width: 340px; line-height: 1.5; }
 .id-table .id-sub { display: block; color: var(--text-tertiary); font-size: .75rem; margin-top: .15rem; }
 .id-table input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px; }
-.id-table .fund-drag-handle { position: static; display: inline-flex; }
 .id-pagination { justify-content: flex-end; font-size: .82rem; color: var(--text-secondary); margin-top: .75rem; }
 .id-weight-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; margin: 1rem 0; }
 .id-weight-summary div { background: var(--bg-subtle); padding: .75rem 1rem; border-radius: var(--radius-sm); }
@@ -63,6 +68,7 @@
 .id-weight-bar i { display: block; height: 100%; background: var(--accent); }
 .page-index-detail :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 @media (max-width: 768px) {
+  .id-turnover-grid { grid-template-columns: minmax(0, 1fr); }
   .id-search-wrap { width: 100%; flex-basis: 100%; }
   .id-card { padding: 1rem; }
   .id-hero { grid-template-columns: minmax(0, 1fr); gap: .75rem; }

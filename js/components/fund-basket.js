@@ -12,7 +12,7 @@ root.innerHTML = `
     <div class="basket-pending" hidden><span id="basket-pending-label"></span><button type="button" data-basket-action="collect">加入篮子</button></div>
     <div class="basket-list-tools"><label><input type="checkbox" id="basket-select-all"> 全选</label><button type="button" data-basket-action="remove-selected">移除所选</button><button type="button" data-basket-action="clear">清空</button></div>
     <div id="fund-basket-list"></div>
-    <footer><button type="button" id="basket-drag-selected" data-basket-drag="selection">⠿ 拖出所选</button><p id="basket-use-hint"></p><div class="basket-use-actions"><button type="button" data-basket-action="add">添加到当前页</button><button type="button" data-basket-action="replace">替换当前页</button></div></footer>
+    <footer><button type="button" id="basket-drag-selected" data-basket-drag="selection">移动所选</button><p id="basket-use-hint"></p><div class="basket-use-actions"><button type="button" data-basket-action="add">添加到当前页</button><button type="button" data-basket-action="replace">替换当前页</button></div></footer>
   </section>
   <div id="basket-drop-zones" hidden><button type="button" data-basket-drop="add"><strong>＋ 添加</strong><span>保留当前基金，去重后加入</span></button><button type="button" data-basket-drop="replace"><strong>⇄ 替换</strong><span>替换当前基金，保留页面设置</span></button><button type="button" id="basket-drag-cancel" aria-label="取消拖动">取消 · Esc</button></div>
   <section id="basket-fund-picker" aria-label="选择要查看的基金" hidden><header><strong id="basket-fund-picker-title"></strong><button type="button" data-basket-action="cancel">取消 · Esc</button></header><div id="basket-fund-choices"></div></section>
@@ -50,15 +50,15 @@ function render() {
   list.innerHTML = items.length ? items.map(item => `<div class="basket-fund-row${selected.has(item.code) ? ' is-selected' : ''}" data-basket-row="${item.code}">
     <label><input type="checkbox" data-basket-select="${item.code}" ${selected.has(item.code) ? 'checked' : ''} aria-label="选择 ${escapeHtml(item.name)}"></label>
     <div class="basket-fund-name"><strong>${escapeHtml(item.name)}</strong><span>${item.code}</span></div>
-    <button type="button" class="fund-drag-handle" data-basket-drag="${item.code}" aria-label="拖动 ${escapeHtml(item.name)}" title="拖出此基金；已勾选时拖出所选">⠿</button>
-    <button type="button" data-basket-remove="${item.code}" aria-label="移除 ${escapeHtml(item.name)}">×</button></div>`).join('') : '<div class="basket-empty">篮子还是空的<p>选择基金后点击“加入篮子”，<br>或把基金旁的 ⠿ 拖到顶栏篮子。</p></div>';
+    <button type="button" class="fund-drag-handle" data-basket-drag="${item.code}" aria-label="移动 ${escapeHtml(item.name)}" title="移动此基金；已勾选时移动所选">移动基金</button>
+    <button type="button" data-basket-remove="${item.code}" aria-label="移除 ${escapeHtml(item.name)}">×</button></div>`).join('') : '<div class="basket-empty">篮子还是空的<p>选择基金后点击“加入篮子”，<br>或用鼠标把基金行拖到顶栏篮子。</p></div>';
   const all = root.querySelector('#basket-select-all');
   all.checked = !!items.length && selected.size === items.length; all.indeterminate = selected.size > 0 && selected.size < items.length;
   all.disabled = !items.length;
   root.querySelector('[data-basket-action="remove-selected"]').disabled = !selected.size;
   root.querySelector('[data-basket-action="clear"]').disabled = !items.length;
   const handle = root.querySelector('#basket-drag-selected');
-  handle.disabled = !selected.size; handle.textContent = `⠿ 拖出所选${selected.size ? ` ${selected.size} 只` : ''}`;
+  handle.disabled = !selected.size; handle.textContent = `移动所选${selected.size ? ` ${selected.size} 只` : ''}`;
   refreshContext();
 }
 function refreshContext() {
@@ -69,8 +69,8 @@ function refreshContext() {
   const receiver = getFundReceiver();
   const detail = currentFundRoute() === 'fund';
   const pool = currentFundRoute() === 'list';
-  const routeName = detail ? '基金详情' : pool ? '基金列表' : currentFundRoute() === 'nav' ? '净值比较' : '计算器';
-  root.querySelector('#basket-use-hint').textContent = pool ? `整篮 ${store.get().length} 只 → 基金列表（清除搜索与筛选）` : receiver ? `${selected.size ? '所选' : '整篮'} ${useItems().length} 只 → ${routeName}` : '切换到计算器、基金列表、净值比较或基金详情后使用篮子';
+  const routeName = detail ? '基金详情' : pool ? '基金列表' : currentFundRoute() === 'nav' ? '净值比较' : currentFundRoute() === 'compare' ? '基金比较' : '计算器';
+  root.querySelector('#basket-use-hint').textContent = pool ? `整篮 ${store.get().length} 只 → 基金列表（清除搜索与筛选）` : receiver ? `${selected.size ? '所选' : '整篮'} ${useItems().length} 只 → ${routeName}` : '切换到计算器、基金列表、基金比较、净值比较或基金详情后使用篮子';
   root.querySelectorAll('.basket-use-actions button').forEach(button => { button.disabled = busy || !receiver || !useItems().length; });
   root.querySelector('[data-basket-action="replace"]').hidden = detail || pool;
   root.querySelector('[data-basket-action="add"]').textContent = detail ? '查看基金详情' : pool ? '查看整篮基金池' : '添加到当前页';
@@ -127,8 +127,6 @@ async function applyToPage(items, mode) {
 function sourceAt(event) {
   const node = event.target.closest?.('#fund-basket-button, [data-basket-drag], [data-basket-row], [data-fund-drag]');
   if (!node) return null;
-  // 画廊卡片正文用于旋转浏览，篮子转移从独立把手开始。
-  if (node.closest('.fund-card-stage') && !event.target.closest('.fund-drag-handle')) return null;
   if (event.target.closest('input, select, textarea, a, label') || event.target.closest('button') && !event.target.closest('.fund-drag-handle, #fund-basket-button, [data-basket-drag]')) return null;
   let items, origin;
   if (node === trigger) { items = store.get(); origin = 'basket'; }
@@ -233,18 +231,22 @@ root.addEventListener('change', event => {
   if (event.target.id === 'basket-select-all') { selected.clear(); if (event.target.checked) store.get().forEach(item => selected.add(item.code)); render(); }
   if (event.target.dataset.basketSelect) { const code = event.target.dataset.basketSelect; if (event.target.checked) selected.add(code); else selected.delete(code); render(); root.querySelector(`[data-basket-select="${code}"]`)?.focus({ preventScroll: true }); }
 });
-// 所有页面共用一个 Pointer Events 生命周期；触屏仅从把手起拖，正文继续自然滚动。
+// 触屏正文继续自然滚动；可用篮子的收集/应用按钮完成转移。
 document.addEventListener('pointerdown', event => {
   suppressClickUntil = 0; cancelledPointer = null;
   if (event.button !== 0 || drag || busy) return;
   const source = sourceAt(event);
   if (!source) { if (!panel.hidden && !root.contains(event.target) && !trigger.contains(event.target)) openPanel(false); return; }
   if (event.pointerType !== 'mouse' && !event.target.closest('.fund-drag-handle, #fund-basket-button, [data-basket-drag]')) return;
-  candidate = { ...source, x: event.clientX, y: event.clientY, pointerId: event.pointerId };
+  const rail = source.node.closest('.fund-card-stage')?.querySelector('.fund-cards');
+  const deckPan = rail && !event.target.closest('.fund-drag-handle') && rail.children.length > Number(rail.dataset.frontCount || 1);
+  candidate = { ...source, deckPan, x: event.clientX, y: event.clientY, pointerId: event.pointerId };
 });
 document.addEventListener('pointermove', event => {
   if (!candidate || candidate.pointerId !== event.pointerId) return;
   if (!drag && Math.hypot(event.clientX - candidate.x, event.clientY - candidate.y) < 8) return;
+  // 画廊横向手势仍用于翻卡；从卡片正文纵向拖动可直接转移到篮子。
+  if (!drag && candidate.deckPan && Math.abs(event.clientX - candidate.x) >= Math.abs(event.clientY - candidate.y)) { candidate = null; return; }
   if (!drag) { startDrag(candidate); candidate.node.setPointerCapture(event.pointerId); }
   event.preventDefault();
   ghost.style.left = `${Math.max(8, Math.min(window.innerWidth - ghost.offsetWidth - 8, event.clientX + 12))}px`;

@@ -84,6 +84,14 @@ test('fund API links choose .OF, expose group references, and change ETags when 
   const detail = await request(router, '/api/fund/000001/fee');
   assert.equal(detail.status, 200);
   assert.equal(detail.body.name, '场外基金');
+  assert.equal(detail.body.buyFee, null);
+  assert.equal(detail.body.annualFee, null);
+  assert.deepEqual(detail.body.operationFees, { managementFee: null, custodyFee: null, salesServiceFee: null, total: null });
+  db.prepare("UPDATE fund_meta SET buy_fee=0,annual_fee=0,mgmt_fee=0,custody_fee=0,sales_service_fee=0,operation_fee_total=0 WHERE ts_code='000001.OF'").run();
+  const free = await request(router, '/api/fund/000001/fee');
+  assert.equal(free.body.buyFee, 0);
+  assert.equal(free.body.annualFee, 0);
+  assert.deepEqual(free.body.operationFees, { managementFee: 0, custodyFee: 0, salesServiceFee: 0, total: 0 });
   assert.deepEqual(detail.body.trackingIndexes, [{ code: '000300.SH', name: '沪深300', matchType: 'fullname' }]);
   const first = await request(router, '/api/fund/stats');
   assert.equal(first.status, 200);

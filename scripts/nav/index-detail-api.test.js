@@ -6,6 +6,7 @@ import { once } from 'node:events';
 import { createApiServer } from '../serve-fund-api.js';
 import { createIndexDetailRouter } from './index-detail-api.js';
 import { queryIndexDetail, queryIndexDetailSearch, isFullIndexCode, IndexSnapshotNotFoundError } from './index-detail-query.js';
+import { ensureIndexTurnoverSchema } from './index-turnover.js';
 
 function database(t, { optional = true } = {}) {
   const db = new Database(':memory:');
@@ -215,4 +216,28 @@ test('HTTP missing index, unknown or cross-index snapshot return 404 and errors 
     assert.equal(result.status, 404); assert.equal(result.headers['cache-control'], 'no-store');
   }
   assert.equal((await request('/api/index/000300.SH?snapshot=1')).status, 200);
+});
+
+test('turnover estimate follows selected snapshot and prior valid same-source snapshot only', t => {
+  const db = database(t);
+  snapshot(db, { id: 1, source: 'csindex', date: '2026-06-30', weights: [60, 40] });
+  snapshot(db, { id: 2, source: 'csindex', date: '2026-07-31', weights: [50, 50] });
+  snapshot(db, { id: 3, source: 'tushare', date: '2026-08-31', weights: [80, 20] });
+  assert.equal(queryIndexDetail(db, '000300.SH').turnover.estimate.reason, 'no_previous_same_source');
+  const estimate = queryIndexDetail(db, '000300.SH', { snapshotId: 2 }).turnover.estimate;
+  assert.equal(estimate.valuePct, 10); assert.equal(estimate.from.id, 1); assert.equal(estimate.to.id, 2);
+  assert.equal(queryIndexDetail(db, '000300.SH', { snapshotId: 1 }).turnover.estimate.valuePct, null);
+  db.exec('UPDATE index_constituent_snapshot SET expected_count=3 WHERE id=1');
+  assert.equal(queryIndexDetail(db, '000300.SH', { snapshotId: 2 }).turnover.estimate.valuePct, null);
+});
+
+test('actual disclosures are independent of snapshot proxies, exact-code only and public over HTTP', async t => {
+  const db = database(t); snapshot(db, { source: 'csindex' }); ensureIndexTurnoverSchema(db);
+  db.prepare('INSERT INTO index_turnover_disclosure VALUES(?,?,?,?,?,?,?,?,?,?,?)').run('000300.SH', '2026-01-01', '2026-06-30',
+    18.5, 'one_way', 0, '披露的半年单边调仓换手', '指数机构', 'https://example.com/disclosure.pdf', '2026-07-01', 'verified');
+  const request = await start(t, db);
+  const result = await request('/api/index/000300.SH');
+  assert.equal(result.body.turnover.disclosed.valuePct, 18.5);
+  assert.equal(result.body.turnover.estimate.valuePct, null);
+  assert.equal((await request('/api/index/H00300.CSI')).body.turnover.disclosed, null);
 });

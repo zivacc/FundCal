@@ -24,7 +24,7 @@ import { loadFundsPage, loadFilterOptions } from './data-loader.js';
 import { createListSelection } from './selection.js';
 import { renderMorningstarCells } from './morningstar-cells.js';
 
-const COMPARE_SESSION_KEY = 'fundCalCompareFromCache';
+import { comparisonHref } from '../fund-compare/model.js';
 
 /** 当前页 rows (仅本页, 非全集) */
 let currentRows = [];
@@ -464,11 +464,11 @@ function setupEvents() {
   if (compareBtn) {
     compareBtn.addEventListener('click', () => {
       if (selectedCompare.size === 0) return;
-      const items = Array.from(selectedCompare.entries()).map(([code, name]) => ({ code, name }));
       try {
-        sessionStorage.setItem(COMPARE_SESSION_KEY, JSON.stringify({ funds: items }));
-      } catch { return; }
-      window.location.hash = '#/calc';
+        window.location.hash = comparisonHref([...selectedCompare.keys()]);
+      } catch (error) {
+        setStatus(error.message);
+      }
     });
   }
   const jiuquanBtn = document.getElementById('cached-funds-jiuquan-btn');

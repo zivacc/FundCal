@@ -290,3 +290,9 @@
   .fd-morningstar .fd-card { padding: 1rem 0.75rem; min-width: 0; }
   .fd-morningstar .fd-card-header { flex-wrap: wrap; }
 }
+.fd-related-group + .fd-related-group { margin-top: 1.5rem; }
+.fd-related-group h4 { margin: 0 0 .65rem; font-size: .95rem; }
+.fd-relations-table-wrap { overflow-x: auto; }
+.fd-relations-table-wrap table { min-width: 440px; }
+.fd-relations-table-wrap td:first-child { min-width: 230px; }
+.fd-related-code { display: block; opacity: .68; margin-top: .3rem; font-variant-numeric: tabular-nums; }

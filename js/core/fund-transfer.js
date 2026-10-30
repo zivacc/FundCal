@@ -24,7 +24,8 @@ export function fundDragAttrs(fund) {
   const item = normalizeFundRefs([fund])[0];
   return item ? `data-fund-drag="${item.code}" data-fund-name="${escapeFundAttribute(item.name)}"` : '';
 }
-export const fundDragHandle = () => '<button type="button" class="fund-drag-handle" aria-label="拖动基金" title="拖入篮子；点击选择操作">⠿</button>';
+// 常态不占视觉空间；键盘聚焦时显示文字，保留无需拖动的基金转移操作。
+export const fundDragHandle = () => '<button type="button" class="fund-drag-handle" aria-label="移动基金，选择接收位置" title="选择基金接收位置">移动基金</button>';
 
 /** 有限并发，全部准备成功后由页面一次性应用，失败不清空原有基金。 */
 export async function prepareFundTransfer(items, load, concurrency = 4) {

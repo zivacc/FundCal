@@ -19,7 +19,7 @@ export function fetchMorningstarHistory(code, { refresh = false } = {}) {
     queue.push({ resolve, reject, run: async () => {
       const base = getFeeApiBase();
       if (!base) throw new Error('需要连接基金数据 API');
-      const res = await fetch(`${base.replace(/\/$/, '')}/${code}/morningstar`, { signal: AbortSignal.timeout(15000) });
+      const res = await fetch(`${base.replace(/\/$/, '')}/${code}/morningstar`, { signal: AbortSignal.timeout(15000), ...(refresh ? { cache: 'no-cache' } : {}) });
       if (!res.ok) throw new Error('晨星数据暂时无法加载');
       const data = await res.json();
       next.pending = false; next.savedAt = Date.now();

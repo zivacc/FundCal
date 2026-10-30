@@ -9,6 +9,7 @@ const ROUTES = {
   nav:   { module: '../pages/nav/index.js',           selector: '[data-route="nav"]' },
   stats: { module: '../pages/stats/index.js',         selector: '[data-route="stats"]' },
   fund:  { module: '../pages/fund-detail/index.js',   selector: '[data-route="fund"]' },
+  compare: { module: '../pages/fund-compare/index.js', selector: '[data-route="compare"]' },
   'index-detail': { module: '../pages/index-detail/index.js', selector: '[data-route="index-detail"]' },
 };
 
