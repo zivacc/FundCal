@@ -13,6 +13,7 @@ import { seriesColors } from '../../core/chart-palette.js';
  */
 
 import { setupNavFullscreen } from './fullscreen.js';
+import { setupNavChoiceLenses } from './choice-lens.js';
 import { buildExtremaUpdates, extremaWindow } from './chart-extrema.js';
 import { periodStartIndex } from './period-window.js';
 import { resolveBaseline } from './baseline.js';
@@ -2391,6 +2392,7 @@ export function pageInit() {
   setupEvents();
   setupChartToolbar();
   applyStateToUI();
+  setupNavChoiceLenses();
   renderChartLegend();
   if (state.selected.length) fetchAndRender();
 }

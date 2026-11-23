@@ -15,13 +15,13 @@ const ROUTES = {
 
 const DEFAULT_ROUTE = 'calc';
 const initialized = new Set();
-let switching = false;
-let pendingRoute = null;
+const routeMotion = matchMedia('(prefers-reduced-motion: no-preference)');
+let routeVersion = 0;
 
 function parseRoute() {
   const h = (window.location.hash || '').replace(/^#\/?/, '').trim();
   const name = h.split('/')[0] || '';
-  return ROUTES[name] ? name : DEFAULT_ROUTE;
+  return Object.hasOwn(ROUTES, name) ? name : DEFAULT_ROUTE;
 }
 
 function setActiveTab(route) {
@@ -34,35 +34,27 @@ function setActiveTab(route) {
 }
 
 function showOnlyPage(route) {
-  const pages = document.querySelectorAll('.page');
-  pages.forEach(p => {
-    if (p.dataset.route === route) p.classList.add('active');
-    else p.classList.remove('active');
-  });
+  const previous = document.querySelector('.page.active');
+  const next = document.querySelector(`.page${ROUTES[route].selector}`);
+  if (next === previous) return;
+  previous?.classList.remove('active', 'is-route-entering');
+  next.classList.add('active');
+  if (previous && routeMotion.matches) next.classList.add('is-route-entering');
 }
 
 async function activate(route) {
-  pendingRoute = route;
-  if (switching) return;
-  switching = true;
-  try {
-    while (pendingRoute) {
-      const current = pendingRoute;
-      pendingRoute = null;
-      showOnlyPage(current);
-      setActiveTab(current);
-      if (!initialized.has(current)) {
-        const mod = await import(ROUTES[current].module);
-        if (typeof mod.pageInit === 'function') mod.pageInit();
-        initialized.add(current);
-      }
-      if (!pendingRoute) {
-        window.scrollTo({ top: 0, behavior: 'instant' });
-        window.dispatchEvent(new Event('resize'));
-        window.dispatchEvent(new CustomEvent('fundcal-route-ready', { detail: { route: current } }));
-      }
-    }
-  } finally { switching = false; }
+  const version = ++routeVersion;
+  showOnlyPage(route);
+  setActiveTab(route);
+  window.scrollTo({ top: 0, behavior: 'instant' });
+  if (!initialized.has(route)) {
+    const mod = await import(ROUTES[route].module);
+    if (version !== routeVersion) return;
+    if (typeof mod.pageInit === 'function') mod.pageInit();
+    initialized.add(route);
+  }
+  window.dispatchEvent(new Event('resize'));
+  window.dispatchEvent(new CustomEvent('fundcal-route-ready', { detail: { route } }));
 }
 
 function onHashChange() {
@@ -74,6 +66,12 @@ function start() {
     window.location.hash = '#/' + DEFAULT_ROUTE;
   }
   window.addEventListener('hashchange', onHashChange);
+  document.addEventListener('animationend', event => {
+    if (event.animationName === 'pageEnter') event.target.closest('.page')?.classList.remove('is-route-entering');
+  });
+  routeMotion.addEventListener('change', () => {
+    if (!routeMotion.matches) document.querySelector('.page.is-route-entering')?.classList.remove('is-route-entering');
+  });
   activate(parseRoute());
 }
 

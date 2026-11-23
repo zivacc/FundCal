@@ -13,6 +13,15 @@ const funds = Array.from({ length: 10 }, (_, i) => ({ code: String(i + 1).padSta
 const raw = code => ({ ...funds.find(fund => fund.code === code), fundType: code === '000003' ? 'FOF' : '混合型',
   fundManager: '测试公司', annualFee: .012, buyFee: 0, operationFees: { managementFee: .01, custodyFee: .002, salesServiceFee: 0 },
   redeemSegments: [{ to: 7, rate: .015 }, { to: null, rate: 0 }], stageReturns: [], updatedAt: '2026-10-30', trackingIndexes: [] });
+
+function lensAligned(selector) {
+  const target = document.querySelector(selector);
+  const frame = target?.parentElement.querySelector(':scope > .glass-hover-frame');
+  if (!target?.offsetWidth || !frame?.offsetWidth) return false;
+  const a = target.getBoundingClientRect(), b = frame.getBoundingClientRect();
+  return ['x', 'y', 'width', 'height'].every(key => Math.abs(a[key] - b[key]) < 1);
+}
+
 let fail = true;
 try {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
@@ -54,11 +63,7 @@ try {
   const navLens = page.locator('.top-rail-lens');
   const preview = page.locator('.top-rail-tab[data-route="list"]');
   await preview.hover();
-  await page.waitForFunction(() => {
-    const tab = document.querySelector('.top-rail-tab[data-route="list"]');
-    const lens = document.querySelector('.top-rail-lens');
-    return Math.abs(lens.getBoundingClientRect().left - tab.getBoundingClientRect().left) < 1;
-  });
+  await page.waitForFunction(lensAligned, '.top-rail-tab[data-route="list"]');
   assert.equal(await page.locator('.top-rail-tab[data-route="compare"]').getAttribute('aria-selected'), 'true');
 
   const metric = name => page.locator('#fc-table tr').filter({ has: page.locator('th[scope="row"]', { hasText: new RegExp(`^${name}$`) }) }).locator('td');
@@ -134,8 +139,29 @@ try {
   assert.equal(await page.locator('[data-fof-holdings] a[href="https://fund.eastmoney.com/510310.html"]').count(), 1);
   await page.locator('a[href="#/compare/000003,000002"]').click();
   await page.locator('#fc-status').filter({ hasText: '已载入 2' }).waitFor();
-  // The list now opens the dedicated comparison page.
-  await page.evaluate(() => { location.hash = '#/list'; });
+  // A pending lazy import must neither delay nor reinitialize the newly selected page.
+  const indexModule = '**/js/pages/index-picker/index.js';
+  const gate = Promise.withResolvers();
+  await page.route(indexModule, async route => {
+    await gate.promise;
+    await route.fulfill({ contentType: 'application/javascript', body: 'export function pageInit() { window.routeEvents.push("init:index"); }' });
+  }, { times: 1 });
+  const indexRequested = page.waitForRequest(indexModule);
+  await page.evaluate(() => {
+    window.routeEvents = [];
+    window.addEventListener('fundcal-route-ready', event => window.routeEvents.push(event.detail.route));
+    location.hash = '#/index';
+  });
+  try {
+    await indexRequested;
+    await page.evaluate(() => { location.hash = '#/list'; });
+    await page.waitForFunction(() => window.routeEvents.includes('list'));
+  } finally { gate.resolve(); }
+  await page.evaluate(async () => { await import('/js/pages/index-picker/index.js'); await new Promise(requestAnimationFrame); });
+  assert.deepEqual(await page.evaluate(() => window.routeEvents), ['list']);
+  assert.equal(await page.locator('.page.active').getAttribute('data-route'), 'list');
+
+  // The list opens the dedicated comparison page.
   const row = code => page.locator(`#cached-funds-tbody tr[data-code="${code}"]`);
   await row('000001').waitFor();
   await row('000001').locator('td').nth(2).click();
@@ -150,15 +176,27 @@ try {
     location.hash = '#/nav';
   }, funds[0]);
   await page.locator('#nav-chart-canvas canvas').first().waitFor();
+  const navValue = '#nav-value-mode [data-value="nav"]';
+  await page.locator(navValue).hover();
+  await page.waitForFunction(lensAligned, navValue);
+  assert.equal(await page.locator(navValue).getAttribute('aria-pressed'), 'false');
+  await page.locator(navValue).click();
+  assert.equal(await page.locator(navValue).getAttribute('aria-pressed'), 'true');
+  const logScale = '#nav-axis-scale [data-value="log"]';
+  await page.locator(logScale).press('Space');
+  await page.waitForFunction(lensAligned, logScale);
+  assert.equal(await page.locator(logScale).getAttribute('aria-pressed'), 'true');
+
   await page.locator('#nav-chart-toolbar-fullscreen').click();
   await page.locator('.top-rail').waitFor({ state: 'hidden' });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.locator('.nav-fs-exit').click();
-  await page.waitForFunction(() => {
-    const tab = document.querySelector('.top-rail-tab[data-route="nav"]');
-    const lens = document.querySelector('.top-rail-lens');
-    return tab.offsetWidth > 0 && Math.abs(lens.getBoundingClientRect().left - tab.getBoundingClientRect().left) < 1;
-  });
+  await page.waitForFunction(lensAligned, '.top-rail-tab[data-route="nav"]');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const maxPeriod = '.nav-period-btn[data-period="MAX"]';
+  await page.locator(maxPeriod).hover();
+  await page.evaluate(() => new Promise(requestAnimationFrame));
+  assert.ok(await page.evaluate(lensAligned, maxPeriod), 'reduced-motion rim aligns by the next frame');
   assert.deepEqual(errors, []);
-  console.log('Fund inspection browser checks passed: comparison, snapshots, failures, races, basket, links, responsive themes, NAV fullscreen.');
+  console.log('Fund inspection browser checks passed: comparison, snapshots, failures, route races, basket, links, responsive themes, NAV lenses and fullscreen.');
 } finally { await browser.close(); await new Promise(resolve => server.close(resolve)); }

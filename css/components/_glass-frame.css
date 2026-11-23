@@ -32,3 +32,26 @@
 @media (forced-colors: active) {
   .glass-hover-frame { border-color: Highlight; }
 }
+
+.glass-hover-frame {
+  overflow: clip;
+  transform-origin: top left;
+}
+
+/* A moving reflection on the existing rim, clipped by the frame's hollow mask. */
+@media (any-hover: hover) and (prefers-reduced-motion: no-preference) and (prefers-reduced-transparency: no-preference) and (forced-colors: none) {
+  .glass-hover-frame::after {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    left: var(--rim-glint-x, 50%);
+    width: clamp(34px, 34%, 136px);
+    transform: translateX(-50%);
+    background: linear-gradient(to bottom, var(--glass-lens-shine), transparent 1.5px calc(100% - 1.5px), var(--glass-toplight));
+    mask-image: linear-gradient(to right, transparent, black 48%, transparent);
+    opacity: 0;
+    transition: left 95ms ease-out, opacity 120ms ease-out;
+  }
+
+  .glass-hover-frame.has-glint::after { opacity: .85; }
+}

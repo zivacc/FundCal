@@ -1,4 +1,5 @@
 import { disposeCardImplicitFee } from './implicit-fee.js';
+import { createSpring, advanceSpring } from '../../core/glass-motion.js';
 import { deckPose, deckFrontCount, clampDeckIndex } from './deck-layout.js';
 import { applyGlassRefraction, glassRefractionSupported, reducedGlassTransparency, removeGlassRefraction } from '../../core/glass-refraction.js';
 
@@ -15,9 +16,12 @@ export function setupCardDeck() {
   stage.append(identities);
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   const cardSurfaces = new WeakMap();
-  let cards = [], position = 0, target = 0, frame = 0, gesture = null, suppressClick = false;
+  const slide = createSpring(0);
+  const lightX = createSpring(42), lightY = createSpring(12);
+  let cards = [], frame = 0, gesture = null, suppressClick = false;
   let width = 0, cardWidth = 330, cardRadius = 24, frontCount = 1, lastTime = 0;
-  let lightFrame = 0, pointer = null;
+  let lightFrame = 0, lightTime = 0, pointer = null;
+  let stageVisible = false, syncLight = true;
   const maxIndex = () => Math.max(0, cards.length - frontCount);
   const clampPosition = value => clampDeckIndex(value, maxIndex() + 1);
   function paintIdentities(surfaces, bounds) {
@@ -49,12 +53,20 @@ export function setupCardDeck() {
     }
     identities.hidden = false;
   }
-  function paintLight() {
+  function paintLight(time) {
     lightFrame = 0;
     const bounds = stage.getBoundingClientRect();
-    if (!bounds.width) return;
-    const x = pointer && !reduced.matches ? (pointer.x - bounds.x) / bounds.width : .42;
-    const y = pointer && !reduced.matches ? (pointer.y - bounds.y) / Math.max(1, bounds.height) : .12;
+    if (!bounds.width) { lightTime = 0; return; }
+    lightX.goal = pointer && !reduced.matches ? (pointer.x - bounds.x) / bounds.width * 100 : 42;
+    lightY.goal = pointer && !reduced.matches ? (pointer.y - bounds.y) / bounds.height * 100 : 12;
+    const elapsed = Math.max(0, time - lightTime) / 1000;
+    lightTime = time;
+    for (const axis of [lightX, lightY]) {
+      if (syncLight || reduced.matches) { axis.value = axis.goal; axis.velocity = 0; }
+      else advanceSpring(axis, elapsed);
+    }
+    syncLight = false;
+    const x = lightX.value / 100, y = lightY.value / 100;
     // 光源可以位于舞台之外，卡片边缘的光线角度保持在有限范围内。
     const lightDirection = Math.max(-1, Math.min(2, x));
     // 所有反射都由同一个舞台光源投射，先读取位置，再批量写入样式。
@@ -66,17 +78,24 @@ export function setupCardDeck() {
       card.style.setProperty('--reflection-x', `${(bounds.x + x * bounds.width - box.x) / Math.max(1, box.width) * 100}%`);
       card.style.setProperty('--reflection-y', `${(bounds.y + y * bounds.height - box.y) / Math.max(1, box.height) * 100}%`);
     }
-    if (identities.hidden && !gesture?.dragging && position === target) paintIdentities(surfaces, bounds);
+    if (identities.hidden && !gesture?.dragging && slide.value === slide.goal) paintIdentities(surfaces, bounds);
+    if (lightX.value !== lightX.goal || lightY.value !== lightY.goal || lightX.velocity || lightY.velocity) light();
+    else lightTime = 0;
   }
-  function light() { if (!lightFrame) lightFrame = requestAnimationFrame(paintLight); }
+  function light() {
+    if (stageVisible && !lightFrame) {
+      if (!lightTime) lightTime = performance.now();
+      lightFrame = requestAnimationFrame(paintLight);
+    }
+  }
   window.addEventListener('pointermove', event => {
     if (event.pointerType !== 'mouse') return;
     pointer = { x: event.clientX, y: event.clientY };
-    if (!reduced.matches && stage.closest('.page')?.classList.contains('active')) light();
+    if (!reduced.matches) light();
   }, { passive: true, capture: true });
   // 页面滚动会改变舞台相对光标的位置；离开舞台/窗口时保留最后光源。
   window.addEventListener('scroll', () => {
-    if (pointer && !reduced.matches && stage.closest('.page')?.classList.contains('active')) light();
+    if (pointer && !reduced.matches) light();
   }, { passive: true });
   const resize = new ResizeObserver(entries => {
     for (const { target: card, borderBoxSize } of entries) {
@@ -96,14 +115,14 @@ export function setupCardDeck() {
     cardRadius = parseFloat(getComputedStyle(stage).getPropertyValue('--deck-card-radius')) || 24;
     frontCount = deckFrontCount(width, cardWidth, cards.length);
     const focused = cards.findIndex(card => card.contains(document.activeElement));
-    if (focused >= 0 && (focused < target || focused >= target + frontCount)) target = focused;
-    target = clampPosition(target);
-    position = clampPosition(position);
+    if (focused >= 0 && (focused < slide.goal || focused >= slide.goal + frontCount)) slide.goal = focused;
+    slide.goal = clampPosition(slide.goal);
+    slide.value = clampPosition(slide.value);
     rail.style.height = `${cards.length ? Math.max(...cards.map(card => card.offsetHeight)) + 94 : 96}px`;
     schedule();
   }
   function refresh() {
-    const oldActive = cards[Math.round(target)];
+    const oldActive = cards[Math.round(slide.goal)];
     const current = [...rail.children];
     for (const old of cards) {
       if (current.includes(old)) continue;
@@ -114,9 +133,9 @@ export function setupCardDeck() {
       disposeCardImplicitFee(old);
     }
     cards = current;
-    if (oldActive && cards.includes(oldActive)) target = cards.indexOf(oldActive);
-    target = clampPosition(target);
-    position = clampPosition(position);
+    if (oldActive && cards.includes(oldActive)) slide.goal = cards.indexOf(oldActive);
+    slide.goal = clampPosition(slide.goal);
+    slide.value = clampPosition(slide.value);
     for (const card of cards) {
       if (!card.querySelector('.deck-card-open')) {
         const open = document.createElement('button');
@@ -151,17 +170,25 @@ export function setupCardDeck() {
   function draw(time) {
     frame = 0;
     identities.hidden = true;
-    const dt = Math.min(40, lastTime ? time - lastTime : 16); lastTime = time;
-    if (reduced.matches || gesture?.dragging) position = target;
-    else position += (target - position) * (1 - Math.exp(-dt / 85));
-    if (Math.abs(target - position) < .002) position = target;
-    const active = Math.round(target);
+    const elapsed = Math.max(0, time - lastTime) / 1000;
+    lastTime = time;
+    if (reduced.matches || gesture?.dragging) {
+      slide.value = slide.goal;
+      if (reduced.matches) slide.velocity = 0;
+    } else {
+      advanceSpring(slide, elapsed, .0005);
+      if (slide.value !== clampPosition(slide.value)) {
+        slide.value = clampPosition(slide.value);
+        slide.velocity = 0;
+      }
+    }
+    const active = Math.round(slide.value);
     cards.forEach((card, i) => {
-      const pose = deckPose(i - position - (frontCount - 1) / 2, cardWidth, width, frontCount);
+      const pose = deckPose(i - slide.value - (frontCount - 1) / 2, cardWidth, width, frontCount);
       card.style.transform = `translateX(-50%) translate3d(${pose.x}px, ${pose.y}px, ${pose.z}px) rotateY(${pose.angle}deg) scale(${pose.scale})`;
       card.style.opacity = pose.opacity;
       card.style.visibility = pose.opacity > 0 ? 'visible' : 'hidden';
-      card.style.zIndex = String(1000 - Math.round(Math.abs(i - position) * 100));
+      card.style.zIndex = String(1000 - Math.round(Math.abs(i - slide.value) * 100));
       card.style.setProperty('--surface-light', pose.light);
       const front = i >= active && i < active + frontCount;
       const dragged = gesture?.dragging && gesture.card === card && pose.opacity > 0;
@@ -181,40 +208,47 @@ export function setupCardDeck() {
     count.textContent = cards.length ? `${active + 1}${frontCount > 1 ? `–${active + frontCount}` : ''} / ${cards.length}` : '0 / 0';
     rail.dataset.activeIndex = String(active);
     rail.dataset.frontCount = String(frontCount);
-    prev.disabled = target <= 0;
-    next.disabled = target >= maxIndex();
+    prev.disabled = slide.goal <= 0;
+    next.disabled = slide.goal >= maxIndex();
     light();
-    if (position !== target) schedule(); else lastTime = 0;
+    if (!gesture?.dragging && (slide.value !== slide.goal || slide.velocity)) schedule();
+    else lastTime = 0;
   }
-  function schedule() { if (!frame) frame = requestAnimationFrame(draw); }
+  function schedule() {
+    if (stageVisible && !frame) {
+      if (!lastTime) lastTime = performance.now();
+      frame = requestAnimationFrame(draw);
+    }
+  }
   function go(index) {
-    target = clampPosition(index);
+    slide.goal = clampPosition(index);
     const focus = document.activeElement;
-    if (focus !== rail && rail.contains(focus) && !cards.slice(Math.round(target), Math.round(target) + frontCount).some(card => card.contains(focus))) focus.blur();
+    if (focus !== rail && rail.contains(focus) && !cards.slice(Math.round(slide.goal), Math.round(slide.goal) + frontCount).some(card => card.contains(focus))) focus.blur();
     schedule();
   }
-  prev.addEventListener('click', () => go(Math.round(target) - 1));
-  next.addEventListener('click', () => go(Math.round(target) + 1));
+  prev.addEventListener('click', () => go(Math.round(slide.goal) - 1));
+  next.addEventListener('click', () => go(Math.round(slide.goal) + 1));
   rail.addEventListener('keydown', event => {
     if (event.target !== rail || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
     event.preventDefault();
-    go(event.key === 'Home' ? 0 : event.key === 'End' ? maxIndex() : Math.round(target) + (event.key === 'ArrowLeft' ? -1 : 1));
+    go(event.key === 'Home' ? 0 : event.key === 'End' ? maxIndex() : Math.round(slide.goal) + (event.key === 'ArrowLeft' ? -1 : 1));
   });
   rail.addEventListener('wheel', event => {
     if (!maxIndex() || event.ctrlKey || event.target.closest('input,select,textarea') || document.body.classList.contains('basket-dragging')) return;
     const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
-    if (!delta || target <= 0 && delta < 0 || target >= maxIndex() && delta > 0) return;
+    if (!delta || slide.goal <= 0 && delta < 0 || slide.goal >= maxIndex() && delta > 0) return;
     event.preventDefault();
     // 一次滚轮手势逐张翻入；触控板持续移动时同样保持连续空间插值。
-    target = clampPosition(target + delta * (event.deltaMode === 1 ? 16 : 1) / 260);
-    schedule(); clearTimeout(wheelTimer); wheelTimer = setTimeout(() => go(Math.round(target)), 140);
+    slide.goal = clampPosition(slide.goal + delta * (event.deltaMode === 1 ? 16 : 1) / 260);
+    schedule(); clearTimeout(wheelTimer); wheelTimer = setTimeout(() => go(Math.round(slide.goal)), 140);
   }, { passive: false });
   let wheelTimer;
   rail.addEventListener('pointerdown', event => {
-    if (event.button !== 0 || !maxIndex() || document.body.classList.contains('basket-dragging')) return;
+    if (!event.isPrimary || event.button !== 0 || !maxIndex() || document.body.classList.contains('basket-dragging')) return;
     if (event.target.closest('input,select,textarea,a,.fund-drag-handle,button:not(.deck-card-open)')) return;
     suppressClick = false;
-    gesture = { id: event.pointerId, x: event.clientX, y: event.clientY, start: target, dragging: false, card: event.target.closest('.fund-card') };
+    gesture = { id: event.pointerId, x: event.clientX, y: event.clientY, returnIndex: Math.round(slide.goal),
+      start: slide.value, lastTime: event.timeStamp, dragging: false, card: event.target.closest('.fund-card') };
   });
   rail.addEventListener('pointermove', event => {
     if (gesture?.id !== event.pointerId) return;
@@ -222,25 +256,54 @@ export function setupCardDeck() {
     if (!gesture.dragging) {
       if (Math.hypot(dx, dy) < 8) return;
       if (Math.abs(dy) > Math.abs(dx)) { gesture = null; return; }
+      // Pick up the visible card even if a button, wheel or keyboard transition is in flight.
+      clearTimeout(wheelTimer);
+      gesture.start = slide.value;
+      slide.goal = slide.value;
+      slide.velocity = 0;
       gesture.dragging = true;
       rail.setPointerCapture(event.pointerId);
       stage.classList.add('is-deck-dragging');
     }
     event.preventDefault();
     if (event.pointerType === 'touch' && !reduced.matches) pointer = { x: event.clientX, y: event.clientY };
-    target = clampPosition(gesture.start - dx / Math.max(160, cardWidth * .65));
+    const next = clampPosition(gesture.start - dx / Math.max(160, cardWidth * .65));
+    const elapsed = Math.max(8, event.timeStamp - gesture.lastTime);
+    slide.velocity = reduced.matches ? 0 : Math.max(-8, Math.min(8, (next - slide.goal) * 1000 / elapsed));
+    gesture.lastTime = event.timeStamp;
+    slide.goal = next;
     schedule();
   }, { passive: false });
   function finish(event, cancel = false) {
     if (gesture?.id !== event.pointerId) return;
     const previous = gesture; gesture = null;
     stage.classList.remove('is-deck-dragging');
-    if (previous.dragging) { suppressClick = true; go(cancel ? Math.round(previous.start) : Math.round(target)); }
+    if (previous.dragging) {
+      suppressClick = true;
+      slide.value = slide.goal;
+      if (cancel || reduced.matches || event.timeStamp - previous.lastTime > 80) slide.velocity = 0;
+      const lead = Math.max(-.4, Math.min(.4, slide.velocity * .065));
+      go(cancel ? previous.returnIndex : Math.round(slide.value + lead));
+    }
   }
   rail.addEventListener('pointerup', event => finish(event));
   rail.addEventListener('pointercancel', event => finish(event, true));
   rail.addEventListener('lostpointercapture', event => { if (event.target === rail) finish(event, true); });
   rail.addEventListener('click', event => { if (suppressClick) { suppressClick = false; event.preventDefault(); event.stopImmediatePropagation(); } }, true);
+  new IntersectionObserver(([entry]) => {
+    if (stageVisible === entry.isIntersecting) return;
+    stageVisible = entry.isIntersecting;
+    if (stageVisible) {
+      syncLight = true;
+      slide.value = slide.goal;
+      slide.velocity = 0;
+      schedule();
+    } else {
+      cancelAnimationFrame(frame);
+      cancelAnimationFrame(lightFrame);
+      frame = lastTime = lightFrame = lightTime = 0;
+    }
+  }).observe(stage);
   new MutationObserver(refresh).observe(rail, { childList: true });
   resize.observe(rail);
   reduced.addEventListener('change', schedule);

@@ -31,11 +31,50 @@ try {
  const stage=await page.locator('#fund-card-stage').boundingBox();
  await page.mouse.move(stage.x+stage.width*.25,stage.y+stage.height*.3); await page.waitForTimeout(80);
  const inside=await light();
- await page.mouse.move(10,75); await page.waitForTimeout(80);
+ const glide = await page.locator('#fund-card-stage').evaluate(async el => {
+   const start = parseFloat(el.style.getPropertyValue('--light-x'));
+   const bounds = el.getBoundingClientRect();
+   const end = (10 - bounds.left) / bounds.width * 100;
+   window.dispatchEvent(new PointerEvent('pointermove', { pointerType: 'mouse', clientX: 10, clientY: 75 }));
+   for (let i = 0; i < 12; i++) {
+     await new Promise(requestAnimationFrame);
+     const x = parseFloat(el.style.getPropertyValue('--light-x'));
+     if (x < start - .1 && x > end + .1) return true;
+   }
+   return false;
+ });
+ assert.ok(glide, 'rim light travels through intermediate positions');
+ await page.mouse.move(10,75);
+ await page.waitForFunction(() => {
+   const el = document.getElementById('fund-card-stage'), bounds = el.getBoundingClientRect();
+   return Math.abs(parseFloat(el.style.getPropertyValue('--light-x')) - (10 - bounds.left) / bounds.width * 100) < .00001;
+ });
  const outside=await light(); assert.notDeepEqual(inside,outside);
  assert.ok(parseFloat(outside.x)<0,'global x must continue outside stage');
  await page.dispatchEvent('#fund-card-stage','pointerleave',{pointerType:'mouse'}); await page.waitForTimeout(80); assert.equal((await light()).x,outside.x); assert.ok(parseFloat((await light()).y)<0);
  await page.mouse.move(200,80); await page.waitForTimeout(80); assert.notDeepEqual(await light(),outside);
+ // Chart interaction should not measure offscreen cards; re-entry uses the last pointer.
+ await page.evaluate(() => scrollTo({ top: document.getElementById('fund-card-stage').getBoundingClientRect().bottom + scrollY + 20, behavior: 'instant' }));
+ await page.waitForFunction(() => document.getElementById('fund-card-stage').getBoundingClientRect().bottom < 0);
+ await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+ const offscreenReads = await page.locator('.fund-card').first().evaluate(async card => {
+   let reads = 0;
+   const measure = card.getBoundingClientRect;
+   card.getBoundingClientRect = () => { reads++; return measure.call(card); };
+   try {
+     for (let i = 0; i < 5; i++) {
+       window.dispatchEvent(new PointerEvent('pointermove', { pointerType: 'mouse', clientX: 201 + i, clientY: 85 }));
+       await new Promise(requestAnimationFrame);
+     }
+     return reads;
+   } finally { delete card.getBoundingClientRect; }
+ });
+ assert.equal(offscreenReads, 0);
+ await page.evaluate(() => scrollTo({ top: 0, behavior: 'instant' }));
+ await page.waitForFunction(() => {
+   const el = document.getElementById('fund-card-stage'), bounds = el.getBoundingClientRect();
+   return Math.abs(parseFloat(el.style.getPropertyValue('--light-x')) - (205 - bounds.left) / bounds.width * 100) < .00001;
+ });
  const clipped=await page.locator('.fund-card.is-deck-active .fund-drag-handle').first().evaluate(el=>({clip:getComputedStyle(el).clipPath,width:el.getBoundingClientRect().width,text:el.textContent}));
  assert.equal(clipped.clip,'inset(50%)'); assert.equal(clipped.width,1); assert.equal(clipped.text,'移动基金');
  await page.locator('.fund-card.is-deck-active .fund-drag-handle').first().focus();
@@ -43,8 +82,21 @@ try {
  await page.keyboard.press('Enter'); assert.equal(await page.locator('body').evaluate(el=>el.classList.contains('basket-dragging')),true); await page.keyboard.press('Escape');
  await page.locator('#fund-cards').focus(); await page.keyboard.press('End'); await page.waitForTimeout(450); await page.keyboard.press('Home'); await page.waitForTimeout(450);
  let card=await page.locator('.fund-card.is-deck-active').first().boundingBox();
- // Left padding is non-interactive card body: horizontal drag changes the gallery.
- await page.mouse.move(card.x+8,card.y+110); await page.mouse.down();
+ // Grab an in-flight transition. The first drag sample is measured from the visible card.
+ await page.mouse.move(card.x+8,card.y+110);
+ await page.locator('#fund-cards').evaluate(rail => {
+   const readX = () => parseFloat(rail.children[1].style.transform.match(/translate3d\(([^,]+)/)[1]);
+   window.addEventListener('pointerdown', () => rail.dispatchEvent(new KeyboardEvent('keydown', { key: 'End' })), { capture: true, once: true });
+   rail.addEventListener('pointermove', () => {
+     const start = readX();
+     requestAnimationFrame(() => { window.firstDeckDragDistance = Math.abs(readX() - start); });
+   }, { once: true });
+ });
+ await page.mouse.down();
+ await page.mouse.move(card.x-12,card.y+110);
+ await page.waitForFunction(() => Number.isFinite(window.firstDeckDragDistance));
+ assert.ok(await page.evaluate(() => window.firstDeckDragDistance < 100), '20px drag must not jump to the previous destination');
+ // Continue the same horizontal drag and then transfer the settled card vertically.
  await page.mouse.move(card.x-50,card.y+110,{steps:5});
  const draggedCard = page.locator('.fund-card.is-deck-drag-surface');
  await draggedCard.waitFor();

@@ -85,7 +85,7 @@
   transition: border-color var(--transition-fast);
 }
 
-.nav-period-btn:not(.nav-period-btn-active):hover {
+.nav-period-group:not(.has-nav-choice-lens) .nav-period-btn:not(.nav-period-btn-active):hover {
   border-color: var(--glass-lens-edge);
 }
 
@@ -120,7 +120,7 @@
   transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 
-.nav-toggle-btn:not(.nav-toggle-btn-active):hover:not(:focus-visible) {
+.nav-toggle-group:not(.has-nav-choice-lens) .nav-toggle-btn:not(.nav-toggle-btn-active):hover:not(:focus-visible) {
   outline: 1px solid var(--glass-lens-edge);
   outline-offset: -1px;
 }
@@ -129,6 +129,28 @@
   background: var(--gradient-primary);
   box-shadow: var(--glass-frame-shadow);
   color: var(--text-inverse);
+}
+
+.has-nav-choice-lens { position: relative; }
+
+.nav-choice-lens {
+  top: 0;
+  left: 0;
+  z-index: 1;
+  border-radius: var(--radius-pill);
+  padding: 5px;
+}
+
+.has-nav-choice-lens > :is(.nav-period-btn, .nav-toggle-btn) {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.has-nav-choice-lens > :is(.nav-period-btn-active, .nav-toggle-btn-active) {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: .24em;
 }
 
 /* 区间选择：与周期按钮同行，整框可点击直接弹日历 */

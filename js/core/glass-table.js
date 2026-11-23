@@ -1,23 +1,29 @@
+import { createGlassMotion } from './glass-motion.js';
 import { applyGlassRefraction, removeGlassRefraction, reducedGlassTransparency } from './glass-refraction.js';
 
 const tables = '.table, .cached-funds-table, .fund-detail-table, .fc-table, .id-table, .fd-table, .nav-stats-table, .nav-range-stats-table';
-const hoverPointer = matchMedia('(hover: hover) and (pointer: fine)');
+const hoverPointer = matchMedia('(any-hover: hover)');
 const lens = document.createElement('span');
 lens.className = 'glass-hover-frame glass-table-frame';
 lens.setAttribute('aria-hidden', 'true');
-const resize = new ResizeObserver(scheduleLens);
-const mutations = new MutationObserver(scheduleLens);
+const motion = createGlassMotion(lens);
+const resize = new ResizeObserver(alignToLayout);
+const mutations = new MutationObserver(alignToLayout);
 let table = null;
 let activeRow = null;
 let pointer = null;
 let frame = 0;
+let snapToLayout = false;
+let hoverBounds = null;
 
 function clearTarget() {
   activeRow?.classList.remove('has-table-lens');
   activeRow = null;
+  hoverBounds = null;
   if (!table) return;
   resize.disconnect();
   mutations.disconnect();
+  motion.reset();
   removeGlassRefraction(lens);
   lens.remove();
   table = null;
@@ -48,8 +54,10 @@ function updateLens() {
   const host = nextTable.parentElement;
   const bounds = target.getBoundingClientRect();
   const viewport = host.getBoundingClientRect();
-  const left = Math.max(0, bounds.left - viewport.left - host.clientLeft);
-  const right = Math.min(host.clientWidth, bounds.right - viewport.left - host.clientLeft);
+  const scaleX = viewport.width / host.offsetWidth;
+  const scaleY = viewport.height / host.offsetHeight;
+  const left = Math.max(0, (bounds.left - viewport.left) / scaleX - host.clientLeft);
+  const right = Math.min(host.clientWidth, (bounds.right - viewport.left) / scaleX - host.clientLeft);
   const width = right - left;
   if (width < 1 || bounds.height < 1) {
     clearTarget();
@@ -69,33 +77,39 @@ function updateLens() {
     activeRow = row;
     row.classList.add('has-table-lens');
   }
-  const top = host.scrollTop + bounds.top - viewport.top - host.clientTop;
-  lens.style.left = `${host.scrollLeft + left}px`;
-  lens.style.transform = `translateY(${top}px)`;
-  lens.style.width = `${width}px`;
-  lens.style.height = `${bounds.height}px`;
-  applyGlassRefraction(lens, width, bounds.height, { radius: 8, rim: 5, scale: 10 });
+  const top = host.scrollTop + (bounds.top - viewport.top) / scaleY - host.clientTop;
+  const height = bounds.height / scaleY;
+  motion.moveTo({ x: host.scrollLeft + left, y: top, width, height }, { immediate: snapToLayout });
+  snapToLayout = false;
+  hoverBounds = { left: viewport.left + (host.clientLeft + left) * scaleX, width: width * scaleX };
+  motion.highlightAt(pointer.x, hoverBounds);
+  applyGlassRefraction(lens, width, height, { radius: 8, rim: 5, scale: 10 });
 }
 
 function scheduleLens() {
   if (pointer && !frame) frame = requestAnimationFrame(updateLens);
 }
 
+function alignToLayout() {
+  snapToLayout = true;
+  scheduleLens();
+}
+
 document.addEventListener('pointermove', event => {
-  if (event.pointerType !== 'mouse' || !hoverPointer.matches) return;
+  if (event.pointerType === 'touch' || !hoverPointer.matches) return;
   const previousTarget = pointer?.target;
   pointer = { x: event.clientX, y: event.clientY, target: event.target };
-  lens.classList.remove('is-scrolling');
+  if (hoverBounds && event.target === previousTarget) motion.highlightAt(pointer.x, hoverBounds);
   if (event.target !== previousTarget && (table || event.target.closest(tables))) scheduleLens();
 }, { passive: true });
 
 document.addEventListener('pointerout', event => {
   if (!event.relatedTarget) clearLens();
 });
-document.addEventListener('scroll', () => {
-  if (table) lens.classList.add('is-scrolling');
-  scheduleLens();
-}, { capture: true, passive: true });
+document.addEventListener('pointerdown', event => {
+  if (event.pointerType === 'touch') clearLens();
+}, { passive: true });
+document.addEventListener('scroll', alignToLayout, { capture: true, passive: true });
 window.addEventListener('blur', clearLens);
 window.addEventListener('fundcal-route-ready', clearLens);
 hoverPointer.addEventListener('change', clearLens);

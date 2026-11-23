@@ -16,18 +16,20 @@
 /* SPA 页切换 */
 .page {
   display: none;
-  animation: pageFade .22s cubic-bezier(.2,.7,.3,1);
 }
 .page.active {
   display: block;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .page { animation: none; }
+/* Contain motion to headings so charts and fixed drawers keep their layout. */
+@media (prefers-reduced-motion: no-preference) {
+  .page.is-route-entering :is(.page-header, .ix-hero-title, .ix-hero-sub) {
+    animation: pageEnter .28s var(--glass-lens-ease);
+  }
 }
 
-@keyframes pageFade {
-  from { opacity: 0; transform: translateY(4px); }
+@keyframes pageEnter {
+  from { opacity: .64; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 

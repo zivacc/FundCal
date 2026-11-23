@@ -40,14 +40,14 @@
   left: 0;
   z-index: 1;
   border-radius: 8px;
-  transition: transform .18s var(--glass-lens-ease);
+  animation: reveal-table-frame .12s ease-out;
 }
 
-.glass-table-frame.is-scrolling { transition: none; }
+@keyframes reveal-table-frame { from { opacity: 0; } }
 .basket-dragging .glass-table-frame { visibility: hidden; }
 
 @media (prefers-reduced-motion: reduce) {
-  .glass-table-frame { transition: none; }
+  .glass-table-frame { animation: none; }
 }
 
 .table {
