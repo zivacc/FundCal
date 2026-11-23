@@ -30,7 +30,6 @@ function setActiveTab(route) {
     const active = t.dataset.route === route;
     t.classList.toggle('active', active);
     t.setAttribute('aria-selected', String(active));
-    if (active) t.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   });
 }
 
@@ -75,9 +74,6 @@ function start() {
     window.location.hash = '#/' + DEFAULT_ROUTE;
   }
   window.addEventListener('hashchange', onHashChange);
-  window.addEventListener('resize', () => {
-    document.querySelector('.top-rail-tab.active')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-  });
   activate(parseRoute());
 }
 

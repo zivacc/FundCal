@@ -2,24 +2,29 @@
 .fc-header, .fc-toolbar, .fc-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .7rem; }
 .fc-header { justify-content: space-between; }
 .fc-count { font-family: var(--font-mono); color: var(--text-tertiary); font-size: .9rem; }
-.fc-toolbar { padding: 1rem; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg-raised); }
+.fc-toolbar, .fc-empty, .fc-table-wrap {
+  border: 1px solid var(--glass-stroke);
+  border-radius: var(--radius-xl);
+  background: var(--glass-highlight) var(--glass-fill-strong);
+  box-shadow: var(--glass-shadow);
+}
+.fc-toolbar { padding: 1rem; }
 .fc-search-wrap { flex: 1 1 260px; min-width: 0; max-width: 440px; }
 .fc-toolbar .fund-search-input { width: 100%; }
 .fc-actions { margin: 1rem 0; justify-content: space-between; }
 .fc-actions label { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; font-size: .85rem; color: var(--text-secondary); }
 .fc-actions select { max-width: 100%; }
 .fc-hint { font-size: .82rem; line-height: 1.7; color: var(--text-tertiary); margin: .8rem 0; }
-.fc-empty { padding: 3rem 1.25rem; margin-top: 1rem; text-align: center; border: 1px dashed var(--border); border-radius: var(--radius-lg); color: var(--text-secondary); }
-.fc-empty strong { display: block; margin-bottom: .75rem; color: var(--text-primary); font-family: var(--font-serif); font-size: 1.4rem; }
-.fc-table-wrap { max-width: 100%; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg-raised); }
+.fc-empty { padding: 3rem 1.25rem; margin-top: 1rem; text-align: center; color: var(--text-secondary); }
+.fc-empty strong { display: block; margin-bottom: .75rem; color: var(--text-primary); font-size: 1.4rem; }
+.fc-table-wrap { max-width: 100%; overflow: auto; }
 .fc-table { width: 100%; min-width: calc(160px + var(--fc-columns, 1) * 240px); table-layout: fixed; border-collapse: separate; border-spacing: 0; font-size: .88rem; }
 .fc-table caption { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .fc-table .fc-metric-col { width: 160px; }
 .fc-table th, .fc-table td { padding: .8rem 1rem; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); vertical-align: top; text-align: left; overflow-wrap: anywhere; font-weight: 400; }
 .fc-table td { font-variant-numeric: tabular-nums; line-height: 1.65; white-space: pre-line; }
 .fc-table .fc-metric { position: sticky; left: 0; z-index: 1; color: var(--text-secondary); background: var(--bg-raised); }
-.fc-table thead th { background: var(--bg-subtle); }
-.fc-table thead .fc-metric { background: var(--bg-subtle); }
+.fc-table thead th, .fc-table thead .fc-metric { background: var(--glass-highlight) var(--bg-elevated); }
 .fc-table .fc-section th { width: auto; background: var(--accent-subtle); font-size: .8rem; font-weight: 600; color: var(--accent); }
 .fc-table tr > :last-child { border-right: 0; }
 .fc-table tbody:last-child tr:last-child > * { border-bottom: 0; }
@@ -28,7 +33,8 @@
 .fc-fund-heading span { display: block; font: .8rem var(--font-mono); color: var(--accent); margin-bottom: .5rem; }
 .fc-fund-heading strong { font-size: 1rem; font-weight: 600; line-height: 1.6; }
 .fc-fund-heading a:hover strong { color: var(--accent); }
-.fc-remove { border: 0; background: transparent; color: var(--text-tertiary); cursor: pointer; font-size: 1.25rem; padding: .1rem .3rem; }
+.fc-remove { width: 2rem; height: 2rem; flex-shrink: 0; border: 1px solid var(--glass-stroke); border-radius: 50%; background: var(--glass-fill); color: var(--text-secondary); cursor: pointer; font-size: 1.2rem; line-height: 1; }
+.fc-remove:hover { background-color: var(--danger-subtle); color: var(--danger); }
 .fc-index-link { display: block; margin-top: .5rem; font-size: .78rem; }
 .fc-column-status { color: var(--text-secondary); font-size: .8rem; margin-top: .65rem; }
 .fc-column-status button { border: 0; background: transparent; color: var(--accent); cursor: pointer; text-decoration: underline; padding: .3rem; }

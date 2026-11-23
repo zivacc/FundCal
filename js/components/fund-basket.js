@@ -94,9 +94,10 @@ function refreshContext() {
 }
 function positionDropLabels() {
   const bottom = panel.hidden ? 0 : panel.getBoundingClientRect().bottom;
-  zones.style.setProperty('--basket-panel-offset', `${Math.max(0, bottom - 56)}px`);
+  const offset = Math.max(0, bottom - zones.getBoundingClientRect().top);
+  zones.style.setProperty('--basket-panel-offset', `${offset}px`);
   const narrow = window.innerWidth <= 768;
-  picker.style.top = `${narrow && !panel.hidden ? bottom + 10 : 68}px`;
+  picker.style.top = narrow && !panel.hidden ? `${bottom + 10}px` : '';
   picker.style.right = `${!narrow && !panel.hidden ? window.innerWidth - panel.getBoundingClientRect().left + 12 : 12}px`;
 }
 function openPanel(show = panel.hidden) {

@@ -3,24 +3,24 @@
    ══════════════════════════════════════════════════════════════ */
 
 .fund-stats-summary {
-  margin-bottom: 1.25rem;
-  text-align: center;
+  margin: 1rem 0 1.25rem;
 }
 
 .fund-stats-summary-card {
   display: inline-flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.2rem;
-  padding: 0.75rem 1rem;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--rule);
-  background: var(--bg-raised);
-  box-shadow: var(--shadow-sm);
+  gap: 0.3rem;
+  padding: 1rem 1.35rem;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--glass-stroke);
+  background: var(--glass-highlight) var(--glass-fill);
+  box-shadow: var(--glass-shadow);
 }
 
 .fund-stats-summary-number {
-  font-size: 1.6rem;
+  font-size: 1.85rem;
+  line-height: 1.2;
   font-weight: 600;
   font-family: var(--font-mono);
   color: var(--accent);
@@ -51,10 +51,11 @@
   position: relative;
   display: flex;
   align-items: stretch;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   padding: 3px;
-  background: var(--bg-sunk);
-  border: 1px solid var(--rule);
+  background: var(--glass-fill);
+  border: 1px solid var(--glass-stroke);
+  box-shadow: inset 0 1px 5px color-mix(in srgb, var(--text-primary) 9%, transparent);
   margin-bottom: 0.75rem;
   width: 100%;
   max-width: 100%;
@@ -71,7 +72,7 @@
   color: var(--text-secondary);
   font-weight: 500;
   cursor: pointer;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   transition: color 0.15s ease-out;
   flex: 1 1 0;
   text-align: center;
@@ -92,11 +93,11 @@
   bottom: 3px;
   left: 3px;
   width: calc((100% - 6px) / 4);
-  border-radius: var(--radius-sm);
-  background: var(--bg-raised);
-  border: 1px solid var(--rule);
-  box-shadow: var(--shadow-sm);
-  transition: transform 0.2s ease-out;
+  border-radius: var(--radius-md);
+  background: var(--glass-highlight) color-mix(in srgb, var(--accent) 11%, var(--glass-fill-strong));
+  border: 1px solid var(--glass-stroke);
+  box-shadow: var(--glass-shadow);
+  transition: transform 240ms cubic-bezier(.2, .8, .3, 1);
 }
 
 .fund-stats-toggle-subtitle {
@@ -114,25 +115,26 @@
 
 @media (max-width: 768px) {
   .fund-stats-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
 /* 统计卡片 */
 .fund-stats-card {
   position: relative;
-  padding: 10px 12px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--rule);
-  background: var(--bg-raised);
-  box-shadow: var(--shadow-sm);
-  overflow: hidden;
-  transition: box-shadow 0.15s ease-out, border-color 0.15s ease-out, background 0.15s ease-out;
+  padding: 12px 14px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--glass-stroke);
+  background: var(--glass-highlight) var(--glass-fill);
+  box-shadow: inset 0 1px var(--glass-toplight), var(--shadow-sm);
+  transition: box-shadow var(--transition-fast), border-color var(--transition-fast), background-color var(--transition-fast);
   cursor: pointer;
 }
 
-.fund-stats-card:hover {
-  box-shadow: var(--shadow-md);
+.fund-stats-card:hover,
+.fund-stats-card:focus-visible {
+  background-color: var(--glass-fill-strong);
+  box-shadow: inset 0 1px var(--glass-toplight), var(--shadow-md);
   border-color: var(--accent);
 }
 
@@ -173,7 +175,7 @@
   position: absolute;
   inset: 0;
   width: 0%;
-  background: var(--accent);
+  background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 70%, var(--glass-toplight)));
   transform-origin: left;
   animation: fund-stats-bar-grow 0.4s ease-out forwards;
 }
@@ -215,8 +217,8 @@
 
 .fund-stats-main-right {
   position: sticky;
-  top: calc(52px + 1rem);
-  max-height: calc(100vh - 52px - 2rem);
+  top: calc(var(--top-rail-height, 52px) + 1rem);
+  max-height: calc(100dvh - var(--top-rail-height, 52px) - 2rem);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -235,7 +237,7 @@
 }
 
 .fund-stats-main.fund-stats-main-show-detail .fund-stats-main-right {
-  max-width: 38%;
+  max-width: calc(38% - .75rem);
   opacity: 1;
   pointer-events: auto;
   transform: translateX(0);
@@ -261,10 +263,10 @@
 }
 
 .fund-stats-detail-card {
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--rule);
-  background: var(--bg-raised);
-  box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--glass-stroke);
+  background: var(--glass-highlight) var(--glass-fill-strong);
+  box-shadow: inset 0 1px var(--glass-toplight);
   padding: 0.9rem 1rem;
   display: flex;
   flex-direction: column;
@@ -404,4 +406,19 @@
   font-size: 0.7rem;
   color: var(--text-secondary);
   background: var(--bg-sunk);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fund-stats-toggle-slider,
+  .fund-stats-main-left,
+  .fund-stats-main-right { transition: none; }
+
+  .fund-stats-fade-in {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+
+  .fund-stats-card-bar,
+  .fund-stats-detail-loading::after { animation: none; }
 }

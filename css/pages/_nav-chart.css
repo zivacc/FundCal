@@ -31,11 +31,12 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem 1.25rem;
-  padding: 10px 14px;
+  padding: 14px 16px;
   margin-bottom: 0.75rem;
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-md);
-  background: var(--bg-sunk);
+  border: 1px solid var(--glass-stroke);
+  border-radius: var(--radius-xl);
+  background: var(--glass-highlight) var(--glass-fill);
+  box-shadow: var(--glass-shadow);
   align-items: center;
 }
 
@@ -71,24 +72,24 @@
 
 .nav-period-btn {
   padding: 5px 12px;
-  border: 1px solid var(--rule);
-  background: var(--bg-raised);
+  border: 1px solid var(--glass-stroke);
+  background: var(--glass-highlight) var(--glass-fill-strong);
   color: var(--text-secondary);
   font-family: var(--font-mono);
   font-size: 13px;
   letter-spacing: 0.5px;
   cursor: pointer;
-  border-radius: var(--radius-sm);
-  transition: all var(--transition-fast);
+  border-radius: 999px;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
 }
 
-.nav-period-btn:hover {
+.nav-period-btn:not(.nav-period-btn-active):hover {
   border-color: var(--accent);
   color: var(--accent);
 }
 
 .nav-period-btn-active {
-  background: var(--accent);
+  background: var(--gradient-primary);
   border-color: var(--accent);
   color: var(--text-inverse);
 }
@@ -96,50 +97,35 @@
 /* 二态分段控件 — 左|右 切换 */
 .nav-toggle-group {
   display: inline-flex;
-  gap: 0;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--glass-stroke);
+  border-radius: 999px;
+  background: var(--glass-fill);
+  box-shadow: inset 0 1px 5px color-mix(in srgb, var(--text-primary) 9%, transparent);
 }
 
 .nav-toggle-btn {
   padding: 4px 12px;
-  border: 1px solid var(--rule);
-  background: var(--bg-raised);
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
   color: var(--text-secondary);
   font-family: var(--font-mono);
   font-size: 13px;
   letter-spacing: 0.5px;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 
-.nav-toggle-btn + .nav-toggle-btn {
-  border-left: none;
-}
-
-.nav-toggle-group .nav-toggle-btn:first-child {
-  border-top-left-radius: var(--radius-sm);
-  border-bottom-left-radius: var(--radius-sm);
-}
-
-.nav-toggle-group .nav-toggle-btn:last-child {
-  border-top-right-radius: var(--radius-sm);
-  border-bottom-right-radius: var(--radius-sm);
-}
-
-.nav-toggle-btn:hover {
-  border-color: var(--accent);
+.nav-toggle-btn:not(.nav-toggle-btn-active):hover {
   color: var(--accent);
 }
 
 .nav-toggle-btn-active {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--gradient-primary);
+  box-shadow: inset 0 1px var(--glass-toplight), var(--shadow-sm);
   color: var(--text-inverse);
-}
-
-.nav-toggle-btn-active + .nav-toggle-btn,
-.nav-toggle-btn + .nav-toggle-btn-active {
-  /* 让被选中按钮的边框压在相邻按钮上面 */
-  border-left: 1px solid var(--accent);
 }
 
 /* 区间选择：与周期按钮同行，整框可点击直接弹日历 */
@@ -174,9 +160,10 @@
 /* 图表容器 */
 .nav-chart-wrap {
   position: relative;
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-md);
-  background: var(--bg-raised);
+  border: 1px solid var(--glass-stroke);
+  border-radius: var(--radius-xl);
+  background: var(--glass-highlight) var(--glass-fill-strong);
+  box-shadow: var(--glass-shadow);
   padding: 12px;
   min-height: 480px;
 }
@@ -195,9 +182,10 @@
   gap: 12px;
   padding: 10px 12px;
   margin-bottom: 8px;
-  background: var(--bg-raised);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-md);
+  background: var(--glass-highlight) var(--glass-fill);
+  border: 1px solid var(--glass-stroke);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
   min-height: 36px;
 }
 
@@ -369,24 +357,24 @@
 }
 
 .nav-chart-toolbar-btn {
-  width: 26px;
-  height: 26px;
+  width: 34px;
+  height: 34px;
   padding: 0;
-  border: 1px solid var(--rule);
-  background: transparent;
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--glass-stroke);
+  background: var(--glass-highlight) var(--glass-fill);
+  border-radius: 50%;
   color: var(--text-secondary);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--transition-fast);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
 }
 
 .nav-chart-toolbar-btn:hover {
   color: var(--accent);
   border-color: var(--accent);
-  background: var(--accent-subtle);
+  background-color: var(--accent-subtle);
 }
 
 .nav-chart-toolbar-btn:focus-visible {
@@ -431,10 +419,10 @@
   position: absolute;
   transform: translateX(-50%);
   padding: 3px 4px 3px 10px;
-  background: var(--bg-raised);
+  background: var(--glass-highlight) var(--glass-fill-strong);
   border: 1px solid var(--accent);
   color: var(--accent);
-  border-radius: 10px;
+  border-radius: 999px;
   font-size: 13px;
   font-weight: 600;
   line-height: 1.2;
@@ -442,7 +430,7 @@
   user-select: none;
   white-space: nowrap;
   z-index: 5;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: inset 0 1px var(--glass-toplight), var(--shadow-sm);
   transition: background-color 0.12s ease, box-shadow 0.12s ease;
   display: inline-flex;
   align-items: center;
@@ -485,11 +473,11 @@
 }
 
 .nav-baseline-panel:hover {
-  background: var(--accent-subtle);
+  background-color: color-mix(in srgb, var(--accent) 10%, var(--glass-fill-strong));
 }
 
 .nav-baseline-panel.is-dragging {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  box-shadow: inset 0 1px var(--glass-toplight), var(--shadow-md);
 }
 .nav-baseline-panel, .nav-range-control-panel, .nav-range-stats-header { touch-action: none; }
 
@@ -507,9 +495,10 @@
 }
 
 .nav-stats-table-wrap {
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-md);
-  background: var(--bg-raised);
+  border: 1px solid var(--glass-stroke);
+  border-radius: var(--radius-lg);
+  background: var(--glass-fill-strong);
+  box-shadow: var(--glass-shadow);
   overflow: auto;
 }
 
@@ -520,7 +509,7 @@
 }
 
 .nav-stats-table thead {
-  background: var(--bg-sunk);
+  background: var(--glass-highlight) var(--bg-elevated);
 }
 
 .nav-stats-table th {
@@ -583,7 +572,7 @@
   font-family: var(--font-mono);
   font-size: 13px;
   letter-spacing: 0.5px;
-  border-radius: var(--radius-sm);
+  border-radius: 999px;
   margin-left: 0;
   box-shadow: none;
 }
@@ -593,9 +582,8 @@
 }
 
 .nav-controls .toggle-btn.toggle-btn-inline:has(.toggle-btn-input:checked) {
-  /* 抹掉全局选中态的发光阴影，跟周期按钮的"实色填充"风格保持一致 */
-  box-shadow: none;
-  background: var(--accent);
+  box-shadow: inset 0 1px var(--glass-toplight);
+  background: var(--gradient-primary);
   border-color: var(--accent);
   color: var(--text-inverse);
 }
@@ -653,10 +641,10 @@
   align-items: center;
   gap: 4px;
   padding: 2px 6px;
-  background: var(--bg-raised);
+  background: var(--glass-highlight) var(--glass-fill-strong);
   border: 1px solid var(--accent);
-  border-radius: var(--radius-sm);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border-radius: var(--radius-md);
+  box-shadow: var(--glass-shadow);
   z-index: 13;
   cursor: grab;
   user-select: none;
@@ -714,13 +702,15 @@
    外框用 --rule（信息面板风格）；accent 主题色留给上方的 grip / actions 小 panel。 */
 .nav-range-stats-panel {
   position: absolute;
-  background: var(--bg-raised);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-md);
+  background: var(--glass-highlight) var(--glass-fill-strong);
+  border: 1px solid var(--glass-stroke);
+  border-radius: var(--radius-lg);
   padding: 8px 12px 10px;
   font-size: 13px;
   color: var(--text-primary);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--glass-shadow);
+  -webkit-backdrop-filter: var(--glass-blur) var(--glass-saturate);
+  backdrop-filter: var(--glass-blur) var(--glass-saturate);
   z-index: 12;
   min-width: 280px;
   max-width: min(640px, calc(100% - 24px));
@@ -729,7 +719,7 @@
 
 .nav-range-stats-panel[hidden] { display: none !important; }
 
-.nav-range-stats-panel.is-dragging { box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28); }
+.nav-range-stats-panel.is-dragging { box-shadow: inset 0 1px var(--glass-toplight), var(--shadow-lg); }
 
 .nav-range-stats-header {
   display: flex;
@@ -874,7 +864,7 @@
 @media (max-width: 768px) {
   .page-nav .container { padding: 16px; }
   .nav-chart-canvas { height: 500px; }
-  .nav-controls { gap: 0.5rem; padding: 8px; }
+  .nav-controls { gap: 0.5rem; padding: 12px; }
   .nav-stats-table { min-width: 720px; }
 }
 

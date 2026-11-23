@@ -57,6 +57,10 @@ let hideAllSnapshot = null;
 let lastFundsForCrosshair = [];
 let buyFeeDiscountFactor = 1;
 
+function chartFundLabel(name, color) {
+  return `<span class="chart-fund-label" style="--series-color:${color}">${escapeHtml(name)}</span>`;
+}
+
 /** 搜索索引统一由共享数据层缓存，后台更新可在下一次输入时生效。 */
 function ensureSearchIndex() { return fetchSearchIndexFromAPI(); }
 
@@ -447,7 +451,7 @@ function setupCrosshair(canvas) {
             const color = fund.color || getColorForIndex(i);
             const displayName = getFundDisplayName(fund);
             const annualized = dayInt > 0 ? (rate * 365 / dayInt).toFixed(2) + '%' : '—';
-            lines.push('<div class="chart-crosshair-info-fund" style="color:' + color + '">' + escapeHtml(displayName) + '<br>累计 ' + rate.toFixed(2) + '% · 年化约 ' + annualized + '</div>');
+            lines.push(`<div class="chart-crosshair-info-fund">${chartFundLabel(displayName, color)}<br>累计 ${rate.toFixed(2)}% · 年化约 ${annualized}</div>`);
           });
           infoEl.innerHTML = lines.join('');
           infoEl.style.display = 'block';
@@ -681,7 +685,7 @@ async function updateChart() {
   const gridColor = theme.grid;
   const tickColor = theme.textSecondary;
   const titleColor = theme.textPrimary;
-  const chartFont = { family: "'LXGW WenKai', 'Noto Serif SC', 'Songti SC', 'PingFang SC', 'Microsoft YaHei', serif" };
+  const chartFont = { family: theme.fontFamily };
 
   chartInstance = new Chart(canvas, {
     type: 'line',
@@ -755,6 +759,7 @@ async function updateChart() {
         segDiv.dataset.range = `${seg.start}–${seg.end} 天`;
         segDiv.title = `${segDiv.dataset.range} · ${labelText}`;
         segDiv.setAttribute('aria-label', segDiv.title);
+        segDiv.setAttribute('aria-pressed', 'false');
         // 仅宽度足够时显示文字（占比 > 4% 或绝对天数 > 20天）
         const showLabel = (segDays / displayDays) > 0.04 || segDays > 20;
         if (showLabel) {
@@ -770,14 +775,16 @@ async function updateChart() {
         const seg = e.target.closest('.optimal-band-segment');
         if (!seg) return;
         const wasActive = seg.classList.contains('active');
-        strip.querySelectorAll('.optimal-band-segment.active').forEach(s => s.classList.remove('active'));
+        for (const active of strip.querySelectorAll('.optimal-band-segment.active')) {
+          active.classList.remove('active');
+          active.setAttribute('aria-pressed', 'false');
+        }
         if (wasActive) {
           display.textContent = placeholder;
-          display.style.color = '';
         } else {
           seg.classList.add('active');
-          display.textContent = `[${seg.dataset.range}] ${seg.dataset.fullName}`;
-          display.style.color = seg.style.backgroundColor;
+          seg.setAttribute('aria-pressed', 'true');
+          display.innerHTML = chartFundLabel(`[${seg.dataset.range}] ${seg.dataset.fullName}`, seg.style.backgroundColor);
         }
       });
 
@@ -806,7 +813,7 @@ async function updateChart() {
   if (optimalSwitches.length === 0) {
     const optimalIdx = getOptimalFundIndex(displayMin);
     const color = funds[optimalIdx].color || getColorForIndex(optimalIdx);
-    let html = `<p class="optimal-single">费率最低：<strong style="color:${color}">${escapeHtml(funds[optimalIdx].name)}</strong></p>`;
+    let html = `<p class="optimal-single">费率最低：<strong>${chartFundLabel(funds[optimalIdx].name, color)}</strong></p>`;
     if (penetrationList.length > 0) {
       html += '<h4 class="penetration-legend-title">联接基金穿透</h4><ul class="penetration-legend-list">' +
         penetrationList.map(f => {
@@ -814,7 +821,7 @@ async function updateChart() {
           const orig = (p.originalAnnual * 100).toFixed(2);
           const master = (p.masterAnnual * 100).toFixed(2);
           const pen = (p.penetratedAnnual * 100).toFixed(2);
-          return `<li><span style="color:${f.color || '#94a3b8'}">${escapeHtml(f.name)}</span>：年化 ${orig}% + 母基金${escapeHtml(p.masterName)} ${master}% = 穿透年化 <strong>${pen}%</strong></li>`;
+          return `<li>${chartFundLabel(f.name, f.color || 'var(--accent)')}：年化 ${orig}% + 母基金${escapeHtml(p.masterName)} ${master}% = 穿透年化 <strong>${pen}%</strong></li>`;
         }).join('') + '</ul>';
     }
     legendEl.innerHTML = html;
@@ -845,7 +852,7 @@ async function updateChart() {
           const idx = typeof seg.fundIndex === 'number' ? seg.fundIndex : funds.findIndex(f => f.name === seg.fundName);
           const color = idx >= 0 ? (funds[idx].color || getColorForIndex(idx)) : getColorForIndex(0);
           const displayName = idx >= 0 ? getFundDisplayName(funds[idx]) : seg.fundName;
-          const nameHtml = `<span style="color:${color}">${escapeHtml(displayName)}</span>`;
+          const nameHtml = chartFundLabel(displayName, color);
           return `<li><strong>${range}</strong>：${nameHtml} ${feeInfo}</li>`;
         }).join('')}
       </ul>
@@ -857,7 +864,7 @@ async function updateChart() {
           const orig = (p.originalAnnual * 100).toFixed(2);
           const master = (p.masterAnnual * 100).toFixed(2);
           const pen = (p.penetratedAnnual * 100).toFixed(2);
-          return `<li><span style="color:${f.color || '#94a3b8'}">${escapeHtml(f.name)}</span>：年化 ${orig}% + 母基金${escapeHtml(p.masterName)} ${master}% = 穿透年化 <strong>${pen}%</strong></li>`;
+          return `<li>${chartFundLabel(f.name, f.color || 'var(--accent)')}：年化 ${orig}% + 母基金${escapeHtml(p.masterName)} ${master}% = 穿透年化 <strong>${pen}%</strong></li>`;
         }).join('') + '</ul>';
     }
     legendEl.innerHTML = html;

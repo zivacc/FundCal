@@ -3,14 +3,14 @@
    ══════════════════════════════════════════════════════════════ */
 
 .chart-container {
-  background: var(--bg-raised);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-lg);
+  background: var(--glass-highlight), var(--glass-fill);
+  border: 1px solid var(--glass-stroke);
+  border-radius: 26px;
   padding: 16px 20px;
   margin-bottom: 1rem;
   position: relative;
   height: auto;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--glass-shadow);
   display: flex;
   flex-direction: column;
   container-type: inline-size;
@@ -38,7 +38,10 @@
   min-width: 0;
   display: flex;
   flex-direction: row;
-  border-left: 1px solid var(--rule);
+  padding: 8px 8px 8px 0;
+  border: 1px solid var(--glass-stroke);
+  border-radius: 16px;
+  background: var(--glass-fill);
 }
 
 /* 图表区域 */
@@ -130,28 +133,33 @@
   justify-content: center;
   overflow: hidden;
   cursor: pointer;
-  transition: filter var(--transition-fast), box-shadow var(--transition-fast);
+  transition: box-shadow var(--transition-fast);
 }
 
 .optimal-band-segment.active {
-  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.92);
+  box-shadow: inset 0 0 0 2px var(--text-inverse);
   z-index: 2;
 }
 
-.optimal-band-segment:hover {
-  filter: brightness(1.25);
+.optimal-band-segment:hover:not(.active) {
+  box-shadow: inset 0 0 0 1px var(--text-inverse);
   z-index: 1;
+}
+
+.optimal-band-segment:focus-visible {
+  outline: 2px solid var(--text-inverse);
+  outline-offset: -3px;
+  z-index: 3;
 }
 
 .optimal-band-segment-label {
   font-size: 0.68rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.92);
+  color: var(--text-inverse);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   padding: 0 4px;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
   pointer-events: none;
   max-width: 100%;
   letter-spacing: 0.01em;
@@ -184,8 +192,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: none;
+  background: transparent;
   border: none;
+  border-radius: 999px;
   color: var(--text-tertiary);
   font-size: 1rem;
   cursor: pointer;
@@ -194,7 +203,7 @@
 }
 
 .chart-fund-list-toggle:hover {
-  color: var(--text-primary);
+  color: var(--accent);
 }
 
 .chart-fund-list-toggle-arrow {
@@ -217,7 +226,7 @@
   flex: 0 0 36px;
   min-width: 36px;
   max-width: 36px;
-  padding-left: 0;
+  padding: 4px;
 }
 
 .chart-main-right.collapsed .chart-fund-list-body {
@@ -304,14 +313,13 @@
   justify-content: space-between;
   gap: 0.5rem;
   padding: 7px 10px;
-  border-radius: var(--radius-sm);
+  border-radius: 11px;
   border: 1px solid transparent;
   cursor: pointer;
   font-size: 11.5px;
   font-weight: 500;
-  color: var(--text-secondary);
-  opacity: 0.4;
-  transition: all var(--transition-fast);
+  color: var(--text-tertiary);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
 }
 
 .chart-fund-list-item:hover {
@@ -319,14 +327,13 @@
 }
 
 .chart-fund-list-item-active {
-  opacity: 1;
   color: var(--text-primary);
-  background: transparent;
-  border-color: transparent;
+  background: var(--glass-fill-strong);
+  border-color: var(--glass-stroke);
 }
 
 .chart-fund-list-item-active:hover {
-  background: transparent;
+  background: var(--accent-subtle);
 }
 
 .chart-fund-list-item-left {
@@ -370,6 +377,21 @@
   color: var(--text-muted);
 }
 
+.crossover-legend ul {
+  padding-inline-start: 1.15em;
+}
+
+.chart-fund-label::before {
+  content: '';
+  display: inline-block;
+  width: .62em;
+  height: .62em;
+  margin-inline-end: .4em;
+  border-radius: 50%;
+  background: var(--series-color);
+  vertical-align: .1em;
+}
+
 .crossover-legend-item {
   display: inline-flex;
   align-items: center;
@@ -377,9 +399,9 @@
   margin-right: 10px;
   margin-bottom: 6px;
   padding: 4px 10px;
-  background: var(--bg-sunk);
-  border-radius: var(--radius-sm);
-  border-left: 2px solid var(--accent);
+  background: var(--glass-fill-strong);
+  border: 1px solid var(--glass-stroke);
+  border-radius: 999px;
   font-family: var(--font-mono);
   font-size: 11.5px;
 }
@@ -449,10 +471,10 @@
   font-size: 11px;
   font-family: var(--font-mono);
   color: var(--text-primary);
-  background: var(--bg-raised);
+  background: var(--glass-fill-strong);
   padding: 3px 8px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--rule);
+  border-radius: 999px;
+  border: 1px solid var(--glass-stroke);
   box-shadow: var(--shadow-sm);
   z-index: 10;
 }
@@ -464,10 +486,10 @@
   font-size: 11px;
   font-family: var(--font-mono);
   color: var(--text-primary);
-  background: var(--bg-raised);
+  background: var(--glass-fill-strong);
   padding: 3px 8px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--rule);
+  border-radius: 999px;
+  border: 1px solid var(--glass-stroke);
   box-shadow: var(--shadow-sm);
   z-index: 10;
 }
@@ -483,15 +505,15 @@
   overflow: auto;
   pointer-events: auto;
   visibility: hidden;
-  background: var(--bg-glass);
-  backdrop-filter: blur(6px);
-  border: 1px solid var(--rule);
-  border-left: 2px solid var(--accent);
-  border-radius: var(--radius-md);
+  background: var(--glass-highlight), var(--glass-fill-strong);
+  -webkit-backdrop-filter: var(--glass-blur) var(--glass-saturate);
+  backdrop-filter: var(--glass-blur) var(--glass-saturate);
+  border: 1px solid var(--glass-stroke);
+  border-radius: 14px;
   padding: 0.5rem 0.75rem;
   font-size: 0.75rem;
   font-family: var(--font-mono);
-  box-shadow: var(--shadow-md);
+  box-shadow: inset 0 1px 0 var(--glass-toplight), var(--shadow-md);
   z-index: 10;
   word-break: break-all;
 }
@@ -500,7 +522,7 @@
 @container calc-chart (max-width: 760px) {
   .chart-main { flex-direction: column; }
   .chart-main-left { flex: none; width: 100%; }
-  .chart-main-right, .chart-main-right.collapsed { flex: none; width: 100%; min-width: 0; max-width: none; border-left: 0; border-top: 1px solid var(--rule); padding-top: 8px; }
+  .chart-main-right, .chart-main-right.collapsed { flex: none; width: 100%; min-width: 0; max-width: none; }
   .chart-fund-list { max-height: 180px; }
   .chart-fund-list-toggle { min-height: 44px; width: 28px; }
   .chart-fund-list-toggle-arrow { transform: rotate(90deg); }
@@ -515,12 +537,12 @@
    ═══════════════════════════════════════════════════════════════ */
 
 .stage-return-chart-container {
-  background: var(--bg-raised);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-lg);
+  background: var(--glass-highlight), var(--glass-fill);
+  border: 1px solid var(--glass-stroke);
+  border-radius: 26px;
   padding: 1rem 1.25rem 0.9rem;
   margin-bottom: 1rem;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--glass-shadow);
   position: relative;
 }
 

@@ -26,9 +26,10 @@
   padding: 4rem 1.5rem;
   text-align: center;
   color: var(--text-tertiary);
-  background: var(--bg-raised);
-  border: 1px dashed var(--border);
-  border-radius: 12px;
+  background: var(--glass-highlight) var(--glass-fill);
+  border: 1px solid var(--glass-stroke);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--glass-shadow);
 }
 
 .fd-content {
@@ -52,11 +53,12 @@
 
 /* ── 卡片骨架 ── */
 .fd-card {
-  background: var(--bg-raised);
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  min-width: 0;
+  background: var(--glass-highlight) var(--glass-fill-strong);
+  border: 1px solid var(--glass-stroke);
+  border-radius: var(--radius-xl);
   padding: 1.25rem 1.5rem;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  box-shadow: var(--glass-shadow);
 }
 
 .fd-card-header {
@@ -89,7 +91,11 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  background: linear-gradient(135deg, var(--bg-raised) 0%, var(--accent-subtle) 100%);
+  padding: clamp(1.25rem, 3vw, 2rem);
+  background:
+    radial-gradient(ellipse at 0% 0%, var(--glass-toplight), transparent 75%),
+    radial-gradient(ellipse at 100% 100%, var(--accent-glow), transparent 69%),
+    var(--glass-highlight) var(--glass-fill);
 }
 
 .fd-hero-code {
@@ -100,8 +106,8 @@
 }
 
 .fd-hero-name {
-  font-size: 1.75rem;
-  font-weight: 600;
+  font-size: clamp(1.4rem, 2.4vw, 2.05rem);
+  font-weight: 650;
   margin: 0;
   color: var(--text-primary);
 }
@@ -131,7 +137,7 @@
 /* ── 键值对网格 ── */
 .fd-kv-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
   gap: 0.75rem 1.25rem;
 }
 
@@ -180,7 +186,7 @@
 .fd-table th {
   font-weight: 500;
   color: var(--text-secondary);
-  background: var(--bg-sunk);
+  background: var(--glass-highlight) var(--bg-subtle);
   font-size: 0.82rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -218,10 +224,10 @@
 .fd-nav-period-group {
   display: inline-flex;
   gap: 0.25rem;
-  background: var(--bg-sunk);
+  background: var(--glass-fill);
   padding: 0.2rem;
-  border-radius: 8px;
-  border: 1px solid var(--border);
+  border-radius: 999px;
+  border: 1px solid var(--glass-stroke);
 }
 
 .fd-nav-period-btn {
@@ -231,16 +237,16 @@
   font-size: 0.82rem;
   color: var(--text-secondary);
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: 999px;
   font-family: inherit;
 }
 
 .fd-nav-period-btn:hover { color: var(--text-primary); }
 
 .fd-nav-period-btn-active {
-  background: var(--bg-raised);
+  background: var(--glass-highlight) color-mix(in srgb, var(--accent) 11%, var(--glass-fill-strong));
   color: var(--accent);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: inset 0 1px var(--glass-toplight), var(--shadow-sm);
 }
 
 /* ── 同指数基金 peer 行 ── */
@@ -262,7 +268,7 @@
   overflow: auto;
   background: var(--bg-sunk);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 0.75rem 1rem;
   font-family: 'JetBrains Mono', 'DM Mono', monospace;
   font-size: 0.82rem;

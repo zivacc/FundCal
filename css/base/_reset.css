@@ -16,19 +16,37 @@
 }
 
 html {
+  background: var(--bg-base);
+  scroll-padding-top: var(--top-rail-height);
   scroll-behavior: smooth;
 }
 
 body {
   font-family: var(--font-body);
-  background: var(--bg-base);
   color: var(--text-primary);
   min-height: 100vh;
   line-height: 1.55;
-  font-size: 13px;
+  font-size: 14px;
+  isolation: isolate;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition: background-color var(--transition-normal), color var(--transition-normal);
+}
+
+/* 两条椭圆光弧给透明界面提供可见的折射背景。 */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 104% 92% at 100% -25%,
+      transparent 79%, var(--scene-arc-rim) 82%, var(--scene-arc-edge) 83%,
+      var(--scene-arc-glow) 86%, transparent 93%),
+    radial-gradient(ellipse 130% 104% at -17% -44%,
+      transparent 77%, var(--scene-arc-glow) 79%, var(--scene-arc-edge) 81%,
+      var(--scene-arc-rim) 83%, transparent 86%),
+    var(--scene-wash);
 }
 
 a {
@@ -39,6 +57,11 @@ a {
 button {
   font-family: inherit;
   cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
 }
 
 /* 全局表单元素重置 */
@@ -89,4 +112,12 @@ img {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--border-hover);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  body::before { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
 }

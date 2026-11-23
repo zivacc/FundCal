@@ -403,7 +403,7 @@ function renderCharts() {
   const chartGridColor = theme.grid;
   const chartTickColor = theme.textSecondary;
   const chartTitleColor = theme.textPrimary;
-  const chartFont = { family: "'LXGW WenKai', 'Noto Serif SC', 'Songti SC', 'PingFang SC', 'Microsoft YaHei', serif", size: 11 };
+  const chartFont = { family: theme.fontFamily, size: 11 };
 
   const topRows = state.sortedRows.filter(r => Number.isFinite(getBarNumber(r))).slice(0, 10);
   state.charts.bar = new Chart(els.barCanvas, {

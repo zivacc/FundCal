@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════════════
-   按钮系统 - Quiet Light
+   按钮系统
    ══════════════════════════════════════════════════════════════ */
 
 .btn {
@@ -7,88 +7,60 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
+  min-height: 36px;
   padding: 7px 14px;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-pill);
   font-family: var(--font-body);
   font-size: 12.5px;
   font-weight: 500;
   letter-spacing: 0;
   cursor: pointer;
-  border: 1px solid var(--rule);
-  background: var(--bg-raised);
+  border: 1px solid var(--glass-stroke);
+  background: var(--glass-highlight) var(--glass-fill);
+  box-shadow: var(--glass-rim), var(--shadow-sm);
   color: var(--text-primary);
   transition: background var(--transition-fast),
               border-color var(--transition-fast),
               color var(--transition-fast),
-              box-shadow var(--transition-fast);
+              box-shadow var(--transition-fast),
+              transform var(--transition-fast);
   user-select: none;
   white-space: nowrap;
 }
 
-.btn:hover {
-  border-color: var(--border-hover);
-  background: var(--bg-hover);
+.btn:hover:not(:disabled) {
+  border-color: var(--glass-lens-edge);
+  background-color: var(--bg-hover);
 }
 
-.btn:active {
-  background: var(--bg-sunk);
+.btn:active:not(:disabled) {
+  transform: scale(.97);
 }
 
-/* 主要按钮 - 墨黑底白字 */
-.btn-primary {
-  background: var(--text-primary);
-  border: 1px solid var(--text-primary);
-  color: var(--bg-base);
-  font-weight: 500;
-}
-
-.btn-primary:hover {
-  background: #000;
-  border-color: #000;
-}
-
-[data-theme="dark"] .btn-primary:hover {
-  background: #fff;
-  border-color: #fff;
-}
-
-.btn-primary:active {
-  opacity: 0.88;
-}
-
-/* 次要按钮 - 轮廓 */
-.btn-secondary {
-  background: var(--bg-raised);
-  border: 1px solid var(--rule);
-  color: var(--text-primary);
-}
-
-.btn-secondary:hover {
-  border-color: var(--border-hover);
-  color: var(--text-primary);
-  background: var(--bg-hover);
-}
-
-/* 卡片按钮（与 secondary 等效，但略重）*/
+/* 带色玻璃按钮 */
+.btn-primary,
 .btn-card {
-  background: var(--bg-raised);
-  border-color: var(--rule);
-  color: var(--text-primary);
+  border-color: var(--glass-lens-edge);
+  background: var(--gradient-primary);
+  color: var(--text-inverse);
+  font-weight: 650;
 }
 
-.btn-card:hover {
-  border-color: var(--border-hover);
-  background: var(--bg-hover);
+.btn-primary:hover:not(:disabled),
+.btn-card:hover:not(:disabled) {
+  border-color: var(--accent);
+  box-shadow: var(--glass-rim), 0 4px 16px var(--accent-glow);
 }
 
 /* 危险按钮 */
 .btn-danger {
   background: transparent;
+  box-shadow: none;
   border: 1px solid var(--rule);
   color: var(--text-secondary);
 }
 
-.btn-danger:hover {
+.btn-danger:hover:not(:disabled) {
   border-color: var(--danger);
   color: var(--danger);
   background: var(--danger-subtle);
@@ -98,10 +70,11 @@
 .btn-success {
   background: var(--success);
   border: 1px solid var(--success);
-  color: #fff;
+  color: var(--text-inverse);
 }
 
-.btn-success:hover {
+.btn-success:hover:not(:disabled) {
+  background-color: var(--success);
   filter: brightness(1.05);
 }
 
@@ -109,6 +82,7 @@
 .btn-ghost {
   background: transparent;
   border: none;
+  box-shadow: none;
   color: var(--text-secondary);
   padding: 7px 10px;
 }
@@ -120,10 +94,11 @@
 
 /* 尺寸变体 */
 .btn-sm {
+  min-height: 29px;
   padding: 4px 10px;
   font-size: 11.5px;
   letter-spacing: 0;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-pill);
   font-family: var(--font-mono);
 }
 
@@ -132,7 +107,7 @@
   font-size: 13px;
   letter-spacing: 0;
   text-transform: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-pill);
   font-weight: 600;
 }
 
@@ -153,21 +128,16 @@
   box-shadow: none;
 }
 
-.btn:disabled:hover {
-  box-shadow: none;
-  background: var(--bg-raised);
-  border-color: var(--rule);
-}
-
 /* Chip 样式 mono 按钮（快捷切换）*/
 .btn-chip {
   padding: 4px 10px;
   font-size: 12px;
   font-family: var(--font-mono);
-  border: 1px solid var(--rule);
-  background: var(--bg-raised);
+  border: 1px solid var(--glass-stroke);
+  background: var(--glass-highlight) var(--glass-fill);
+  box-shadow: var(--glass-rim), var(--shadow-sm);
   color: var(--text-secondary);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-pill);
   cursor: pointer;
   transition: all var(--transition-fast);
 }
@@ -178,11 +148,17 @@
 }
 
 .btn-chip.active {
-  border-color: var(--text-primary);
-  background: var(--text-primary);
-  color: var(--bg-base);
+  border-color: var(--glass-lens-edge);
+  background: var(--glass-highlight) var(--accent-subtle);
+  color: var(--accent);
 }
 
 .btn-random-bottom {
   margin-left: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn,
+  .btn-chip { transition: none; }
+  .btn:active:not(:disabled) { transform: none; }
 }

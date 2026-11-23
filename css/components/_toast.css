@@ -8,15 +8,16 @@
   bottom: 80px;
   transform: translateX(-50%) translateY(8px);
   padding: 10px 16px;
-  border-radius: var(--radius-md);
-  background: var(--bg-raised);
+  border-radius: var(--radius-pill);
+  background: var(--glass-highlight) var(--glass-fill-strong);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
   color: var(--text-primary);
   font-size: 12.5px;
   font-family: var(--font-body);
   letter-spacing: 0.01em;
-  border: 1px solid var(--rule);
-  border-left: 3px solid var(--accent);
-  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--glass-stroke);
+  box-shadow: var(--glass-shadow);
   z-index: 200;
   opacity: 0;
   pointer-events: none;
@@ -27,4 +28,8 @@
   opacity: 1;
   transform: translateX(-50%) translateY(0);
   pointer-events: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fund-floating-toast { transition: none; }
 }

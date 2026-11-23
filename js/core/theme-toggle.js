@@ -4,7 +4,6 @@
 
   var STORAGE_KEY = 'fundcal-theme';
   var btn = null;
-  var iconEl = null;
 
   function getTheme() {
     return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
@@ -16,8 +15,9 @@
     } else {
       document.documentElement.removeAttribute('data-theme');
     }
-    if (iconEl) iconEl.textContent = theme === 'dark' ? '☾' : '◐';
-    if (btn) btn.setAttribute('aria-label', theme === 'dark' ? '切换到浅色主题' : '切换到深色主题');
+    var label = theme === 'dark' ? '切换到浅色主题' : '切换到深色主题';
+    btn.setAttribute('aria-label', label);
+    btn.title = label;
     try {
       window.dispatchEvent(new CustomEvent('fundcal-theme-change', { detail: { theme: theme } }));
     } catch (e) {}
@@ -32,7 +32,6 @@
   function init() {
     btn = document.getElementById('theme-toggle');
     if (!btn) return;
-    iconEl = btn.querySelector('.theme-toggle-icon');
     applyTheme(getTheme());
     btn.addEventListener('click', toggle);
   }

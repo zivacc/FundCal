@@ -38,6 +38,9 @@ try {
       feederFunds: [], isFof: code === '000003', isFeeder: false, shareClassBasis: '测试关系', feederIndexAvailable: true });
     if (url.pathname.endsWith('/holdings')) return json({ code, status: 'available', asOfDate: '2026-09-30', source: '测试披露', coverage: 'top10',
       rows: [{ code: '000001', name: '测试基金1', weightPct: 9.5, available: true }, { code: '510310', name: '库外ETF', weightPct: 8, available: false }] });
+    if (url.pathname.endsWith('/nav/compare')) return json({ series: [
+      { ...funds[0], dates: ['20260907', '20260908'], navs: [1, 1.02], adjNavs: [1, 1.02] },
+    ], stats: [], range: {} });
     if (url.pathname.endsWith('/compare')) return json({ series: [], stats: [], range: {} });
     if (url.pathname.endsWith('/stats/detail')) return json([]);
     return json({});
@@ -113,6 +116,22 @@ try {
   await page.locator('#cached-funds-compare-btn').click();
   await page.locator('#fc-status').filter({ hasText: '已载入 2' }).waitFor();
   assert.ok(page.url().endsWith('#/compare/000001,000002'));
+
+  // A hidden navigation rail must survive fullscreen resizing and restore its lens.
+  await page.evaluate(fund => {
+    localStorage.setItem('nav-compare-state', JSON.stringify({ v: 1, selected: [fund] }));
+    location.hash = '#/nav';
+  }, funds[0]);
+  await page.locator('#nav-chart-canvas canvas').first().waitFor();
+  await page.locator('#nav-chart-toolbar-fullscreen').click();
+  await page.locator('.top-rail').waitFor({ state: 'hidden' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.locator('.nav-fs-exit').click();
+  await page.waitForFunction(() => {
+    const tab = document.querySelector('.top-rail-tab[data-route="nav"]');
+    const lens = document.querySelector('.top-rail-lens');
+    return tab.offsetWidth > 0 && Math.abs(lens.getBoundingClientRect().left - tab.getBoundingClientRect().left) < 1;
+  });
   assert.deepEqual(errors, []);
-  console.log('Fund inspection browser checks passed: comparison, snapshots, failures, races, basket, links, responsive themes.');
+  console.log('Fund inspection browser checks passed: comparison, snapshots, failures, races, basket, links, responsive themes, NAV fullscreen.');
 } finally { await browser.close(); await new Promise(resolve => server.close(resolve)); }

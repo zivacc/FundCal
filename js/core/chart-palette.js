@@ -1,3 +1,3 @@
-export const lightSeriesColors = ['#c47a3d', '#2a8e6c', '#3f6cc4', '#b8732d', '#c0412d', '#7e6cc4', '#5d8aa8', '#9b6b3f'];
-export const darkSeriesColors = ['#e8a373', '#5fc29a', '#8faef0', '#d9ac68', '#ec9280', '#b8a5ee', '#8ebad0', '#c4a080'];
+export const lightSeriesColors = ['#364db5', '#147d69', '#a15422', '#a43c6f', '#6d54b3', '#317397', '#a83748', '#67682a', '#78613f'];
+export const darkSeriesColors = ['#a6b9ff', '#6bdbb9', '#ffbe7e', '#f5a9d0', '#c6aaff', '#7ed4fc', '#ff8996', '#d3d881', '#edc8a3'];
 export const seriesColors = dark => dark ? darkSeriesColors : lightSeriesColors;

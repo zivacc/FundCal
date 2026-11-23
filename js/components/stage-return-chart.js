@@ -237,7 +237,7 @@ export function renderStageReturnChart(funds, metas) {
   const gridColor = theme.grid;
   const axisBorder = theme.ruleStrong;
   const onColorText = theme.bgBase;
-  const chartFont = { family: "'LXGW WenKai', 'Noto Serif SC', 'Songti SC', 'PingFang SC', 'Microsoft YaHei', serif" };
+  const chartFont = { family: theme.fontFamily };
 
   const baselineIdx = labels.indexOf(currentBaseline);
   const defaultIdx = defaultBaseline ? labels.indexOf(defaultBaseline) : -1;

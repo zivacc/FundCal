@@ -122,15 +122,21 @@
 
 /* 玻璃拟态面板 */
 .glass-panel {
-  background: var(--bg-glass);
-  backdrop-filter: blur(8px) saturate(1.1);
-  -webkit-backdrop-filter: blur(8px) saturate(1.1);
-  border: 1px solid var(--rule);
+  background: var(--glass-highlight) var(--glass-fill-strong);
+  backdrop-filter: var(--glass-blur) var(--glass-saturate);
+  -webkit-backdrop-filter: var(--glass-blur) var(--glass-saturate);
+  border: 1px solid var(--glass-stroke);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--glass-shadow);
 }
 
 .glass-panel:hover {
   border-color: var(--border-hover);
   box-shadow: var(--shadow-lg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .data-pulse,
+  .fade-in,
+  .loading-shimmer::after { animation: none; }
 }

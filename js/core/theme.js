@@ -14,6 +14,7 @@ export function cssVar(name) {
 /** 当前主题下 Chart.js 使用的通用颜色字典 */
 export function getChartTheme() {
   return {
+    fontFamily: cssVar('--font-body'),
     textPrimary: cssVar('--text-primary'),
     textSecondary: cssVar('--text-secondary'),
     textTertiary: cssVar('--text-tertiary'),

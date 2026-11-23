@@ -1,9 +1,4 @@
-/* ══════════════════════════════════════════════════════════════
-   字体排版 - Quiet Light
-   大标题用 Source Serif 4 (西文) + 霞鹜文楷/思源宋体 (中文 fallback)
-   正文用 Inter (西文) + 霞鹜文楷 (中文 fallback)
-   数据用 JetBrains Mono
-   ══════════════════════════════════════════════════════════════ */
+/* 界面使用系统字体，数字与代码保持等宽。 */
 
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-cjk);
@@ -85,8 +80,7 @@ table.mono-nums th {
   font-family: var(--font-mono);
 }
 
-/* ── 主题字体（霞鹜文楷）应用于关键内容文本 ── */
-.top-rail-name,
+/* 中文内容优先选用系统中文字体。 */
 .top-rail-tab,
 .page-header h1,
 .fund-card .fund-name,

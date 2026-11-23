@@ -3,9 +3,9 @@
    ══════════════════════════════════════════════════════════════ */
 
 .table-container {
-  border: 1px solid var(--rule);
+  border: 1px solid var(--glass-stroke);
   border-radius: var(--radius-lg);
-  background: var(--bg-raised);
+  background: var(--glass-fill-strong);
   overflow: hidden;
 }
 
@@ -105,10 +105,10 @@
   margin-top: 1.25rem;
   margin-bottom: 1.75rem;
   overflow-x: auto;
-  border: 1px solid var(--rule);
+  border: 1px solid var(--glass-stroke);
   border-radius: var(--radius-lg);
-  background: var(--bg-raised);
-  box-shadow: var(--shadow-sm);
+  background: var(--glass-fill-strong);
+  box-shadow: var(--glass-shadow);
 }
 
 .fund-detail-table {

@@ -6,12 +6,6 @@
   <title>基金费率计算器</title>
   <link rel="icon" type="image/png" href="pics/bronzecoinlogo.png">
   <link rel="stylesheet" href="css/main.css">
-  <!-- 字体走国内 CDN（fonts.loli.net 是 Google Fonts 国内反代；霞鹜文楷走 bootcdn） -->
-  <link rel="preconnect" href="https://fonts.loli.net">
-  <link rel="preconnect" href="https://gstatic.loli.net" crossorigin>
-  <link rel="preconnect" href="https://cdn.bootcdn.net" crossorigin>
-  <link href="https://fonts.loli.net/css2?family=Inter:wght@400;500;600&family=Source+Serif+4:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link href="https://cdn.bootcdn.net/ajax/libs/lxgw-wenkai-webfont/1.7.0/style.css" rel="stylesheet">
   <script>
     (function () {
       try {
@@ -26,33 +20,40 @@
   <script src="vendor/echarts-5.5.1.min.js"></script>
 </head>
 <body>
-  <!-- 顶部导航条 -->
+  <svg width="0" height="0" class="glass-filter" aria-hidden="true" focusable="false">
+    <defs>
+      <filter id="nav-refraction" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+        <feImage preserveAspectRatio="none" result="lens-map"></feImage>
+        <feDisplacementMap in="SourceGraphic" in2="lens-map" scale="14" xChannelSelector="R" yChannelSelector="G"></feDisplacementMap>
+      </filter>
+    </defs>
+  </svg>
   <nav class="top-rail" aria-label="主导航">
-    <div class="top-rail-left">
-      <a class="top-rail-brand" href="#/calc">
-        <span class="top-rail-logo">
-          <img src="pics/bronzecoinlogo.png" alt="" class="logo-light">
-          <img src="pics/goldencoinlogo.png" alt="" class="logo-dark">
-        </span>
-        <span class="top-rail-name">FundCal</span>
-      </a>
-      <div class="top-rail-tabs" role="tablist">
-        <a href="#/calc" class="top-rail-tab" data-route="calc" role="tab">计算器</a>
-        <a href="#/list" class="top-rail-tab" data-route="list" role="tab">基金列表</a>
-        <a href="#/compare" class="top-rail-tab" data-route="compare" role="tab">基金比较</a>
-        <a href="#/index" class="top-rail-tab" data-route="index" role="tab">指数选基</a>
-        <a href="#/nav" class="top-rail-tab" data-route="nav" role="tab">净值比较</a>
-        <a href="#/stats" class="top-rail-tab" data-route="stats" role="tab">统计</a>
-        <a href="#/fund" class="top-rail-tab" data-route="fund" role="tab">基金详情</a>
-        <a href="#/index-detail" class="top-rail-tab" data-route="index-detail" role="tab">指数详情</a>
-      </div>
+    <a class="top-rail-brand" href="#/calc">
+      <span class="top-rail-logo">
+        <img src="pics/bronzecoinlogo.png" alt="" class="logo-light">
+        <img src="pics/goldencoinlogo.png" alt="" class="logo-dark">
+      </span>
+      <span class="top-rail-name">FundCal</span>
+    </a>
+    <div class="top-rail-tabs" role="tablist" aria-label="功能页面">
+      <span class="top-rail-lens" aria-hidden="true"></span>
+      <a href="#/calc" class="top-rail-tab" data-route="calc" role="tab">计算器</a>
+      <a href="#/list" class="top-rail-tab" data-route="list" role="tab">基金列表</a>
+      <a href="#/compare" class="top-rail-tab" data-route="compare" role="tab">基金比较</a>
+      <a href="#/index" class="top-rail-tab" data-route="index" role="tab">指数选基</a>
+      <a href="#/nav" class="top-rail-tab" data-route="nav" role="tab">净值比较</a>
+      <a href="#/stats" class="top-rail-tab" data-route="stats" role="tab">统计</a>
+      <a href="#/fund" class="top-rail-tab" data-route="fund" role="tab">基金详情</a>
+      <a href="#/index-detail" class="top-rail-tab" data-route="index-detail" role="tab">指数详情</a>
     </div>
     <div class="top-rail-right">
       <button type="button" id="fund-basket-button" aria-label="基金篮子" aria-controls="fund-basket-panel" aria-expanded="false" title="点击打开基金篮子，拖动使用整篮">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m8 3-4 7m12-7 4 7M3 10h18l-2 10H5L3 10Zm6 4v3m6-3v3"/></svg><span class="basket-label">篮子</span><span class="basket-count">0</span>
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m8 3-4 7m12-7 4 7M3 10h18l-2 10H5L3 10Zm6 4v3m6-3v3"/></svg><span class="basket-label">篮子</span><span class="basket-count">0</span>
       </button>
-      <button type="button" class="theme-toggle" id="theme-toggle" title="切换浅色 / 深色" aria-label="切换主题">
-        <span class="theme-toggle-icon" aria-hidden="true">◐</span>
+      <button type="button" class="theme-toggle" id="theme-toggle" aria-label="切换主题">
+        <svg class="theme-icon-light" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M20.5 15.5A9 9 0 0 1 8.5 3.5a9 9 0 1 0 12 12Z"/></svg>
+        <svg class="theme-icon-dark" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.4m11.2 11.2L19 19M5 19l1.4-1.4M17.6 6.4 19 5"/></svg>
       </button>
     </div>
   </nav>
@@ -64,7 +65,6 @@
     <div class="container">
       <header class="page-header">
         <div>
-          <span class="page-header-kicker">CALCULATOR</span>
           <h1>基金费率计算器</h1>
           <p class="subtitle">对比多只基金在不同持有期限下的累计费率，并标注交点</p>
         </div>
@@ -88,7 +88,7 @@
         </div>
       </div>
       <section class="fund-card-stage" id="fund-card-stage" aria-label="基金卡片工作台">
-        <div class="deck-toolbar"><div><span class="deck-eyebrow">FUND STUDIO</span><h2>基金工作台</h2></div><div class="deck-navigation"><span class="deck-count" aria-live="polite">0 / 0</span><button type="button" data-deck-prev aria-label="向左浏览基金卡片">←</button><button type="button" data-deck-next aria-label="向右浏览基金卡片">→</button></div></div>
+        <div class="deck-toolbar"><div><h2>基金工作台</h2></div><div class="deck-navigation"><span class="deck-count" aria-live="polite">0 / 0</span><button type="button" data-deck-prev aria-label="向左浏览基金卡片">←</button><button type="button" data-deck-next aria-label="向右浏览基金卡片">→</button></div></div>
         <div class="fund-cards" id="fund-cards" tabindex="0" role="region" aria-label="环绕基金画廊，滑动或方向键切换卡片"></div>
         <div class="deck-empty">从上方搜索基金，或从篮子拖入，开始比较。</div>
       </section>
@@ -148,11 +148,11 @@
           <div class="chart-footer-right">
             <div class="chart-options">
               <label class="toggle-btn" for="skip-first-7" title="显示 7 天至结束（自动时 7–自动最大值），弱化前 6 天高费率影响">
-                <input type="checkbox" id="skip-first-7" class="toggle-btn-input" aria-hidden="true">
+                <input type="checkbox" id="skip-first-7" class="toggle-btn-input">
                 <span class="toggle-btn-text">忽略惩罚期</span>
               </label>
               <label class="toggle-btn" for="show-tooltip" title="鼠标悬停在图表曲线上时显示详细费率信息">
-                <input type="checkbox" id="show-tooltip" class="toggle-btn-input" checked aria-hidden="true">
+                <input type="checkbox" id="show-tooltip" class="toggle-btn-input" checked>
                 <span class="toggle-btn-text">数据悬浮窗</span>
               </label>
               <label class="toggle-btn toggle-btn-inline hide-penetrate-linked" title="联接基金年化费率穿透：联接年化 + 母基金年化，买入/卖出费率不变" aria-hidden="true">
@@ -200,7 +200,7 @@
       <!-- 左侧筛选栏 -->
       <aside class="cf-sidebar" id="cf-filter-panel">
         <div class="cf-sidebar-kicker">
-          FILTERS
+          筛选
           <span class="cf-filter-active-count" id="cf-filter-active-count"></span>
         </div>
 
@@ -269,7 +269,6 @@
       <div class="cf-main">
         <header class="page-header">
           <div class="page-header-left">
-            <span class="page-header-kicker">DATABASE</span>
             <h1>数据库基金列表</h1>
             <p class="subtitle" id="cached-funds-status">正在加载数据库基金列表...</p>
           </div>
@@ -384,11 +383,7 @@
        ═════════════════════════════════════════════════════════════ -->
   <section class="page page-index index-page" data-route="index">
     <div class="ix-hero">
-      <div class="ix-hero-glow ix-hero-glow-a"></div>
-      <div class="ix-hero-glow ix-hero-glow-b"></div>
-
-      <div class="ix-hero-kicker">INDEX · TRACKER · COMPARE</div>
-      <h1 class="ix-hero-title">按<span class="ix-hero-title-accent ix-hero-title-highlight">指数</span>选基金</h1>
+      <h1 class="ix-hero-title">按<span class="ix-hero-title-accent">指数</span>选基金</h1>
       <p class="ix-hero-sub">输入你关心的跟踪标的，比较所有挂钩该指数的基金的费率、规模与业绩</p>
 
       <div class="ix-hero-search-wrap">
@@ -496,7 +491,6 @@
     <div class="container">
       <header class="page-header">
         <div class="page-header-left">
-          <span class="page-header-kicker">NAV · COMPARE</span>
           <h1>净值比较</h1>
           <p class="subtitle">多基金历史净值曲线、累计收益、回撤与统计指标</p>
         </div>
@@ -647,7 +641,6 @@
     <div class="container">
       <header class="page-header">
         <div class="page-header-left">
-          <span class="page-header-kicker">STATISTICS</span>
           <h1>基金数据库统计</h1>
           <p class="subtitle">基于数据库的全部基金，按跟踪标的、基金公司、业绩基准进行聚合统计</p>
         </div>
@@ -708,7 +701,6 @@
     <div class="container">
       <header class="page-header">
         <div class="page-header-left">
-          <span class="page-header-kicker">FUND · DETAIL</span>
           <h1>基金详情</h1>
           <p class="subtitle">单只基金的完整信息：基础资料、费率分段、阶段业绩、净值曲线与同指数基金</p>
         </div>
@@ -801,7 +793,7 @@
   <section class="page page-fund-compare" data-route="compare">
     <div class="container">
       <header class="page-header fc-header">
-        <div><span class="page-header-kicker">FUND · COMPARE</span><h1>基金比较</h1><p class="subtitle">并排查看基本资料、费用与换手率，找到每一项差异</p></div>
+        <div><h1>基金比较</h1><p class="subtitle">并排查看基本资料、费用与换手率，找到每一项差异</p></div>
         <span class="fc-count" id="fc-count">0 / 8</span>
       </header>
       <div class="fc-toolbar">
@@ -831,7 +823,6 @@
     <div class="container">
       <header class="page-header id-page-header">
         <div>
-          <span class="page-header-kicker">INDEX · DETAIL</span>
           <h1>指数详情</h1>
           <p class="subtitle">指数资料、历史走势、换手参考、跟踪基金与完整成分权重</p>
         </div>
@@ -1050,6 +1041,7 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="js/core/config.js"></script>
   <script src="js/core/theme-toggle.js"></script>
+  <script type="module" src="js/core/glass-navigation.js"></script>
   <script type="module" src="js/core/router.js"></script>
   <script type="module" src="js/components/fund-basket.js"></script>
 </body>

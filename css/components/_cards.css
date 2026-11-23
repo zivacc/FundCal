@@ -183,10 +183,10 @@
   list-style: none;
   padding: 0.25rem 0;
   margin: 0;
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-md);
+  background: var(--glass-highlight), var(--glass-fill-strong);
+  border: 1px solid var(--glass-stroke);
+  border-radius: 14px;
+  box-shadow: var(--glass-shadow);
   z-index: 25;
   display: none;
 }
@@ -340,8 +340,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   基金卡片 - spec-sheet 风格优化
-   （参考 design：mono 段标 + 暖色顶部渐变 + 紧凑分隔线）
+   基金卡片 - 可编辑费率
    ═══════════════════════════════════════════════════════════════ */
 
 .fund-card {
@@ -374,8 +373,9 @@
 
 /* 顶部 fund-name 输入更轻量 */
 .fund-card .fund-name {
-  background: transparent;
-  border-color: transparent;
+  background: var(--glass-fill);
+  border-color: var(--glass-stroke);
+  border-radius: 10px;
   font-size: 0.92rem;
   font-weight: 600;
   padding: 0.25rem 0.4rem;
@@ -449,8 +449,8 @@
   font-family: var(--font-mono);
   font-size: 0.88rem;
   font-weight: 500;
-  background: transparent;
-  border: 1px solid transparent;
+  background: var(--glass-fill);
+  border: 1px solid var(--glass-stroke);
   border-radius: var(--radius-sm);
   padding: 4px 8px;
   color: var(--text-primary);
@@ -510,8 +510,8 @@
 .fund-card .segments-table input {
   width: 100%;
   max-width: 100%;
-  background: transparent;
-  border: 1px solid transparent;
+  background: var(--glass-fill);
+  border: 1px solid var(--glass-stroke);
   font-family: var(--font-mono);
   font-size: 0.82rem;
   padding: 3px 6px;

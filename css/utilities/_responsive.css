@@ -15,12 +15,12 @@
 /* ── 中等屏幕及以下 (1024px) ── */
 @media (max-width: 1024px) {
   :root {
-    --radius-lg: 12px;
-    --radius-xl: 18px;
+    --radius-lg: 18px;
+    --radius-xl: 24px;
   }
 
   .container {
-    padding: 1rem;
+    padding: 24px 18px 32px;
   }
 }
 
@@ -45,12 +45,13 @@
 
   .fund-stats-main-right {
     position: fixed;
-    inset: 52px 0 0 0;
+    inset: var(--top-rail-height) 0 0;
+    max-height: none;
     max-width: 100%;
     opacity: 0;
     pointer-events: none;
     transform: translateY(8px);
-    background: var(--bg-base);
+    background: var(--glass-fill-strong);
     z-index: 60;
     display: flex;
     flex-direction: column;
@@ -70,8 +71,8 @@
 /* ── 平板及以下 (768px) ── */
 @media (max-width: 768px) {
   :root {
-    --radius-lg: 10px;
-    --radius-xl: 14px;
+    --radius-lg: 16px;
+    --radius-xl: 22px;
   }
 
   .page-header {
@@ -214,7 +215,7 @@
   .modal {
     width: 100%;
     max-height: calc(100dvh - 2rem);
-    border-radius: 0;
+    border-radius: var(--radius-xl);
   }
 
   .modal-header,
@@ -227,7 +228,7 @@
     width: 100%;
     height: calc(100dvh - 2rem);
     max-height: calc(100dvh - 2rem);
-    border-radius: 0;
+    border-radius: var(--radius-xl);
   }
 
   /* 窄屏改回上下布局 */
@@ -301,10 +302,6 @@
 
 /* ── 小手机 (520px) ── */
 @media (max-width: 520px) {
-  .fund-stats-grid {
-    grid-template-columns: 1fr;
-  }
-
   h1 {
     font-size: 1.1rem;
   }
@@ -362,9 +359,9 @@
 /* ── 安全区域适配 (iPhone X+) ── */
 @supports (padding: max(0px)) {
   .container {
-    padding-left: max(0.75rem, env(safe-area-inset-left));
-    padding-right: max(0.75rem, env(safe-area-inset-right));
-    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    padding-left: max(clamp(14px, 3vw, 44px), env(safe-area-inset-left));
+    padding-right: max(clamp(14px, 3vw, 44px), env(safe-area-inset-right));
+    padding-bottom: max(32px, env(safe-area-inset-bottom));
   }
 
   .nav-header {

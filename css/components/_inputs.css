@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════════════
-   输入框系统 - Quiet Light
+   输入框系统
    ══════════════════════════════════════════════════════════════ */
 
 .input-group {
@@ -63,9 +63,11 @@
   padding: 9px 14px;
   font-size: 13px;
   font-family: var(--font-body);
-  background: var(--bg-raised);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-md);
+  min-height: 42px;
+  background: var(--glass-highlight) var(--glass-fill-strong);
+  border: 1px solid var(--glass-stroke);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--glass-rim), var(--shadow-sm);
   color: var(--text-primary);
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
@@ -85,7 +87,7 @@
 select {
   appearance: none;
   padding: 7px 32px 7px 10px;
-  background: var(--bg-raised);
+  background: var(--bg-input);
   border: 1px solid var(--rule);
   border-radius: var(--radius-sm);
   color: var(--text-primary);

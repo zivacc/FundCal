@@ -1,16 +1,13 @@
+body { --basket-top: var(--top-rail-height); }
+body.is-fullscreen-nav { --basket-top: calc(62px + env(safe-area-inset-top)); }
 #fund-basket-ui [hidden] { display: none !important; }
-#fund-basket-button { position: relative; display: inline-flex; align-items: center; gap: 5px; min-height: 40px; padding: 4px 9px; color: var(--text-secondary); border: 1px solid var(--rule); border-radius: 10px; background: var(--bg-raised); cursor: grab; touch-action: none; flex-shrink: 0; transition: transform .16s, background .16s, box-shadow .16s; }
-.basket-count { min-width: 20px; border-radius: 12px; background: var(--bg-subtle); color: var(--accent); font: 12px var(--font-mono); }
+#fund-basket-button { position: relative; display: inline-flex; align-items: center; gap: 5px; min-height: 40px; padding: 4px 10px; color: var(--text-secondary); border: 1px solid var(--glass-stroke); border-radius: var(--radius-pill); background: var(--glass-highlight) var(--glass-fill); box-shadow: var(--glass-rim), var(--shadow-sm); cursor: grab; touch-action: none; flex-shrink: 0; transition: transform .16s, background .16s, box-shadow .16s; }
+.basket-count { min-width: 21px; padding: 2px 4px; border-radius: var(--radius-pill); background: var(--accent-subtle); color: var(--accent); font: 11px var(--font-mono); }
 #fund-basket-button.basket-fullscreen { position: fixed; z-index: 15001; bottom: calc(80px + env(safe-area-inset-bottom)); right: 12px; }
 .nav-chart-legend-item > .fund-drag-handle { order: -1; }
 #fund-basket-button.has-selection { border-color: var(--accent); color: var(--accent); background: var(--accent-subtle); box-shadow: 0 0 0 3px var(--accent-bg); }
 #fund-basket-button.is-drop-ready { transform: scale(1.15); color: var(--accent); border-color: var(--accent); z-index: 15001; }
 #fund-basket-button.is-drop-over { background: var(--accent); color: var(--text-inverse); }
-.top-rail { z-index: 12000; }
-.top-rail-left { min-width: 0; }
-.top-rail-tabs { min-width: 0; overflow-x: auto; }
-.top-rail-tab { flex-shrink: 0; white-space: nowrap; }
-.top-rail-right { flex-shrink: 0; }
 .fund-drag-handle, #fund-basket-panel .fund-drag-handle { position: fixed; inset: 0 auto auto 0; width: 1px; height: 1px; min-height: 0; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 .fund-drag-handle:focus-visible, #fund-basket-panel .fund-drag-handle:focus-visible { position: relative; inset: auto; width: auto; height: auto; min-height: 30px; margin: 0 4px 0 0; padding: 4px 8px; overflow: visible; clip-path: none; border: 1px solid var(--accent); border-radius: 6px; background: var(--bg-raised); color: var(--accent); font-size: 12px; cursor: pointer; touch-action: none; }
 .nav-fs-pane .fund-drag-handle:focus-visible { grid-column: 1 / -1; }
@@ -19,12 +16,12 @@
 [data-fund-drag] { -webkit-user-drag: none; }
 .basket-dragging, .basket-dragging * { user-select: none !important; cursor: grabbing !important; }
 #fund-basket-ui { color: var(--text-primary); font: 14px var(--font-cjk); }
-#fund-basket-panel { position: fixed; z-index: 14000; top: 62px; right: 12px; width: 370px; max-width: calc(100vw - 24px); max-height: calc(100dvh - 80px); display: flex; flex-direction: column; background: var(--bg-raised); border: 1px solid var(--rule-strong); border-radius: 18px; box-shadow: 0 16px 64px rgb(0 0 0 / 18%); overflow: hidden; animation: basket-in-right .18s ease-out; }
+#fund-basket-panel { position: fixed; z-index: 14000; top: var(--basket-top); right: max(14px, calc((100vw - 1360px) / 2)); width: 370px; max-width: calc(100vw - 24px); max-height: calc(100dvh - var(--basket-top) - 18px); display: flex; flex-direction: column; background: var(--glass-highlight) var(--glass-fill-strong); border: 1px solid var(--glass-stroke); border-radius: var(--radius-xl); box-shadow: var(--glass-rim), var(--shadow-xl); -webkit-backdrop-filter: var(--glass-blur) var(--glass-saturate); backdrop-filter: var(--glass-blur) var(--glass-saturate); overflow: hidden; animation: basket-in-right .18s ease-out; }
 #fund-basket-panel header { display: flex; align-items: center; justify-content: space-between; padding: 16px; border-bottom: 1px solid var(--rule); }
 #fund-basket-panel h2 { font-size: 18px; margin: 0; }
 #fund-basket-total { color: var(--text-tertiary); font: 12px var(--font-mono); }
 #fund-basket-panel p { color: var(--text-tertiary); line-height: 1.6; font-size: 12px; margin: 4px 0 0; }
-#fund-basket-panel button { cursor: pointer; min-height: 36px; padding: 5px 10px; border: 1px solid var(--rule); border-radius: 8px; background: var(--bg-raised); color: var(--text-primary); }
+#fund-basket-panel button { cursor: pointer; min-height: 36px; padding: 5px 10px; border: 1px solid var(--rule); border-radius: var(--radius-pill); background: var(--glass-highlight) var(--glass-fill); color: var(--text-primary); }
 #fund-basket-panel button:disabled { opacity: .4; cursor: default; }
 .basket-pending { display: flex; gap: 8px; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--accent-subtle); color: var(--accent); border-bottom: 1px solid var(--rule); }
 .basket-list-tools { display: flex; align-items: center; gap: 8px; padding: 10px 16px; }
@@ -42,38 +39,35 @@
 #basket-drag-selected { touch-action: none; }
 .basket-use-actions { display: flex; gap: 8px; margin-top: 8px; }
 .basket-use-actions button { flex: 1; }
-#basket-drop-zones { position: fixed; inset: 56px 0 0; z-index: 13000; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 22px; pointer-events: none; }
+#basket-drop-zones { position: fixed; inset: var(--basket-top) 0 0; z-index: 13000; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 22px; pointer-events: none; }
 #basket-drop-zones.basket-pool-zones { grid-template-columns: 1fr; }
-#basket-drop-zones [data-basket-drop] { pointer-events: auto; border: 2px dashed var(--accent); border-radius: 24px; background: color-mix(in srgb, var(--bg-raised) 90%, transparent); backdrop-filter: blur(3px); color: var(--text-primary); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 12px; }
+#basket-drop-zones [data-basket-drop] { pointer-events: auto; border: 2px dashed var(--accent); border-radius: 24px; background: var(--glass-highlight) var(--glass-fill-strong); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); color: var(--text-primary); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 12px; }
 #basket-drop-zones strong { font-size: clamp(22px, 3vw, 40px); font-weight: 500; }
 #basket-drop-zones span { color: var(--text-secondary); font-size: 13px; text-align: center; }
 #basket-drop-zones [data-basket-drop] { padding-top: max(12px, var(--basket-panel-offset, 0px)); padding-bottom: 70px; }
 #basket-drop-zones [data-basket-drop].is-over, #basket-drop-zones [data-basket-drop]:focus-visible { background: color-mix(in srgb, var(--accent) 20%, var(--bg-raised)); border-style: solid; box-shadow: inset 0 0 0 4px var(--accent-subtle); }
 #basket-drag-cancel { pointer-events: auto; position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%); border: 1px solid var(--rule); background: var(--bg-raised); color: var(--text-secondary); border-radius: 20px; padding: 10px 20px; }
-#basket-drop-target { position: fixed; z-index: 15000; width: var(--basket-drop-diameter); height: var(--basket-drop-diameter); transform: translate(-50%, -50%); border: 2px dashed var(--accent); border-radius: 50%; background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); pointer-events: auto; box-shadow: 0 0 0 10px color-mix(in srgb, var(--accent) 6%, transparent); }
+#basket-drop-target { position: fixed; z-index: 15000; width: var(--basket-drop-diameter); height: var(--basket-drop-diameter); transform: translate(-50%, -50%); border: 2px dashed var(--accent); border-radius: 50%; background: radial-gradient(ellipse at 30% 0%, var(--glass-lens-shine), transparent 65%), var(--glass-fill); color: var(--accent); pointer-events: auto; box-shadow: var(--glass-shadow), 0 0 0 10px var(--accent-subtle); }
 #basket-drop-target span { position: absolute; bottom: 14px; left: 0; right: 0; font-size: 12px; }
-#basket-drop-target.is-over { background: color-mix(in srgb, var(--accent) 30%, transparent); box-shadow: 0 0 0 18px color-mix(in srgb, var(--accent) 12%, transparent); }
-#basket-drag-ghost { position: fixed; pointer-events: none; z-index: 16000; max-width: 220px; padding: 10px 14px; border: 1px solid var(--accent); background: var(--bg-raised); border-radius: 12px; box-shadow: 0 6px 22px rgb(0 0 0 / 18%); font-size: 12px; }
-#basket-live-status { position: fixed; z-index: 17000; bottom: calc(24px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); max-width: min(480px, calc(100% - 32px)); padding: 12px 18px; border: 1px solid var(--rule); border-radius: 12px; background: var(--bg-raised); box-shadow: 0 6px 28px rgb(0 0 0 / 16%); text-align: center; }
+#basket-drop-target.is-over { background: var(--glass-highlight) color-mix(in srgb, var(--accent) 20%, var(--glass-fill-strong)); box-shadow: var(--glass-shadow), 0 0 0 18px var(--accent-subtle); }
+#basket-drag-ghost { position: fixed; pointer-events: none; z-index: 16000; max-width: 220px; padding: 10px 14px; border: 1px solid var(--accent); background: var(--glass-highlight) var(--glass-fill-strong); border-radius: var(--radius-md); box-shadow: var(--glass-shadow); font-size: 12px; }
+#basket-live-status { position: fixed; z-index: 17000; bottom: calc(24px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); max-width: min(480px, calc(100% - 32px)); padding: 12px 18px; border: 1px solid var(--rule); border-radius: var(--radius-pill); background: var(--glass-highlight) var(--glass-fill-strong); box-shadow: var(--glass-shadow); text-align: center; }
 #fund-basket-ui button:focus-visible, #fund-basket-button:focus-visible, .fund-drag-handle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 @keyframes basket-in-right { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
 @keyframes basket-in-top { from { opacity: 0; transform: translateY(-24px); } to { opacity: 1; transform: none; } }
+@media (max-width: 1024px) {
+  #fund-basket-button { min-height: 34px; }
+}
 @media (max-width: 768px) {
-  .top-rail { padding: 0 8px; gap: 8px; }
-  .top-rail-left { gap: 8px; flex: 1; }
-  .top-rail-brand { flex-shrink: 0; }
-  .top-rail-tabs { flex: 1; }
-  .top-rail-name, .basket-label { display: none; }
-  .top-rail-right { gap: 4px; }
-  #fund-basket-panel { top: 60px; left: 8px; right: 8px; width: auto; max-width: none; max-height: min(70dvh, calc(100dvh - 80px)); animation-name: basket-in-top; }
-  .basket-dragging #fund-basket-panel { max-height: 60dvh; }
+  #fund-basket-panel { left: 8px; right: 8px; width: auto; max-width: none; max-height: min(70dvh, calc(100dvh - var(--basket-top) - 18px)); animation-name: basket-in-top; }
+  .basket-dragging #fund-basket-panel { max-height: min(60dvh, calc(100dvh - var(--basket-top) - 18px)); }
   #basket-drop-zones { padding: 12px; gap: 8px; }
 }
 @media (prefers-reduced-motion: reduce) { #fund-basket-panel { animation: none; } #fund-basket-button { transition: none; } }
 
-.top-rail-tab.is-fund-drop-ready { box-shadow: inset 0 0 0 2px var(--accent); color: var(--accent); }
-.top-rail-tab.is-fund-drop-over { background: var(--accent-subtle); box-shadow: inset 0 0 0 3px var(--accent); }
-#basket-fund-picker { position: fixed; z-index: 13000; left: 12px; bottom: 16px; display: flex; flex-direction: column; padding: 16px; gap: 12px; border: 2px dashed var(--accent); border-radius: 20px; background: color-mix(in srgb, var(--bg-raised) 96%, transparent); backdrop-filter: blur(4px); }
+.top-rail-tabs .top-rail-tab.is-fund-drop-ready { box-shadow: inset 0 0 0 2px var(--accent); color: var(--accent); }
+.top-rail-tabs .top-rail-tab.is-fund-drop-over { background: var(--accent-subtle); box-shadow: inset 0 0 0 3px var(--accent); }
+#basket-fund-picker { position: fixed; z-index: 13000; top: var(--basket-top); left: 12px; bottom: 16px; display: flex; flex-direction: column; padding: 16px; gap: 12px; border: 2px dashed var(--accent); border-radius: 20px; background: var(--glass-highlight) var(--glass-fill-strong); box-shadow: var(--glass-shadow); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); }
 #basket-fund-picker header { display: flex; gap: 12px; justify-content: space-between; align-items: center; }
 #basket-fund-picker header strong { font-weight: 500; }
 #basket-fund-picker button { color: var(--text-primary); background: var(--bg-raised); border: 1px solid var(--rule); border-radius: 10px; padding: 12px; }
