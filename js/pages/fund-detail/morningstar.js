@@ -62,7 +62,7 @@ export function createMorningstarHistory(root) {
         <p class="fd-nav-hint">百分位越高，换手越高，不代表业绩更好。同一报告期、同一晨星分类内，按基金代码（不同份额分别计数）比较有效换手率；缺失或负值排除，样本少于 2 个不计算。${esc(data.percentileMethod)}。分类按每期记录确定，不用当前分类回填历史。</p>
       </div>
       <details class="fd-card fd-ms-detail"><summary>历史明细与来源 · ${periods.length} 期</summary>
-        <div class="fd-ms-table-wrap"><table class="fd-table"><thead><tr><th>截至日期</th><th>晨星分类</th><th>显性费率 / 排名</th><th>隐性费率 / 排名</th><th>综合费率 / 排名</th><th>换手率 / 中值</th><th>换手百分位 / 样本</th><th>来源文件</th></tr></thead><tbody>${periods.map(p => `<tr>
+        <div class="fd-table-wrap fd-ms-table-wrap" tabindex="0" role="region" aria-label="晨星历史明细，可横向滚动"><table class="fd-table"><thead><tr><th>截至日期</th><th>晨星分类</th><th>显性费率 / 排名</th><th>隐性费率 / 排名</th><th>综合费率 / 排名</th><th>换手率 / 中值</th><th>换手百分位 / 样本</th><th>来源文件</th></tr></thead><tbody>${periods.map(p => `<tr>
           <td>${esc(p.as_of_date)}</td><td>${esc(p.morningstar_category || (p.available ? '分类缺失' : '未收录'))}</td>
           <td>${fmt(p.explicit_fee_pct)} / ${fmt(p.explicit_fee_rank_pct)}</td><td>${fmt(p.implicit_fee_pct)} / ${fmt(p.implicit_fee_rank_pct)}</td><td>${fmt(p.total_fee_pct)} / ${fmt(p.total_fee_rank_pct)}</td>
           <td>${fmt(p.turnover_pct)} / ${fmt(p.category_median_turnover_pct)}</td><td>${fmt(p.turnover.percentile)} / ${p.turnover.sampleSize}</td><td>${esc(p.source_file)}</td></tr>`).join('')}</tbody></table></div>

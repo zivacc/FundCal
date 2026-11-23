@@ -1,4 +1,5 @@
 import { BASKET_DROP_DIAMETER, insideDropCircle, detailDropCode } from '../core/fund-drop.js';
+import { applyGlassRefraction, reducedGlassTransparency, removeGlassRefraction } from '../core/glass-refraction.js';
 import { normalizeFundRefs } from '../data/basket-store.js';
 import { basket as store, basketStorageFailed } from '../data/basket.js';
 import { currentFundRoute, getFundReceiver, getPageFundSelection, escapeFundAttribute as escapeHtml } from '../core/fund-transfer.js';
@@ -17,7 +18,7 @@ root.innerHTML = `
   <div id="basket-drop-zones" hidden><button type="button" data-basket-drop="add"><strong>＋ 添加</strong><span>保留当前基金，去重后加入</span></button><button type="button" data-basket-drop="replace"><strong>⇄ 替换</strong><span>替换当前基金，保留页面设置</span></button><button type="button" id="basket-drag-cancel" aria-label="取消拖动">取消 · Esc</button></div>
   <section id="basket-fund-picker" aria-label="选择要查看的基金" hidden><header><strong id="basket-fund-picker-title"></strong><button type="button" data-basket-action="cancel">取消 · Esc</button></header><div id="basket-fund-choices"></div></section>
   <button type="button" id="basket-drop-target" aria-label="加入基金篮子" hidden><span>加入篮子</span></button>
-  <div id="basket-drag-ghost" hidden></div>
+  <div id="basket-drag-ghost" aria-hidden="true" hidden></div>
   <div id="basket-live-status" role="status" aria-live="polite" hidden></div>`;
 document.body.append(root);
 const panel = root.querySelector('#fund-basket-panel');
@@ -147,8 +148,17 @@ function positionTarget() {
   target.style.left = `${box.x + box.width / 2}px`;
   target.style.top = `${box.y + box.height / 2}px`;
 }
+function updateGhostRefraction() {
+  if (ghost.hidden) return;
+  const radius = parseFloat(getComputedStyle(ghost).borderTopLeftRadius);
+  applyGlassRefraction(ghost, ghost.offsetWidth, ghost.offsetHeight, { radius, rim: 8, scale: 19 });
+}
+reducedGlassTransparency.addEventListener('change', updateGhostRefraction);
+
 function startDrag(source, keyboard = false) {
-  drag = { ...source, keyboard };
+  const surface = source.node.closest('.fund-card, tr, .basket-fund-row, .fund-stats-detail-row') || source.node;
+  drag = { ...source, keyboard, surface };
+  surface.classList.add('is-basket-drag-source');
   document.body.classList.add('basket-dragging');
   trigger.classList.add('is-drop-ready');
   fundTab.classList.toggle('is-fund-drop-ready', source.items.length === 1);
@@ -156,6 +166,7 @@ function startDrag(source, keyboard = false) {
   target.hidden = source.origin === 'basket';
   ghost.hidden = keyboard;
   ghost.textContent = `${source.items.length} 只基金 · ${source.items[0].name}${source.items.length > 1 ? ' 等' : ''}`;
+  updateGhostRefraction();
   refreshContext();
   if (keyboard) {
     if (!picker.hidden) choices.querySelector('[data-basket-drop]').focus();
@@ -194,6 +205,7 @@ function scrollChoices() {
 }
 function stopDrag() {
   const source = drag;
+  source?.surface.classList.remove('is-basket-drag-source');
   if (source?.pointerId != null) { cancelledPointer = source.pointerId; suppressClickUntil = performance.now() + 350; }
   drag = null; candidate = null; clearTimeout(hoverTimer); hoverRoute = null;
   document.body.classList.remove('basket-dragging', 'basket-detail-drag');
@@ -202,6 +214,7 @@ function stopDrag() {
   picker.hidden = true; pickerItems = null;
   trigger.classList.remove('is-drop-ready', 'is-drop-over'); target.classList.remove('is-over');
   zones.hidden = true; target.hidden = true; ghost.hidden = true;
+  removeGlassRefraction(ghost);
   root.querySelectorAll('[data-basket-drop]').forEach(node => node.classList.remove('is-over'));
   if (source?.keyboard) (source.node?.isConnected ? source.node : trigger).focus({ preventScroll: true });
 }

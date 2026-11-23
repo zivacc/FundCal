@@ -1,5 +1,6 @@
 import { disposeCardImplicitFee } from './implicit-fee.js';
 import { deckPose, deckFrontCount, clampDeckIndex } from './deck-layout.js';
+import { applyGlassRefraction, glassRefractionSupported, reducedGlassTransparency, removeGlassRefraction } from '../../core/glass-refraction.js';
 
 export function setupCardDeck() {
   const rail = document.getElementById('fund-cards');
@@ -8,8 +9,9 @@ export function setupCardDeck() {
   const prev = stage.querySelector('[data-deck-prev]');
   const next = stage.querySelector('[data-deck-next]');
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  const cardSurfaces = new WeakMap();
   let cards = [], position = 0, target = 0, frame = 0, gesture = null, suppressClick = false;
-  let width = 0, cardWidth = 330, frontCount = 1, lastTime = 0;
+  let width = 0, cardWidth = 330, cardRadius = 24, frontCount = 1, lastTime = 0;
   let lightFrame = 0, pointer = null;
   const maxIndex = () => Math.max(0, cards.length - frontCount);
   const clampPosition = value => clampDeckIndex(value, maxIndex() + 1);
@@ -44,11 +46,23 @@ export function setupCardDeck() {
   window.addEventListener('scroll', () => {
     if (pointer && !reduced.matches && stage.closest('.page')?.classList.contains('active')) light();
   }, { passive: true });
-  const resize = new ResizeObserver(measure);
+  const resize = new ResizeObserver(entries => {
+    for (const { target: card, borderBoxSize } of entries) {
+      if (!cardSurfaces.has(card)) continue;
+      const size = borderBoxSize?.[0];
+      cardSurfaces.set(card, {
+        width: size?.inlineSize ?? card.offsetWidth,
+        height: size?.blockSize ?? card.offsetHeight,
+        scale: null,
+      });
+    }
+    measure();
+  });
   function measure() {
     width = rail.clientWidth;
     if (!width) return;
     cardWidth = cards[0]?.offsetWidth || 330;
+    cardRadius = parseFloat(getComputedStyle(stage).getPropertyValue('--deck-card-radius')) || 24;
     frontCount = deckFrontCount(width, cardWidth, cards.length);
     const focused = cards.findIndex(card => card.contains(document.activeElement));
     if (focused >= 0 && (focused < target || focused >= target + frontCount)) target = focused;
@@ -60,7 +74,13 @@ export function setupCardDeck() {
   function refresh() {
     const oldActive = cards[Math.round(target)];
     const current = [...rail.children];
-    for (const old of cards) if (!current.includes(old)) { resize.unobserve(old); disposeCardImplicitFee(old); }
+    for (const old of cards) {
+      if (current.includes(old)) continue;
+      resize.unobserve(old);
+      removeGlassRefraction(old);
+      cardSurfaces.delete(old);
+      disposeCardImplicitFee(old);
+    }
     cards = current;
     if (oldActive && cards.includes(oldActive)) target = cards.indexOf(oldActive);
     target = clampPosition(target);
@@ -72,10 +92,26 @@ export function setupCardDeck() {
         open.addEventListener('click', () => go(cards.indexOf(card)));
         card.append(open);
       }
-      resize.observe(card);
+      if (!cardSurfaces.has(card)) {
+        cardSurfaces.set(card, { width: 0, height: 0, scale: null });
+        resize.observe(card, { box: 'border-box' });
+      }
     }
     stage.classList.toggle('is-empty', !cards.length);
     measure();
+  }
+  function setRefraction(card, front, dragged) {
+    const surface = cardSurfaces.get(card);
+    if (!surface.width || !surface.height) return;
+    let scale = 0;
+    if (glassRefractionSupported && !reducedGlassTransparency.matches) {
+      if (dragged && !reduced.matches) scale = 32;
+      else if (front) scale = 22;
+    }
+    if (surface.scale === scale) return;
+    surface.scale = scale;
+    if (scale) applyGlassRefraction(card, surface.width, surface.height, { radius: cardRadius, rim: 19, scale });
+    else removeGlassRefraction(card);
   }
   function draw(time) {
     frame = 0;
@@ -92,7 +128,10 @@ export function setupCardDeck() {
       card.style.zIndex = String(1000 - Math.round(Math.abs(i - position) * 100));
       card.style.setProperty('--surface-light', pose.light);
       const front = i >= active && i < active + frontCount;
+      const dragged = gesture?.dragging && gesture.card === card && pose.opacity > 0;
       card.classList.toggle('is-deck-active', front);
+      card.classList.toggle('is-deck-drag-surface', Boolean(dragged));
+      setRefraction(card, front && pose.opacity > 0, dragged);
       const open = card.querySelector('.deck-card-open');
       open.hidden = front;
       open.setAttribute('aria-label', `展示 ${card.querySelector('.fund-name')?.value || `基金 ${i + 1}`}`);
@@ -134,7 +173,7 @@ export function setupCardDeck() {
     if (event.button !== 0 || !maxIndex() || document.body.classList.contains('basket-dragging')) return;
     if (event.target.closest('input,select,textarea,a,.fund-drag-handle,button:not(.deck-card-open)')) return;
     suppressClick = false;
-    gesture = { id: event.pointerId, x: event.clientX, y: event.clientY, start: target, dragging: false };
+    gesture = { id: event.pointerId, x: event.clientX, y: event.clientY, start: target, dragging: false, card: event.target.closest('.fund-card') };
   });
   rail.addEventListener('pointermove', event => {
     if (gesture?.id !== event.pointerId) return;
@@ -147,6 +186,7 @@ export function setupCardDeck() {
       stage.classList.add('is-deck-dragging');
     }
     event.preventDefault();
+    if (event.pointerType === 'touch' && !reduced.matches) pointer = { x: event.clientX, y: event.clientY };
     target = clampPosition(gesture.start - dx / Math.max(160, cardWidth * .65));
     schedule();
   }, { passive: false });
@@ -163,6 +203,7 @@ export function setupCardDeck() {
   new MutationObserver(refresh).observe(rail, { childList: true });
   resize.observe(rail);
   reduced.addEventListener('change', schedule);
+  reducedGlassTransparency.addEventListener('change', schedule);
   window.addEventListener('fundcal-route-ready', measure);
   refresh();
 }

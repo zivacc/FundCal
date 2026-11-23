@@ -77,7 +77,9 @@ try {
       await page.locator('#cached-funds-sort').selectOption('code-desc'); await row(120).waitFor();
       await choose(117, ['Shift']); assert.deepEqual(await selection(), [117]);
       await choose(114, ['Shift']); assert.deepEqual(await selection(), [117, 116, 115, 114]);
-      await page.locator('#cached-funds-search').fill('00011'); await row(119).waitFor();
+      await page.locator('#cached-funds-search').fill('00011');
+      await row(120).waitFor({ state: 'detached' });
+      await row(119).waitFor();
       await choose(116, ['Shift']); assert.deepEqual(await selection(), [116]);
     }
     assert.deepEqual(errors, []);

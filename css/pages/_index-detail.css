@@ -58,14 +58,11 @@
 .id-filter { max-width: 100%; flex: 1 1 240px; min-width: 0; padding: .5rem .7rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-input); color: var(--text-primary); font: inherit; font-size: .85rem; }
 .id-toolbar label, .id-snapshot-label { display: flex; gap: .5rem; align-items: center; max-width: 100%; font-size: .82rem; color: var(--text-secondary); }
 .id-snapshot-label select { min-width: 0; max-width: 100%; }
-.id-table-wrap { width: 100%; overflow-x: auto; border: 1px solid var(--glass-stroke); border-radius: var(--radius-md); }
 .id-table { width: 100%; min-width: 400px; border-collapse: collapse; font-size: .88rem; }
 .id-table:has(#id-fund-rows) { min-width: 700px; }
 .id-table:has(#id-fund-rows) td:nth-child(3) { min-width: 130px; }
-.id-table th, .id-table td { padding: .6rem .75rem; text-align: left; border-bottom: 1px solid var(--border); vertical-align: middle; }
-.id-table th { color: var(--text-secondary); background: var(--glass-highlight) var(--bg-subtle); font-size: .8rem; font-weight: 500; white-space: nowrap; }
-.id-table tbody tr:last-child td { border-bottom: 0; }
-.id-table tbody tr:hover { background: var(--bg-hover); }
+.id-table th, .id-table td { padding: .6rem .75rem; text-align: left; vertical-align: middle; }
+.id-table th { font-size: .8rem; white-space: nowrap; }
 .id-table .id-numeric { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .id-table .id-fund-name { display: block; min-width: 180px; max-width: 340px; line-height: 1.5; }
 .id-table .id-sub { display: block; color: var(--text-tertiary); font-size: .75rem; margin-top: .15rem; }

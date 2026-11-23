@@ -3,9 +3,9 @@
    ══════════════════════════════════════════════════════════════ */
 
 .container {
-  max-width: 1400px;
+  max-width: var(--page-max-width);
   margin: 0 auto;
-  padding: clamp(20px, 3.2vw, 44px) clamp(14px, 3vw, 44px) 48px;
+  padding: clamp(20px, 3.2vw, 44px) var(--page-gutter) 48px;
 }
 
 /* SPA 页面容器：取消 sticky 头占位（top-rail 自己 sticky）*/

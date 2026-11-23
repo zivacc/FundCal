@@ -4,7 +4,8 @@
 
 .cf-layout {
   display: flex;
-  align-items: stretch;
+  align-items: flex-start;
+  gap: clamp(16px, 2vw, 24px);
   min-height: calc(100vh - var(--top-rail-height, 52px));
   flex-direction: row-reverse; /* 主表格在左，sidebar 浮到右 */
 }
@@ -12,7 +13,6 @@
 .cf-sidebar {
   width: 240px;
   flex-shrink: 0;
-  margin: 24px 24px 24px 0;
   border: 1px solid var(--glass-stroke);
   border-radius: 26px;
   background: var(--glass-highlight) var(--glass-fill);
@@ -104,7 +104,7 @@
 .cf-main {
   flex: 1;
   min-width: 0;
-  padding: 28px 28px 24px;
+  width: 100%;
   display: flex;
   flex-direction: column;
 }
@@ -126,6 +126,7 @@
 
 .cached-funds-search-input {
   width: 100%;
+  min-height: 42px;
   padding: 9px 32px 9px 36px;
   border-radius: 999px;
   border: 1px solid var(--glass-stroke);
@@ -204,8 +205,8 @@
 /* 排序选择 */
 .cached-funds-sort-select {
   flex: 0 0 auto;
-  padding: 0.4rem 0.6rem;
-  border-radius: 999px;
+  min-height: 42px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--border);
   background-color: var(--bg-input);
   color: var(--text-primary);
@@ -395,10 +396,6 @@
     min-height: auto;
   }
 
-  .cf-main {
-    padding: 16px;
-  }
-
   /* 侧栏改为底部抽屉 */
   .cf-sidebar {
     position: fixed;
@@ -540,14 +537,6 @@
   line-height: 1.6;
 }
 
-.cached-funds-table-wrap {
-  border: 1px solid var(--glass-stroke);
-  border-radius: var(--radius-xl);
-  background: var(--glass-fill-strong);
-  overflow: auto;
-  box-shadow: var(--glass-shadow);
-}
-
 .cached-funds-table {
   width: 100%;
   border-collapse: collapse;
@@ -560,7 +549,6 @@
 .cached-funds-table th,
 .cached-funds-table td {
   padding: 9px 12px;
-  border-bottom: 1px solid var(--rule);
   text-align: left;
   white-space: nowrap;
 }
@@ -569,16 +557,11 @@
   font-family: var(--font-mono);
   font-weight: 500;
   font-size: 12px;
-  letter-spacing: 1.2px;
-  color: var(--text-tertiary);
+  letter-spacing: .04em;
   position: sticky;
   top: 0;
-  background: var(--glass-highlight) var(--bg-elevated);
+  background-color: var(--table-header);
   z-index: 1;
-}
-
-.cached-funds-table tbody tr:hover {
-  background: var(--bg-hover);
 }
 
 .cached-funds-table tbody tr.cached-fund-row {
@@ -586,12 +569,12 @@
 }
 
 .cached-funds-table tbody tr.cached-fund-row-selected {
-  background: color-mix(in srgb, var(--accent) 18%, var(--bg-subtle)) !important;
+  background-color: color-mix(in srgb, var(--accent) 18%, var(--bg-subtle));
   box-shadow: inset 3px 0 0 0 var(--accent);
 }
 
 .cached-funds-table tbody tr.cached-fund-row-selected:hover {
-  background: color-mix(in srgb, var(--accent) 24%, var(--bg-hover)) !important;
+  background-color: color-mix(in srgb, var(--accent) 24%, var(--table-row-hover));
 }
 
 .cached-funds-empty {
@@ -601,13 +584,9 @@
 
 /* 待补全占位行：灰显 + 不可选 */
 .cached-funds-table tbody tr.cached-fund-row-placeholder {
-  background: var(--bg-sunk);
+  background-color: var(--table-header);
   color: var(--text-tertiary);
   cursor: default;
-}
-
-.cached-funds-table tbody tr.cached-fund-row-placeholder:hover {
-  background: var(--bg-hover);
 }
 
 .cached-funds-table tbody tr.cached-fund-row-placeholder td {

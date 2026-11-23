@@ -73,6 +73,8 @@
   --radius-lg: 20px;
   --radius-xl: 30px;
   --radius-pill: 999px;
+  --page-max-width: 1400px;
+  --page-gutter: clamp(14px, 3vw, 44px);
   --transition-fast: 0.16s cubic-bezier(0.2, 0.7, 0.3, 1);
   --transition-normal: 0.25s cubic-bezier(0.2, 0.7, 0.3, 1);
   --transition-glow: 0.26s ease-out;
@@ -97,13 +99,22 @@
   --glass-highlight: linear-gradient(135deg, rgb(255 255 255 / 62%), transparent 46%, rgb(156 177 236 / 11%));
   --glass-rim: inset 0 1px 1px var(--glass-toplight), inset 0 -1px 1px rgb(76 101 181 / 15%);
   --glass-shadow: var(--glass-rim), 0 2px 5px rgb(77 102 167 / 9%), 0 16px 44px rgb(73 94 154 / 12%);
-  --glass-blur: blur(14px);
+  --glass-blur: blur(2px);
+  --glass-glint-blur: blur(.5px);
   --glass-saturate: saturate(148%);
   --glass-scrim: rgb(45 62 105 / 34%);
   --glass-lens-fill: rgb(247 250 255 / 44%);
   --glass-lens-shine: rgb(255 255 255 / 92%);
   --glass-lens-edge: rgb(82 114 219 / 36%);
   --glass-lens-violet: rgb(166 115 216 / 25%);
+  --glass-lens-ease: cubic-bezier(.22, .84, .27, 1);
+
+  --table-fill: var(--glass-fill-strong);
+  --table-header: var(--bg-elevated);
+  --table-row-hover: var(--accent-subtle);
+  --table-rule: var(--rule);
+  --table-radius: var(--radius-lg);
+  --table-lens-fill: rgb(130 157 244 / 14%);
 
   --scene-wash:
     radial-gradient(ellipse at 7% 2%, #fcfdff 0%, transparent 47%),
@@ -196,6 +207,7 @@
   --glass-lens-shine: rgb(222 230 255 / 61%);
   --glass-lens-edge: rgb(127 161 255 / 63%);
   --glass-lens-violet: rgb(165 116 250 / 43%);
+  --table-lens-fill: rgb(147 177 255 / 18%);
 
   --scene-wash:
     radial-gradient(ellipse at 6% 8%, #2a4377 0%, transparent 53%),
@@ -223,6 +235,7 @@
     --glass-fill-strong: var(--bg-elevated);
     --glass-lens-fill: var(--bg-hover);
     --glass-blur: blur(0px);
+    --glass-glint-blur: blur(0px);
     --glass-saturate: saturate(100%);
   }
 }

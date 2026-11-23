@@ -2290,10 +2290,12 @@ function renderMultiFundTable(perFund, rsInds) {
     return `<tr ${dragAttrs}>${cells.join('')}</tr>`;
   });
   return `
-    <table class="nav-range-stats-table">
-      <thead><tr>${headerCells.join('')}</tr></thead>
-      <tbody>${rows.join('')}</tbody>
-    </table>`;
+    <div class="nav-range-stats-table-wrap" tabindex="0" role="region" aria-label="选区内多基金统计，可横向滚动">
+      <table class="nav-range-stats-table">
+        <thead><tr>${headerCells.join('')}</tr></thead>
+        <tbody>${rows.join('')}</tbody>
+      </table>
+    </div>`;
 }
 
 /* ========== 自定义图表 toolbar（保存 / 重置） ==========

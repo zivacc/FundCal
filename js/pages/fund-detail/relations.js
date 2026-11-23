@@ -10,7 +10,7 @@ function fundLink(row) {
     : `<a class="fd-peer-link" href="${external(row.code)}" target="_blank" rel="noopener noreferrer">${esc(row.name || row.code)} ↗</a>`;
 }
 function table(rows, code, kind) {
-  return `<div class="fd-relations-table-wrap"><table class="fd-table"><thead><tr><th>基金</th><th>${kind === 'holdings' ? '持仓占比' : '关系'}</th><th>跳转</th></tr></thead><tbody>${rows.map(row => `<tr ${row.available ? fundDragAttrs(row) : ''}>
+  return `<div class="fd-table-wrap fd-relations-table-wrap" tabindex="0" role="region" aria-label="相关基金，可横向滚动"><table class="fd-table"><thead><tr><th>基金</th><th>${kind === 'holdings' ? '持仓占比' : '关系'}</th><th>跳转</th></tr></thead><tbody>${rows.map(row => `<tr ${row.available ? fundDragAttrs(row) : ''}>
     <td>${row.available ? fundDragHandle() : ''}${fundLink(row)}<small class="fd-related-code">${row.code}</small></td>
     <td>${kind === 'holdings' ? `${Number(row.weightPct).toFixed(2)}%` : kind === 'shares' ? esc(row.shareClass ? `${row.shareClass} 类份额` : '其他份额') : row.relation === 'master' ? '联接母基金' : '联接基金'}</td>
     <td>${row.available ? `<a class="fd-peer-link" href="#/compare/${code},${row.code}">对比</a>` : '<span class="fd-nav-hint">来源详情 ↗</span>'}</td>

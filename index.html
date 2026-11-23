@@ -21,12 +21,7 @@
 </head>
 <body>
   <svg width="0" height="0" class="glass-filter" aria-hidden="true" focusable="false">
-    <defs>
-      <filter id="nav-refraction" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
-        <feImage preserveAspectRatio="none" result="lens-map"></feImage>
-        <feDisplacementMap in="SourceGraphic" in2="lens-map" scale="14" xChannelSelector="R" yChannelSelector="G"></feDisplacementMap>
-      </filter>
-    </defs>
+    <defs id="glass-filter-definitions"></defs>
   </svg>
   <nav class="top-rail" aria-label="主导航">
     <a class="top-rail-brand" href="#/calc">
@@ -196,7 +191,7 @@
        页面 2：数据库基金列表
        ═════════════════════════════════════════════════════════════ -->
   <section class="page page-list" data-route="list">
-    <div class="cf-layout">
+    <div class="container cf-layout">
       <!-- 左侧筛选栏 -->
       <aside class="cf-sidebar" id="cf-filter-panel">
         <div class="cf-sidebar-kicker">
@@ -318,7 +313,7 @@
         </section>
         <p id="cached-funds-selection-hint" class="cached-funds-selection-hint">单击单选 · Ctrl / ⌘ 多选 · Shift 选本页区间 · Ctrl / ⌘ + Shift 追加区间 · 触屏点按多选</p>
         <p id="cached-funds-morningstar-hint" class="cached-funds-selection-hint">晨星费率取各基金最新收录的同一期快照，日期见列内；隐性费率为估算值，综合费率为晨星显性＋隐性费率，不等于现行年化费率加隐性费率。缺失显示 —，仅供参考。</p>
-        <div class="cached-funds-table-wrap">
+        <div class="cached-funds-table-wrap" tabindex="0" role="region" aria-label="数据库基金列表，可横向滚动">
           <table class="cached-funds-table" aria-describedby="cached-funds-selection-hint cached-funds-morningstar-hint">
             <thead>
               <tr>
@@ -381,7 +376,7 @@
   <!-- ═════════════════════════════════════════════════════════════
        页面 3：指数选基
        ═════════════════════════════════════════════════════════════ -->
-  <section class="page page-index index-page" data-route="index">
+  <section class="page page-index index-page container" data-route="index">
     <div class="ix-hero">
       <h1 class="ix-hero-title">按<span class="ix-hero-title-accent">指数</span>选基金</h1>
       <p class="ix-hero-sub">输入你关心的跟踪标的，比较所有挂钩该指数的基金的费率、规模与业绩</p>
@@ -439,7 +434,7 @@
           <div class="index-page-left">
             <section class="index-page-panel">
               <h2 class="index-page-panel-title">基金比较</h2>
-              <div class="cached-funds-table-wrap index-page-table-wrap">
+              <div class="cached-funds-table-wrap index-page-table-wrap" tabindex="0" role="region" aria-label="指数跟踪基金，可横向滚动">
                 <table class="cached-funds-table index-page-table">
                   <thead>
                     <tr>
@@ -610,7 +605,7 @@
 
       <section class="nav-stats-section">
         <h2 class="nav-stats-title">范围统计</h2>
-        <div class="nav-stats-table-wrap">
+        <div class="nav-stats-table-wrap" tabindex="0" role="region" aria-label="净值范围统计，可横向滚动">
           <table class="nav-stats-table" id="nav-stats-table">
             <thead>
               <tr>
@@ -1042,6 +1037,7 @@
   <script src="js/core/config.js"></script>
   <script src="js/core/theme-toggle.js"></script>
   <script type="module" src="js/core/glass-navigation.js"></script>
+  <script type="module" src="js/core/glass-table.js"></script>
   <script type="module" src="js/core/router.js"></script>
   <script type="module" src="js/components/fund-basket.js"></script>
 </body>

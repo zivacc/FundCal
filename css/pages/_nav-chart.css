@@ -2,10 +2,6 @@
    净值比较页 (NAV Compare) - ECharts 容器 + 控件 + 统计表
    ══════════════════════════════════════════════════════════════ */
 
-.page-nav .container {
-  padding: 24px 28px 32px;
-}
-
 /* 工具栏 */
 .nav-toolbar {
   display: flex;
@@ -20,8 +16,11 @@
   align-items: center;
 }
 
+.nav-toolbar-row > .btn { min-height: 42px; }
+
 .nav-search-wrap {
   flex: 1 1 320px;
+  min-width: 0;
   max-width: 480px;
   position: relative;
 }
@@ -62,15 +61,18 @@
 }
 .nav-period-group > .nav-control-label, .nav-period-btn { white-space: nowrap; flex-shrink: 0; }
 .nav-date-range { display: flex; align-items: center; gap: 8px; flex-basis: 100%; width: 100%; min-width: 0; margin-top: 4px; }
-.nav-date-range .nav-date-input { flex: 1 1 0; width: 0; max-width: 160px; min-width: 0; }
+.nav-date-range .nav-date-input { flex: 1 1 0; width: 0; max-width: 160px; min-width: 0; min-height: 34px; margin: 0; }
 
 .nav-excess-select {
   font-size: 13px;
   padding: 3px 6px;
   max-width: 140px;
+  min-height: 34px;
+  margin: 0;
 }
 
 .nav-period-btn {
+  min-height: 34px;
   padding: 5px 12px;
   border: 1px solid var(--glass-stroke);
   background: var(--glass-highlight) var(--glass-fill-strong);
@@ -106,6 +108,7 @@
 }
 
 .nav-toggle-btn {
+  min-height: 28px;
   padding: 4px 12px;
   border: 0;
   border-radius: 999px;
@@ -177,7 +180,7 @@
  * 独立于 chart-wrap，不再浮在 plot 上方 —— 给 markPoint / 坐标标签腾出空间。 */
 .nav-chart-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
   padding: 10px 12px;
@@ -494,35 +497,19 @@
   margin-bottom: 0.6rem;
 }
 
-.nav-stats-table-wrap {
-  border: 1px solid var(--glass-stroke);
-  border-radius: var(--radius-lg);
-  background: var(--glass-fill-strong);
-  box-shadow: var(--glass-shadow);
-  overflow: auto;
-}
-
 .nav-stats-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 14.5px;
 }
 
-.nav-stats-table thead {
-  background: var(--glass-highlight) var(--bg-elevated);
-}
-
 .nav-stats-table th {
   font-family: var(--font-mono);
-  font-weight: 500;
   font-size: 12.5px;
-  letter-spacing: 1.2px;
-  color: var(--text-tertiary);
-  text-transform: uppercase;
+  letter-spacing: .04em;
   padding: 9px 12px;
   text-align: right;
   white-space: nowrap;
-  border-bottom: 1px solid var(--rule);
 }
 
 .nav-stats-table th:first-child,
@@ -532,10 +519,8 @@
 
 .nav-stats-table td {
   padding: 9px 12px;
-  border-bottom: 1px solid var(--rule);
   text-align: right;
   white-space: nowrap;
-  color: var(--text-primary);
 }
 
 .nav-stats-table td:first-child,
@@ -546,10 +531,6 @@
 .nav-stats-table td.mono {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-}
-
-.nav-stats-table tbody tr:last-child td {
-  border-bottom: none;
 }
 
 .nav-stats-dot {
@@ -569,6 +550,7 @@
    覆盖全局 .toggle-btn 的 padding 0.5rem 1.1rem 和 0.85rem 字号 */
 .nav-controls .toggle-btn.toggle-btn-inline {
   padding: 5px 12px;
+  min-height: 34px;
   font-family: var(--font-mono);
   font-size: 13px;
   letter-spacing: 0.5px;
@@ -804,6 +786,8 @@
 }
 
 /* 多基金：紧凑表格 */
+.nav-range-stats-table-wrap { --table-radius: var(--radius-sm); }
+
 .nav-range-stats-table {
   width: 100%;
   border-collapse: collapse;
@@ -820,7 +804,6 @@
   padding: 4px 8px;
   text-align: right;
   white-space: nowrap;
-  border-bottom: 1px solid var(--rule);
 }
 
 .nav-range-stats-table thead th:first-child {
@@ -831,15 +814,10 @@
   padding: 4px 8px;
   text-align: right;
   white-space: nowrap;
-  border-bottom: 1px dashed var(--rule);
 }
 
 .nav-range-stats-table tbody td:first-child {
   text-align: left;
-}
-
-.nav-range-stats-table tbody tr:last-child td {
-  border-bottom: none;
 }
 
 .nav-range-stats-table .mono {
@@ -862,7 +840,6 @@
 
 /* 窄屏 */
 @media (max-width: 768px) {
-  .page-nav .container { padding: 16px; }
   .nav-chart-canvas { height: 500px; }
   .nav-controls { gap: 0.5rem; padding: 12px; }
   .nav-stats-table { min-width: 720px; }

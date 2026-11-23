@@ -18,6 +18,15 @@ try {
  await page.addInitScript(()=>localStorage.setItem('fundCalState',JSON.stringify({calcDaysMax:365,funds:Array.from({length:5},(_,i)=>({name:'测试基金 '+i,code:String(i+1).padStart(6,'0'),annualFee:.005,buyFee:0,sellFeeSegments:[{to:null,rate:0}]}))})));
  await page.goto(`${base}/#/calc`,{waitUntil:'domcontentloaded'});
  await page.waitForSelector('.fund-card.is-deck-active'); await page.waitForTimeout(350);
+ const activeCard = page.locator('.fund-card.is-deck-active').first();
+ const optics = locator => locator.evaluate(el => {
+   const id = el.style.getPropertyValue('--glass-refraction').match(/#([^"]+)/)?.[1];
+   const scale = document.getElementById(id)?.querySelector('feDisplacementMap')?.getAttribute('scale');
+   return { scale: Number(scale), filter: getComputedStyle(el).backdropFilter, foreground: getComputedStyle(el).filter };
+ });
+ const initialOptics = await optics(activeCard);
+ assert.match(initialOptics.filter, /blur\(0\.5px\).*url\(/);
+ assert.equal(initialOptics.foreground, 'none');
  const light=()=>page.locator('#fund-card-stage').evaluate(el=>({x:el.style.getPropertyValue('--light-x'),y:el.style.getPropertyValue('--light-y')}));
  const stage=await page.locator('#fund-card-stage').boundingBox();
  await page.mouse.move(stage.x+stage.width*.25,stage.y+stage.height*.3); await page.waitForTimeout(80);
@@ -35,14 +44,23 @@ try {
  await page.locator('#fund-cards').focus(); await page.keyboard.press('End'); await page.waitForTimeout(450); await page.keyboard.press('Home'); await page.waitForTimeout(450);
  let card=await page.locator('.fund-card.is-deck-active').first().boundingBox();
  // Left padding is non-interactive card body: horizontal drag changes the gallery.
- await page.mouse.move(card.x+8,card.y+110); await page.mouse.down(); await page.mouse.move(card.x-210,card.y+110,{steps:10}); await page.mouse.up(); await page.waitForTimeout(400);
+ await page.mouse.move(card.x+8,card.y+110); await page.mouse.down();
+ await page.mouse.move(card.x-50,card.y+110,{steps:5});
+ const draggedCard = page.locator('.fund-card.is-deck-drag-surface');
+ await draggedCard.waitFor();
+ assert.ok((await optics(draggedCard)).scale > initialOptics.scale);
+ await page.mouse.move(card.x-210,card.y+110,{steps:10}); await page.mouse.up(); await page.waitForTimeout(400);
  assert.equal(await page.locator('body').evaluate(el=>el.classList.contains('basket-dragging')),false); assert.ok(Number(await page.locator('#fund-cards').getAttribute('data-active-index'))>0);
  card=await page.locator('.fund-card.is-deck-active').first().boundingBox();
  await page.mouse.move(card.x+8,card.y+100); await page.mouse.down(); await page.mouse.move(card.x+8,card.y+70,{steps:3});
  assert.equal(await page.locator('body').evaluate(el=>el.classList.contains('basket-dragging')),true);
+ assert.equal(await page.locator('.fund-card.is-basket-drag-source').count(), 1);
+ const ghost = page.locator('#basket-drag-ghost');
+ assert.match(await ghost.evaluate(el => getComputedStyle(el, '::before').backdropFilter), /blur\(0\.5px\).*url\(/);
  const target=await page.locator('#fund-basket-button').boundingBox();
  await page.mouse.move(target.x+target.width/2,target.y+target.height/2,{steps:10}); await page.mouse.up(); await page.waitForTimeout(100);
  assert.equal(await page.locator('#fund-basket-button .basket-count').textContent(),'1');
+ assert.equal(await page.locator('.fund-card.is-basket-drag-source').count(), 0);
  await page.emulateMedia({reducedMotion:'reduce'}); await page.waitForTimeout(100); const fixed=await light(); await page.mouse.move(1000,20); await page.waitForTimeout(80); assert.deepEqual(await light(),fixed); assert.equal(fixed.x,'42%');
  await page.emulateMedia({reducedMotion:'no-preference'}); await page.waitForTimeout(100); assert.notDeepEqual(await light(),fixed);
  assert.deepEqual(errors,[]);

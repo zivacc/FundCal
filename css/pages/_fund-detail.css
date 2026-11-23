@@ -180,19 +180,13 @@
 .fd-table td {
   padding: 0.55rem 0.75rem;
   text-align: left;
-  border-bottom: 1px solid var(--border);
 }
 
 .fd-table th {
-  font-weight: 500;
-  color: var(--text-secondary);
-  background: var(--glass-highlight) var(--bg-subtle);
   font-size: 0.82rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 
-.fd-table td.fd-table-num {
+.fd-table .fd-table-num {
   font-family: 'JetBrains Mono', 'DM Mono', monospace;
   text-align: right;
 }
@@ -287,7 +281,7 @@
 .fd-ms-metric span, .fd-ms-metric small { font-size: 0.78rem; color: var(--text-secondary); }
 .fd-ms-metric strong { font-size: 1.55rem; font-variant-numeric: tabular-nums; color: var(--accent); }
 .fd-ms-chart { width: 100%; height: 435px; margin-top: 1rem; }
-.fd-ms-table-wrap { overflow-x: auto; margin-top: 1rem; }
+.fd-ms-table-wrap { margin-top: 1rem; }
 .fd-ms-table-wrap td { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .fd-ms-detail summary { cursor: pointer; color: var(--text-secondary); }
 .fd-morningstar .fd-nav-hint { line-height: 1.7; }
@@ -298,7 +292,6 @@
 }
 .fd-related-group + .fd-related-group { margin-top: 1.5rem; }
 .fd-related-group h4 { margin: 0 0 .65rem; font-size: .95rem; }
-.fd-relations-table-wrap { overflow-x: auto; }
 .fd-relations-table-wrap table { min-width: 440px; }
 .fd-relations-table-wrap td:first-child { min-width: 230px; }
 .fd-related-code { display: block; opacity: .68; margin-top: .3rem; font-variant-numeric: tabular-nums; }

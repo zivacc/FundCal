@@ -1,10 +1,14 @@
 /* 舞台和各张卡片共用光标驱动的光源。 */
 .fund-card-stage {
+  --deck-card-radius: 24px;
   --deck-sky: #8fbbf387;
   --deck-violet: #aa94f78a;
   --deck-mint: #77d6d788;
+  --deck-wave: #5676b861;
   --deck-shadow: #526d9670;
-  --deck-glare: #ffffffc4;
+  --deck-face: #f7fbff8c;
+  --deck-drag-face: #f4f8ff70;
+  --deck-glare: #ffffff57;
   --deck-rim: #ffffffba;
   --deck-lower-edge: #718ab449;
   --light-x: 42%;
@@ -26,8 +30,11 @@
   --deck-sky: #3c6be572;
   --deck-violet: #7957d66e;
   --deck-mint: #25839a59;
+  --deck-wave: #9aaef973;
   --deck-shadow: #04081a9e;
-  --deck-glare: #96b9ff56;
+  --deck-face: #101c34ab;
+  --deck-drag-face: #101c3495;
+  --deck-glare: #c1d7ff42;
   --deck-rim: #dfe9ff59;
   --deck-lower-edge: #060a1d85;
 }
@@ -38,6 +45,7 @@
   inset: 0;
   background:
     radial-gradient(ellipse at var(--light-x) var(--light-y), var(--deck-glare), transparent 64%),
+    radial-gradient(ellipse 88% 65% at 38% 109%, transparent 97.1%, var(--deck-wave) 98.1%, var(--deck-rim) 98.4%, transparent 99.6%),
     radial-gradient(ellipse at 10% 85%, var(--deck-sky), transparent 58%),
     radial-gradient(ellipse at 56% 112%, var(--deck-violet), transparent 64%),
     radial-gradient(ellipse at 104% 22%, var(--deck-mint), transparent 60%);
@@ -139,7 +147,7 @@
   width: 330px;
   padding: 23px 20px 20px;
   border: 1px solid var(--glass-stroke);
-  border-radius: 24px;
+  border-radius: var(--deck-card-radius);
   background:
     radial-gradient(ellipse at var(--reflection-x, 50%) var(--reflection-y, 0%), var(--deck-glare), transparent 73%),
     linear-gradient(var(--light-angle), var(--deck-sky), transparent 36% 68%, var(--deck-mint)),
@@ -149,7 +157,6 @@
     inset -1px -1px 0 var(--deck-lower-edge),
     var(--shadow-x) var(--shadow-y) 34px -18px var(--deck-shadow);
   transform-origin: 50% 45%;
-  filter: brightness(var(--surface-light, 1));
   backface-visibility: hidden;
 }
 
@@ -158,17 +165,57 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  box-shadow: inset 0 0 12px var(--glass-toplight);
+  box-shadow: inset 0 1px 4px var(--glass-toplight);
   pointer-events: none;
 }
 
-.fund-card-stage .fund-card.is-deck-active {
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  /* Let the highlight glide along the rim without painting over the fee inputs. */
+  .fund-card-stage .fund-card.is-deck-active::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    padding: 3px;
+    border-radius: inherit;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse 78px 19px at clamp(8%, var(--reflection-x, 50%), 92%) 0%, var(--glass-lens-shine), transparent 78%),
+      radial-gradient(ellipse 14px 70px at 100% clamp(8%, var(--reflection-y, 50%), 92%), var(--glass-lens-edge), transparent 78%),
+      radial-gradient(ellipse 55px 15px at clamp(8%, var(--reflection-x, 50%), 92%) 100%, var(--glass-lens-shine), transparent 82%);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity var(--transition-glow);
+  }
+
+  .fund-card-stage .fund-card.is-deck-active:hover::after { opacity: 1; }
+}
+
+.fund-card-stage .fund-card:is(.is-deck-active, .is-deck-drag-surface, .is-basket-drag-source) {
   background:
-    radial-gradient(ellipse at var(--reflection-x, 50%) var(--reflection-y, 0%), var(--deck-glare), transparent 55%),
-    linear-gradient(var(--light-angle), var(--glass-fill), transparent 40% 70%, var(--glass-fill)),
-    color-mix(in srgb, var(--glass-fill-strong) 72%, var(--glass-fill));
-  -webkit-backdrop-filter: var(--glass-blur) var(--glass-saturate);
-  backdrop-filter: var(--glass-blur) var(--glass-saturate);
+    radial-gradient(ellipse 76% 50% at var(--reflection-x, 50%) var(--reflection-y, 0%), var(--deck-glare), transparent 82%),
+    var(--deck-face);
+  -webkit-backdrop-filter: saturate(114%) var(--glass-glint-blur, blur(.5px)) var(--glass-refraction, );
+  backdrop-filter: saturate(114%) var(--glass-glint-blur, blur(.5px)) var(--glass-refraction, );
+}
+
+.fund-card-stage .fund-card:is(.is-deck-drag-surface, .is-basket-drag-source) {
+  --deck-face: var(--deck-drag-face);
+  border-color: var(--deck-rim);
+  box-shadow:
+    inset 2px 2px 4px var(--deck-rim),
+    inset -2px -2px 1px var(--deck-lower-edge),
+    var(--shadow-x) var(--shadow-y) 36px -14px var(--deck-shadow);
+}
+
+.fund-card-stage .fund-card:not(.is-deck-active, .is-deck-drag-surface, .is-basket-drag-source) {
+  --deck-label-opacity: .72;
+  --deck-fields-opacity: .16;
+  filter: brightness(var(--surface-light, 1));
+}
+
+.fund-card-stage .fund-card > :not(h3, .deck-card-open) {
+  opacity: var(--deck-fields-opacity, 1);
 }
 
 .fund-card-stage .fund-card:not(.is-deck-active) { user-select: none; }
@@ -188,7 +235,7 @@
 }
 
 .fund-card-stage .deck-card-open[hidden] { display: none; }
-.fund-card-stage .fund-card h3 { min-height: 42px; margin-bottom: 17px; }
+.fund-card-stage .fund-card h3 { min-height: 42px; margin-bottom: 17px; opacity: var(--deck-label-opacity, 1); }
 .fund-card-stage .fund-card .remove-btn { opacity: .85; top: 9px; right: 9px; }
 .fund-card-stage .fund-card .fund-name { font-size: 14px; }
 .fund-card-stage .fund-card .form-row-fee { padding-block: 10px; }
@@ -244,7 +291,16 @@
   .deck-navigation button:active:not(:disabled) { scale: none; }
 }
 
+@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+  .fund-card-stage .fund-card.is-deck-active::after { display: none; }
+  .fund-card-stage .fund-card:is(.is-deck-active, .is-deck-drag-surface, .is-basket-drag-source) {
+    background: var(--bg-raised);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
 @media (forced-colors: active) {
-  .fund-card-stage .fund-card { filter: none; }
+  .fund-card-stage .fund-card:not(.is-deck-active, .is-deck-drag-surface, .is-basket-drag-source) { filter: none; }
   .deck-navigation button, .fund-card-stage .fund-card { border-color: ButtonBorder; }
 }

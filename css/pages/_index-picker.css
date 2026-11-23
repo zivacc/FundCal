@@ -444,6 +444,8 @@
   visibility: hidden;
 }
 
+.index-page-period-btn { min-height: 42px; }
+
 .index-page-period-btn-active {
   border-color: var(--accent);
   color: var(--accent);
@@ -491,15 +493,6 @@
 
 .index-page-table-wrap {
   max-height: 520px;
-  border-radius: var(--radius-md);
-  box-shadow: none;
-}
-
-.index-page-table th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: var(--glass-highlight) var(--bg-elevated);
 }
 
 .index-page-sort-col-active {
@@ -522,8 +515,7 @@
 .ix-hero {
   position: relative;
   z-index: 2;
-  width: min(1216px, calc(100% - 64px));
-  margin: 24px auto;
+  margin-bottom: 1.25rem;
   padding: clamp(36px, 7vw, 82px) 32px clamp(28px, 5vw, 58px);
   display: flex;
   flex-direction: column;
@@ -715,9 +707,6 @@
 .ix-results-wrap {
   position: relative;
   z-index: 1;
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 0 32px 40px;
 }
 
 .ix-results-wrap .index-page-main {
@@ -726,8 +715,6 @@
 
 @media (max-width: 720px) {
   .ix-hero {
-    width: calc(100% - 32px);
-    margin: 16px auto;
     padding: 40px 16px 28px;
     border-radius: 24px;
   }
@@ -742,5 +729,4 @@
   .ix-hero-cat-tags { flex: 1 1 100%; flex-wrap: wrap; }
   .ix-hero-search-divider { display: none; }
   .ix-hero-search-kbd { display: none; }
-  .ix-results-wrap { padding: 0 16px 24px; }
 }

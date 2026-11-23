@@ -51,7 +51,20 @@ try {
   });
   await page.goto(`${base}/#/compare/000001,000002`);
   await page.locator('#fc-status').filter({ hasText: '已载入 2' }).waitFor();
+  const navLens = page.locator('.top-rail-lens');
+  const preview = page.locator('.top-rail-tab[data-route="list"]');
+  await preview.hover();
+  await page.waitForFunction(() => {
+    const tab = document.querySelector('.top-rail-tab[data-route="list"]');
+    const lens = document.querySelector('.top-rail-lens');
+    return Math.abs(lens.getBoundingClientRect().left - tab.getBoundingClientRect().left) < 1;
+  });
+  assert.equal(await page.locator('.top-rail-tab[data-route="compare"]').getAttribute('aria-selected'), 'true');
+
   const metric = name => page.locator('#fc-table tr').filter({ has: page.locator('th[scope="row"]', { hasText: new RegExp(`^${name}$`) }) }).locator('td');
+  await metric('显性年化费率').first().hover();
+  await page.locator('#fc-table tr.has-table-lens').filter({ hasText: '显性年化费率' }).waitFor();
+  assert.match(await navLens.evaluate(el => getComputedStyle(el).backdropFilter), /blur\(0\.5px\)/);
   assert.deepEqual(await metric('显性年化费率').allTextContents(), ['1.20%', '1.20%']);
   assert.deepEqual(await metric('换手率').allTextContents(), ['0.00%', '100.00%']);
   await page.locator('#fc-period').selectOption('2024-12-31');

@@ -2,11 +2,58 @@
    表格系统
    ══════════════════════════════════════════════════════════════ */
 
-.table-container {
+:is(.table-container, .cached-funds-table-wrap, .fund-detail-table-wrap, .fc-table-wrap,
+    .id-table-wrap, .fd-table-wrap, .nav-stats-table-wrap, .nav-range-stats-table-wrap) {
   border: 1px solid var(--glass-stroke);
-  border-radius: var(--radius-lg);
-  background: var(--glass-fill-strong);
-  overflow: hidden;
+  border-radius: var(--table-radius);
+  background: var(--table-fill);
+  box-shadow: var(--glass-rim), var(--shadow-sm);
+  min-width: 0;
+  max-width: 100%;
+  overflow: auto;
+}
+
+:where(.table, .cached-funds-table, .fund-detail-table, .fc-table, .id-table, .fd-table,
+      .nav-stats-table, .nav-range-stats-table) {
+  font-variant-numeric: tabular-nums;
+}
+
+:where(.table, .cached-funds-table, .fc-table, .id-table, .fd-table,
+      .nav-stats-table, .nav-range-stats-table) thead th {
+  background-color: var(--table-header);
+  box-shadow: inset 0 1px var(--glass-toplight);
+}
+
+:where(.table, .cached-funds-table, .fund-detail-table, .fc-table, .id-table, .fd-table,
+      .nav-stats-table, .nav-range-stats-table) :is(th, td) {
+  border-bottom: 1px solid var(--table-rule);
+}
+
+:where(.table, .cached-funds-table, .fund-detail-table, .fc-table, .id-table, .fd-table,
+      .nav-stats-table, .nav-range-stats-table) tbody tr:last-child > :is(th, td) {
+  border-bottom: 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :where(.table, .cached-funds-table, .fund-detail-table, .fc-table, .id-table, .fd-table,
+        .nav-stats-table, .nav-range-stats-table) tbody tr:not(.cached-fund-row-placeholder, .cached-funds-empty, .fc-section):hover {
+    background-color: var(--table-row-hover);
+  }
+
+  .has-table-lens {
+    --table-lens-width: clamp(112px, 20vw, 245px);
+    background-image:
+      radial-gradient(ellipse at 50% 12%, var(--glass-toplight), transparent 62%),
+      radial-gradient(ellipse, var(--table-lens-fill) 39%, transparent 72%);
+    background-position: calc(var(--table-lens-x, 0px) - var(--table-lens-width) / 2) center;
+    background-size: var(--table-lens-width) 94%;
+    background-repeat: no-repeat;
+    transition: background-position .17s var(--glass-lens-ease);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+  .has-table-lens { background-image: none; }
 }
 
 .table {
@@ -16,7 +63,7 @@
 }
 
 .table thead {
-  background: var(--bg-sunk);
+  background: var(--table-header);
 }
 
 .table th {
@@ -27,11 +74,11 @@
   text-transform: none;
   letter-spacing: 1.2px;
   text-align: left;
-  border-bottom: 1px solid var(--rule);
+  border-bottom: 1px solid var(--table-rule);
   position: sticky;
   top: 0;
   z-index: 1;
-  background: var(--bg-sunk);
+  background-color: var(--table-header);
   font-family: var(--font-mono);
 }
 
@@ -39,24 +86,16 @@
   padding: 12px 14px;
   font-size: 12.5px;
   color: var(--text-primary);
-  border-bottom: 1px solid var(--rule);
-}
-
-.table tbody tr {
-  transition: background var(--transition-fast);
-}
-
-.table tbody tr:hover {
-  background: var(--bg-hover);
+  border-bottom: 1px solid var(--table-rule);
 }
 
 .table tbody tr.selected {
-  background: var(--accent-bg);
+  background-color: var(--accent-bg);
   box-shadow: inset 2px 0 0 var(--accent);
 }
 
 .table-striped tbody tr:nth-child(even) {
-  background: var(--bg-sunk);
+  background-color: var(--bg-sunk);
 }
 
 /* 排序指示器 */
@@ -104,11 +143,6 @@
 .fund-detail-table-wrap {
   margin-top: 1.25rem;
   margin-bottom: 1.75rem;
-  overflow-x: auto;
-  border: 1px solid var(--glass-stroke);
-  border-radius: var(--radius-lg);
-  background: var(--glass-fill-strong);
-  box-shadow: var(--glass-shadow);
 }
 
 .fund-detail-table {
@@ -120,8 +154,8 @@
 .fund-detail-table th,
 .fund-detail-table td {
   padding: 8px 12px;
-  border-bottom: 1px solid var(--rule);
-  border-right: 1px solid var(--rule);
+  border-bottom: 1px solid var(--table-rule);
+  border-right: 1px solid var(--table-rule);
   text-align: left;
   white-space: nowrap;
 }
@@ -140,7 +174,7 @@
   font-family: var(--font-mono);
   font-weight: 500;
   color: var(--text-tertiary);
-  background: var(--bg-sunk);
+  background: var(--table-header);
   min-width: 7rem;
   white-space: nowrap;
   position: sticky;

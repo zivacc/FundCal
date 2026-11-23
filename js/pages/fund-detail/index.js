@@ -209,10 +209,12 @@ function renderSegments(elId, segs, kindLabel) {
     `;
   }).join('');
   el.innerHTML = `
-    <table class="fd-table">
-      <thead><tr><th>持有期</th><th style="text-align:right">费率</th></tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
+    <div class="fd-table-wrap">
+      <table class="fd-table">
+        <thead><tr><th>持有期</th><th class="fd-table-num">费率</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
   `;
 }
 
@@ -248,10 +250,12 @@ function renderStages(d) {
     `;
   }).join('');
   el.innerHTML = `
-    <table class="fd-table">
-      <thead><tr><th>区间</th><th style="text-align:right">涨幅</th></tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
+    <div class="fd-table-wrap">
+      <table class="fd-table">
+        <thead><tr><th>区间</th><th class="fd-table-num">涨幅</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
     ${asOf}
   `;
 }
@@ -363,10 +367,12 @@ async function renderPeers(d) {
     </tr>
   `).join('');
   el.innerHTML = `
-    <table class="fd-table">
-      <thead><tr><th>代码</th><th>名称</th><th>基金公司</th></tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
+    <div class="fd-table-wrap" tabindex="0" role="region" aria-label="同跟踪基金，可横向滚动">
+      <table class="fd-table">
+        <thead><tr><th>代码</th><th>名称</th><th>基金公司</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
     <p class="fd-nav-hint">${others.length === 50 ? '仅显示前 50 条' : `共 ${others.length} 只`} · 跟踪「${escapeHtml(target)}」</p>
   `;
 }
