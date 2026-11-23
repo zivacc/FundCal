@@ -19,18 +19,13 @@
   background: var(--glass-highlight) var(--glass-fill);
   box-shadow: var(--glass-rim), var(--shadow-sm);
   color: var(--text-primary);
-  transition: background var(--transition-fast),
-              border-color var(--transition-fast),
-              color var(--transition-fast),
-              box-shadow var(--transition-fast),
-              transform var(--transition-fast);
+  transition: box-shadow var(--transition-fast), transform var(--transition-fast);
   user-select: none;
   white-space: nowrap;
 }
 
 .btn:hover:not(:disabled) {
-  border-color: var(--glass-lens-edge);
-  background-color: var(--bg-hover);
+  box-shadow: var(--glass-frame-shadow);
 }
 
 .btn:active:not(:disabled) {
@@ -46,24 +41,12 @@
   font-weight: 650;
 }
 
-.btn-primary:hover:not(:disabled),
-.btn-card:hover:not(:disabled) {
-  border-color: var(--accent);
-  box-shadow: var(--glass-rim), 0 4px 16px var(--accent-glow);
-}
-
 /* 危险按钮 */
 .btn-danger {
   background: transparent;
   box-shadow: none;
   border: 1px solid var(--rule);
   color: var(--text-secondary);
-}
-
-.btn-danger:hover:not(:disabled) {
-  border-color: var(--danger);
-  color: var(--danger);
-  background: var(--danger-subtle);
 }
 
 /* 成功按钮 */
@@ -73,11 +56,6 @@
   color: var(--text-inverse);
 }
 
-.btn-success:hover:not(:disabled) {
-  background-color: var(--success);
-  filter: brightness(1.05);
-}
-
 /* 幽灵按钮 */
 .btn-ghost {
   background: transparent;
@@ -85,11 +63,6 @@
   box-shadow: none;
   color: var(--text-secondary);
   padding: 7px 10px;
-}
-
-.btn-ghost:hover {
-  color: var(--text-primary);
-  background: var(--bg-hover);
 }
 
 /* 尺寸变体 */
@@ -142,10 +115,7 @@
   transition: all var(--transition-fast);
 }
 
-.btn-chip:hover {
-  border-color: var(--border-hover);
-  color: var(--text-primary);
-}
+.btn-chip:hover:not(:disabled) { box-shadow: var(--glass-frame-shadow); }
 
 .btn-chip.active {
   border-color: var(--glass-lens-edge);

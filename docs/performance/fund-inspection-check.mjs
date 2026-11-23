@@ -62,8 +62,22 @@ try {
   assert.equal(await page.locator('.top-rail-tab[data-route="compare"]').getAttribute('aria-selected'), 'true');
 
   const metric = name => page.locator('#fc-table tr').filter({ has: page.locator('th[scope="row"]', { hasText: new RegExp(`^${name}$`) }) }).locator('td');
+  const feeRow = metric('显性年化费率').first().locator('..');
+  const surface = element => {
+    const { backgroundColor, backgroundImage } = getComputedStyle(element);
+    return [backgroundColor, backgroundImage];
+  };
+  const idle = await feeRow.evaluate(surface);
   await metric('显性年化费率').first().hover();
   await page.locator('#fc-table tr.has-table-lens').filter({ hasText: '显性年化费率' }).waitFor();
+  assert.deepEqual(await feeRow.evaluate(surface), idle, 'hover preserves the row surface');
+  const rowFrame = page.locator('.glass-table-frame');
+  assert.equal(await rowFrame.count(), 1);
+  for (const frame of [navLens, rowFrame]) {
+    assert.deepEqual(await frame.evaluate(surface), ['rgba(0, 0, 0, 0)', 'none']);
+    assert.equal(await frame.evaluate(el => getComputedStyle(el).maskComposite.split(',')[0]), 'exclude');
+    assert.equal(await frame.evaluate(el => getComputedStyle(el).pointerEvents), 'none');
+  }
   assert.match(await navLens.evaluate(el => getComputedStyle(el).backdropFilter), /blur\(0\.5px\)/);
   assert.deepEqual(await metric('显性年化费率').allTextContents(), ['1.20%', '1.20%']);
   assert.deepEqual(await metric('换手率').allTextContents(), ['0.00%', '100.00%']);

@@ -142,7 +142,7 @@
 }
 
 .optimal-band-segment:hover:not(.active) {
-  box-shadow: inset 0 0 0 1px var(--text-inverse);
+  box-shadow: var(--glass-frame-shadow);
   z-index: 1;
 }
 
@@ -322,9 +322,7 @@
   transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
 }
 
-.chart-fund-list-item:hover {
-  background: var(--bg-hover);
-}
+.chart-fund-list-item:hover { box-shadow: var(--glass-frame-shadow); }
 
 .chart-fund-list-item-active {
   color: var(--text-primary);
@@ -332,9 +330,6 @@
   border-color: var(--glass-stroke);
 }
 
-.chart-fund-list-item-active:hover {
-  background: var(--accent-subtle);
-}
 
 .chart-fund-list-item-left {
   display: flex;

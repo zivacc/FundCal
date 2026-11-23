@@ -15,8 +15,8 @@
   flex-shrink: 0;
   border: 1px solid var(--glass-stroke);
   border-radius: 26px;
-  background: var(--glass-highlight) var(--glass-fill);
-  box-shadow: var(--glass-shadow);
+  background: var(--glass-fill);
+  box-shadow: var(--glass-frame-shadow);
   -webkit-backdrop-filter: var(--glass-blur) var(--glass-saturate);
   backdrop-filter: var(--glass-blur) var(--glass-saturate);
   position: sticky;
@@ -49,8 +49,8 @@
   height: 28px;
   border-radius: 50%;
   border: 1px solid var(--glass-stroke);
-  background: var(--glass-highlight) var(--glass-fill-strong);
-  box-shadow: inset 0 1px var(--glass-toplight);
+  background: var(--glass-fill);
+  box-shadow: var(--glass-frame-shadow);
   color: var(--text-secondary);
   cursor: pointer;
   display: inline-flex;
@@ -60,12 +60,11 @@
   font-size: 14px;
   line-height: 1;
   z-index: 2;
-  transition: background var(--transition-fast), color var(--transition-fast);
+  transition: border-color var(--transition-fast), color var(--transition-fast);
 }
 
 .cf-sidebar-toggle:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
+  border-color: var(--glass-lens-edge);
 }
 
 .cf-sidebar:not(.cf-sidebar-collapsed) .cf-sidebar-toggle {
@@ -130,12 +129,12 @@
   padding: 9px 32px 9px 36px;
   border-radius: 999px;
   border: 1px solid var(--glass-stroke);
-  background: var(--glass-highlight) var(--glass-fill-strong);
-  box-shadow: inset 0 1px var(--glass-toplight);
+  background: var(--glass-fill);
+  box-shadow: var(--glass-frame-shadow);
   color: var(--text-primary);
   font-family: inherit;
   font-size: 13px;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .cached-funds-search-input::placeholder {
@@ -144,7 +143,8 @@
 
 .cached-funds-search-wrap.focused .cached-funds-search-input {
   border-color: var(--accent);
-  box-shadow: inset 0 1px var(--glass-toplight), var(--shadow-glow);
+  outline: 2px solid var(--border-focus);
+  outline-offset: 1px;
 }
 
 .cached-funds-search-icon {
@@ -190,7 +190,7 @@
   background: transparent;
   color: var(--text-tertiary);
   cursor: pointer;
-  transition: background var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+  transition: color var(--transition-fast);
 }
 
 .cached-funds-search-wrap.has-value .cached-funds-search-clear {
@@ -198,8 +198,12 @@
 }
 
 .cached-funds-search-clear:hover {
-  background: var(--bg-hover);
   color: var(--text-primary);
+}
+
+.cached-funds-search-clear:hover:not(:focus-visible) {
+  outline: 1px solid var(--glass-lens-edge);
+  outline-offset: -1px;
 }
 
 /* 排序选择 */
@@ -282,8 +286,7 @@
 }
 
 .cf-filter-tag:hover {
-  border-color: var(--border-hover);
-  color: var(--text-primary);
+  border-color: var(--glass-lens-edge);
 }
 
 .cf-filter-tag.cf-filter-tag-active {
@@ -307,9 +310,9 @@
   line-height: 1.35;
 }
 
-.cf-filter-options-vertical .cf-filter-tag:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
+.cf-filter-options-vertical .cf-filter-tag:hover:not(:focus-visible) {
+  outline: 1px solid var(--glass-lens-edge);
+  outline-offset: -1px;
 }
 
 .cf-filter-options-vertical .cf-filter-tag.cf-filter-tag-active {
@@ -471,12 +474,12 @@
     font-weight: 600;
     font-family: var(--font-cjk);
     cursor: pointer;
-    box-shadow: var(--glass-shadow);
+    box-shadow: var(--glass-frame-shadow), var(--shadow-sm);
     z-index: 90;
   }
 
   .cf-filter-toggle:hover {
-    background: var(--accent-hover);
+    border-color: var(--glass-lens-edge);
   }
 
   .cf-filter-toggle-count {
@@ -569,12 +572,8 @@
 }
 
 .cached-funds-table tbody tr.cached-fund-row-selected {
-  background-color: color-mix(in srgb, var(--accent) 18%, var(--bg-subtle));
+  background-color: var(--accent-subtle);
   box-shadow: inset 3px 0 0 0 var(--accent);
-}
-
-.cached-funds-table tbody tr.cached-fund-row-selected:hover {
-  background-color: color-mix(in srgb, var(--accent) 24%, var(--table-row-hover));
 }
 
 .cached-funds-empty {
@@ -643,10 +642,6 @@
   background: var(--accent-subtle);
 }
 
-.cached-fund-crawl-btn:hover:not(:disabled) {
-  background: var(--accent-bg);
-}
-
 .cached-fund-crawl-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
@@ -705,8 +700,8 @@
   margin: 12px 0;
   border: 1px solid var(--glass-stroke);
   border-radius: var(--radius-lg);
-  background: var(--glass-highlight) var(--glass-fill);
-  box-shadow: var(--glass-shadow);
+  background: var(--glass-fill);
+  box-shadow: var(--glass-frame-shadow);
 }
 .list-basket-pool.is-active { border-color: var(--accent); background-color: color-mix(in srgb, var(--accent) 10%, var(--glass-fill-strong)); }
 .list-basket-pool label { display: inline-flex; align-items: center; gap: 8px; min-height: 32px; font-size: 14px; font-weight: 600; cursor: pointer; }

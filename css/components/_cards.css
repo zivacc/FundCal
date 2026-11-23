@@ -13,11 +13,6 @@
   box-shadow: var(--shadow-sm);
 }
 
-.card:hover {
-  border-color: var(--border-hover);
-  box-shadow: var(--shadow-md);
-}
-
 /* 卡片头部 */
 .card-header {
   display: flex;
@@ -96,11 +91,6 @@
   padding: 14px 16px;
   box-shadow: var(--shadow-sm);
   transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
-}
-
-.fund-card:hover {
-  border-color: var(--border-hover);
-  box-shadow: var(--shadow-md);
 }
 
 .fund-card h3 {
@@ -206,9 +196,9 @@
 }
 
 .fund-card .fund-name-dropdown [role="option"]:hover,
-.fund-card .fund-name-dropdown [role="option"].fund-search-item-active {
-  background: var(--accent-subtle);
-  color: var(--accent);
+.fund-card .fund-name-dropdown:not(:has([role="option"]:hover)) .fund-search-item-active {
+  border-radius: var(--radius-sm);
+  box-shadow: var(--glass-frame-shadow);
 }
 
 /* 关闭按钮 — 右上角 */
@@ -232,11 +222,7 @@
   transition: all var(--transition-fast);
 }
 
-.fund-card .remove-btn:hover {
-  background: var(--accent-subtle);
-  border-color: var(--accent);
-  color: var(--accent);
-}
+.fund-card .remove-btn:hover { box-shadow: var(--glass-frame-shadow); }
 
 .fund-card-row {
   display: flex;

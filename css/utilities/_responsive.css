@@ -343,14 +343,6 @@
     transform: none;
   }
 
-  .table tbody tr:hover {
-    background: transparent;
-  }
-
-  .cached-funds-table tbody tr:hover {
-    background: transparent;
-  }
-
   .fund-stats-card:hover {
     transform: none;
   }

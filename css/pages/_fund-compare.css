@@ -5,8 +5,8 @@
 .fc-toolbar, .fc-empty {
   border: 1px solid var(--glass-stroke);
   border-radius: var(--radius-xl);
-  background: var(--glass-highlight) var(--glass-fill-strong);
-  box-shadow: var(--glass-shadow);
+  background: var(--glass-fill);
+  box-shadow: var(--glass-frame-shadow);
 }
 .fc-toolbar { padding: 1rem; }
 .fc-search-wrap { flex: 1 1 260px; min-width: 0; max-width: 440px; }
@@ -34,7 +34,7 @@
 .fc-fund-heading strong { font-size: 1rem; font-weight: 600; line-height: 1.6; }
 .fc-fund-heading a:hover strong { color: var(--accent); }
 .fc-remove { width: 2rem; height: 2rem; flex-shrink: 0; border: 1px solid var(--glass-stroke); border-radius: 50%; background: var(--glass-fill); color: var(--text-secondary); cursor: pointer; font-size: 1.2rem; line-height: 1; }
-.fc-remove:hover { background-color: var(--danger-subtle); color: var(--danger); }
+.fc-remove:hover { border-color: var(--glass-lens-edge); color: var(--danger); }
 .fc-index-link { display: block; margin-top: .5rem; font-size: .78rem; }
 .fc-column-status { color: var(--text-secondary); font-size: .8rem; margin-top: .65rem; }
 .fc-column-status button { border: 0; background: transparent; color: var(--accent); cursor: pointer; text-decoration: underline; padding: .3rem; }

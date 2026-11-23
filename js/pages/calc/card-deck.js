@@ -8,6 +8,11 @@ export function setupCardDeck() {
   const count = stage.querySelector('.deck-count');
   const prev = stage.querySelector('[data-deck-prev]');
   const next = stage.querySelector('[data-deck-next]');
+  const identities = document.createElement('div');
+  identities.className = 'deck-card-identities';
+  identities.setAttribute('aria-hidden', 'true');
+  identities.hidden = true;
+  stage.append(identities);
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   const cardSurfaces = new WeakMap();
   let cards = [], position = 0, target = 0, frame = 0, gesture = null, suppressClick = false;
@@ -15,26 +20,53 @@ export function setupCardDeck() {
   let lightFrame = 0, pointer = null;
   const maxIndex = () => Math.max(0, cards.length - frontCount);
   const clampPosition = value => clampDeckIndex(value, maxIndex() + 1);
+  function paintIdentities(surfaces, bounds) {
+    const first = surfaces.findIndex(({ card }) => card.classList.contains('is-deck-active'));
+    if (first < 0) return;
+    const last = surfaces.findLastIndex(({ card }) => card.classList.contains('is-deck-active'));
+    const zoom = bounds.width / stage.offsetWidth;
+
+    // 标记放在后排卡片实际露出的侧边，避免透明卡面透出另一只基金的名称。
+    for (const trailing of [false, true]) {
+      let covered = trailing ? surfaces[last].box.right : surfaces[first].box.left;
+      const rear = trailing ? surfaces.slice(last + 1) : surfaces.slice(0, first).reverse();
+      for (const { card, box } of rear) {
+        const left = Math.max(box.left, trailing ? covered : bounds.left);
+        const right = Math.min(box.right, trailing ? bounds.right : covered);
+        covered = trailing ? Math.max(covered, box.right) : Math.min(covered, box.left);
+        const exposed = right - left;
+        if (exposed < 14 * zoom) continue;
+
+        const { identity } = cardSurfaces.get(card);
+        identity.textContent = card.dataset.fundCode || card.querySelector('.deck-card-open').title;
+        identity.style.setProperty('--card-accent', card.style.getPropertyValue('--card-accent'));
+        identity.style.left = `${((left + right) / 2 - bounds.left) / bounds.width * 100}%`;
+        identity.style.top = `${(box.top - bounds.top + 31 * zoom) / bounds.height * 100}%`;
+        identity.style.maxWidth = `${exposed / bounds.width * 100}%`;
+        identity.classList.toggle('is-vertical', exposed < 54 * zoom);
+        identity.hidden = false;
+      }
+    }
+    identities.hidden = false;
+  }
   function paintLight() {
     lightFrame = 0;
     const bounds = stage.getBoundingClientRect();
     if (!bounds.width) return;
     const x = pointer && !reduced.matches ? (pointer.x - bounds.x) / bounds.width : .42;
     const y = pointer && !reduced.matches ? (pointer.y - bounds.y) / Math.max(1, bounds.height) : .12;
-    // 光源可以位于舞台之外；仅限制投影强度，避免滚动后远处光标产生过长阴影。
-    const shadowX = Math.max(-1, Math.min(2, x));
-    const shadowY = Math.max(-1, Math.min(2, y));
+    // 光源可以位于舞台之外，卡片边缘的光线角度保持在有限范围内。
+    const lightDirection = Math.max(-1, Math.min(2, x));
     // 所有反射都由同一个舞台光源投射，先读取位置，再批量写入样式。
     const surfaces = cards.filter(card => card.style.visibility !== 'hidden').map(card => ({ card, box: card.getBoundingClientRect() }));
     stage.style.setProperty('--light-x', `${x * 100}%`);
     stage.style.setProperty('--light-y', `${y * 100}%`);
-    stage.style.setProperty('--light-angle', `${100 + (shadowX - .5) * 55}deg`);
-    stage.style.setProperty('--shadow-x', `${(.5 - shadowX) * 26}px`);
-    stage.style.setProperty('--shadow-y', `${22 + (.5 - shadowY) * 12}px`);
+    stage.style.setProperty('--light-angle', `${100 + (lightDirection - .5) * 55}deg`);
     for (const { card, box } of surfaces) {
       card.style.setProperty('--reflection-x', `${(bounds.x + x * bounds.width - box.x) / Math.max(1, box.width) * 100}%`);
       card.style.setProperty('--reflection-y', `${(bounds.y + y * bounds.height - box.y) / Math.max(1, box.height) * 100}%`);
     }
+    if (identities.hidden && !gesture?.dragging && position === target) paintIdentities(surfaces, bounds);
   }
   function light() { if (!lightFrame) lightFrame = requestAnimationFrame(paintLight); }
   window.addEventListener('pointermove', event => {
@@ -48,13 +80,12 @@ export function setupCardDeck() {
   }, { passive: true });
   const resize = new ResizeObserver(entries => {
     for (const { target: card, borderBoxSize } of entries) {
-      if (!cardSurfaces.has(card)) continue;
+      const surface = cardSurfaces.get(card);
+      if (!surface) continue;
       const size = borderBoxSize?.[0];
-      cardSurfaces.set(card, {
-        width: size?.inlineSize ?? card.offsetWidth,
-        height: size?.blockSize ?? card.offsetHeight,
-        scale: null,
-      });
+      surface.width = size?.inlineSize ?? card.offsetWidth;
+      surface.height = size?.blockSize ?? card.offsetHeight;
+      surface.scale = null;
     }
     measure();
   });
@@ -78,6 +109,7 @@ export function setupCardDeck() {
       if (current.includes(old)) continue;
       resize.unobserve(old);
       removeGlassRefraction(old);
+      cardSurfaces.get(old)?.identity.remove();
       cardSurfaces.delete(old);
       disposeCardImplicitFee(old);
     }
@@ -93,7 +125,10 @@ export function setupCardDeck() {
         card.append(open);
       }
       if (!cardSurfaces.has(card)) {
-        cardSurfaces.set(card, { width: 0, height: 0, scale: null });
+        const identity = document.createElement('span');
+        identity.className = 'deck-card-identity';
+        identities.append(identity);
+        cardSurfaces.set(card, { width: 0, height: 0, scale: null, identity });
         resize.observe(card, { box: 'border-box' });
       }
     }
@@ -115,6 +150,7 @@ export function setupCardDeck() {
   }
   function draw(time) {
     frame = 0;
+    identities.hidden = true;
     const dt = Math.min(40, lastTime ? time - lastTime : 16); lastTime = time;
     if (reduced.matches || gesture?.dragging) position = target;
     else position += (target - position) * (1 - Math.exp(-dt / 85));
@@ -131,10 +167,15 @@ export function setupCardDeck() {
       const dragged = gesture?.dragging && gesture.card === card && pose.opacity > 0;
       card.classList.toggle('is-deck-active', front);
       card.classList.toggle('is-deck-drag-surface', Boolean(dragged));
+      cardSurfaces.get(card).identity.hidden = true;
       setRefraction(card, front && pose.opacity > 0, dragged);
       const open = card.querySelector('.deck-card-open');
+      const name = card.querySelector('.fund-name')?.value || `基金 ${i + 1}`;
       open.hidden = front;
-      open.setAttribute('aria-label', `展示 ${card.querySelector('.fund-name')?.value || `基金 ${i + 1}`}`);
+      if (open.title !== name) {
+        open.title = name;
+        open.setAttribute('aria-label', `展示 ${name}`);
+      }
       for (const child of card.children) if (child !== open) child.inert = !front;
     });
     count.textContent = cards.length ? `${active + 1}${frontCount > 1 ? `–${active + frontCount}` : ''} / ${cards.length}` : '0 / 0';
@@ -204,6 +245,7 @@ export function setupCardDeck() {
   resize.observe(rail);
   reduced.addEventListener('change', schedule);
   reducedGlassTransparency.addEventListener('change', schedule);
+  window.addEventListener('fundcal-theme-change', schedule);
   window.addEventListener('fundcal-route-ready', measure);
   refresh();
 }

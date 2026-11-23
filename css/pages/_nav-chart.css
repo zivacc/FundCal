@@ -34,8 +34,8 @@
   margin-bottom: 0.75rem;
   border: 1px solid var(--glass-stroke);
   border-radius: var(--radius-xl);
-  background: var(--glass-highlight) var(--glass-fill);
-  box-shadow: var(--glass-shadow);
+  background: var(--glass-fill);
+  box-shadow: var(--glass-frame-shadow);
   align-items: center;
 }
 
@@ -75,19 +75,18 @@
   min-height: 34px;
   padding: 5px 12px;
   border: 1px solid var(--glass-stroke);
-  background: var(--glass-highlight) var(--glass-fill-strong);
+  background: var(--glass-fill);
   color: var(--text-secondary);
   font-family: var(--font-mono);
   font-size: 13px;
   letter-spacing: 0.5px;
   cursor: pointer;
   border-radius: 999px;
-  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+  transition: border-color var(--transition-fast);
 }
 
 .nav-period-btn:not(.nav-period-btn-active):hover {
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: var(--glass-lens-edge);
 }
 
 .nav-period-btn-active {
@@ -104,7 +103,7 @@
   border: 1px solid var(--glass-stroke);
   border-radius: 999px;
   background: var(--glass-fill);
-  box-shadow: inset 0 1px 5px color-mix(in srgb, var(--text-primary) 9%, transparent);
+  box-shadow: var(--glass-frame-shadow);
 }
 
 .nav-toggle-btn {
@@ -121,13 +120,14 @@
   transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 
-.nav-toggle-btn:not(.nav-toggle-btn-active):hover {
-  color: var(--accent);
+.nav-toggle-btn:not(.nav-toggle-btn-active):hover:not(:focus-visible) {
+  outline: 1px solid var(--glass-lens-edge);
+  outline-offset: -1px;
 }
 
 .nav-toggle-btn-active {
   background: var(--gradient-primary);
-  box-shadow: inset 0 1px var(--glass-toplight), var(--shadow-sm);
+  box-shadow: var(--glass-frame-shadow);
   color: var(--text-inverse);
 }
 
@@ -165,8 +165,8 @@
   position: relative;
   border: 1px solid var(--glass-stroke);
   border-radius: var(--radius-xl);
-  background: var(--glass-highlight) var(--glass-fill-strong);
-  box-shadow: var(--glass-shadow);
+  background: var(--glass-fill-strong);
+  box-shadow: var(--glass-frame-shadow);
   padding: 12px;
   min-height: 480px;
 }
@@ -185,10 +185,10 @@
   gap: 12px;
   padding: 10px 12px;
   margin-bottom: 8px;
-  background: var(--glass-highlight) var(--glass-fill);
+  background: var(--glass-fill);
   border: 1px solid var(--glass-stroke);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--glass-frame-shadow);
   min-height: 36px;
 }
 
@@ -218,11 +218,12 @@
   user-select: none;
   padding: 2px 4px;
   border-radius: var(--radius-sm);
-  transition: background var(--transition-fast), opacity var(--transition-fast);
+  transition: opacity var(--transition-fast);
 }
 
-.nav-chart-legend-item:hover {
-  background: var(--bg-subtle);
+.nav-chart-legend-item:hover:not(:focus-visible):not(:has(button:hover, a:hover, select:hover)) {
+  outline: 1px solid var(--glass-lens-edge);
+  outline-offset: -1px;
 }
 
 .nav-chart-legend-item:focus-visible {
@@ -337,12 +338,16 @@
   font-size: 15px;
   line-height: 1;
   border-radius: var(--radius-sm);
-  transition: background var(--transition-fast), color var(--transition-fast);
+  transition: color var(--transition-fast);
 }
 
 .nav-chart-legend-remove:hover {
-  background: var(--danger-subtle);
   color: var(--danger);
+}
+
+.nav-chart-legend-remove:hover:not(:focus-visible) {
+  outline: 1px solid var(--glass-lens-edge);
+  outline-offset: -1px;
 }
 
 /* 被隐藏的 legend item 里，× 仍保持可见可用 —— 用户可能想先隐藏再删除 */
@@ -364,20 +369,18 @@
   height: 34px;
   padding: 0;
   border: 1px solid var(--glass-stroke);
-  background: var(--glass-highlight) var(--glass-fill);
+  background: var(--glass-fill);
   border-radius: 50%;
   color: var(--text-secondary);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+  transition: border-color var(--transition-fast);
 }
 
 .nav-chart-toolbar-btn:hover {
-  color: var(--accent);
-  border-color: var(--accent);
-  background-color: var(--accent-subtle);
+  border-color: var(--glass-lens-edge);
 }
 
 .nav-chart-toolbar-btn:focus-visible {
@@ -422,7 +425,7 @@
   position: absolute;
   transform: translateX(-50%);
   padding: 3px 4px 3px 10px;
-  background: var(--glass-highlight) var(--glass-fill-strong);
+  background: var(--glass-fill-strong);
   border: 1px solid var(--accent);
   color: var(--accent);
   border-radius: 999px;
@@ -433,8 +436,8 @@
   user-select: none;
   white-space: nowrap;
   z-index: 5;
-  box-shadow: inset 0 1px var(--glass-toplight), var(--shadow-sm);
-  transition: background-color 0.12s ease, box-shadow 0.12s ease;
+  box-shadow: var(--glass-frame-shadow), var(--shadow-sm);
+  transition: box-shadow 0.12s ease;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -449,12 +452,16 @@
   opacity: 0.7;
   padding: 2px 4px;
   border-radius: 6px;
-  transition: opacity 0.12s ease, background-color 0.12s ease;
+  transition: opacity 0.12s ease;
 }
 
 .nav-baseline-panel-reset:hover {
   opacity: 1;
-  background: var(--accent-subtle);
+}
+
+.nav-baseline-panel-reset:hover:not(:focus-visible) {
+  outline: 1px solid var(--glass-lens-edge);
+  outline-offset: -1px;
 }
 
 .nav-baseline-panel-reset:focus-visible {
@@ -475,13 +482,7 @@
   border-top: 5px solid var(--accent);
 }
 
-.nav-baseline-panel:hover {
-  background-color: color-mix(in srgb, var(--accent) 10%, var(--glass-fill-strong));
-}
-
-.nav-baseline-panel.is-dragging {
-  box-shadow: inset 0 1px var(--glass-toplight), var(--shadow-md);
-}
+.nav-baseline-panel.is-dragging { box-shadow: var(--glass-frame-shadow), var(--shadow-md); }
 .nav-baseline-panel, .nav-range-control-panel, .nav-range-stats-header { touch-action: none; }
 
 /* 统计表 */
@@ -564,7 +565,7 @@
 }
 
 .nav-controls .toggle-btn.toggle-btn-inline:has(.toggle-btn-input:checked) {
-  box-shadow: inset 0 1px var(--glass-toplight);
+  box-shadow: var(--glass-frame-shadow);
   background: var(--gradient-primary);
   border-color: var(--accent);
   color: var(--text-inverse);
@@ -610,7 +611,8 @@
   border-radius: 4px;
   background: var(--bg-raised);
 }
-.nav-range-edge:hover::after, .nav-range-edge.is-dragging::after { background: var(--accent-subtle); }
+.nav-range-edge:hover::after { outline: 1px solid var(--glass-lens-edge); }
+.nav-range-edge.is-dragging::after { background: var(--accent-subtle); }
 .nav-range-edge:focus-visible { outline: none; }
 .nav-range-edge:focus-visible::after { outline: 2px solid var(--accent); outline-offset: 2px; }
 
@@ -623,10 +625,10 @@
   align-items: center;
   gap: 4px;
   padding: 2px 6px;
-  background: var(--glass-highlight) var(--glass-fill-strong);
+  background: var(--glass-fill-strong);
   border: 1px solid var(--accent);
   border-radius: var(--radius-md);
-  box-shadow: var(--glass-shadow);
+  box-shadow: var(--glass-frame-shadow), var(--shadow-sm);
   z-index: 13;
   cursor: grab;
   user-select: none;
@@ -671,26 +673,24 @@
   font-size: 13px;
   line-height: 1.4;
   color: var(--text-secondary);
-  transition: all var(--transition-fast);
+  transition: border-color var(--transition-fast);
 }
 
 .nav-range-ctrl-btn:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-subtle);
+  border-color: var(--glass-lens-edge);
 }
 
 /* 浮动 stats panel：默认贴选区右侧，用户可抓 header 拖走。
    外框用 --rule（信息面板风格）；accent 主题色留给上方的 grip / actions 小 panel。 */
 .nav-range-stats-panel {
   position: absolute;
-  background: var(--glass-highlight) var(--glass-fill-strong);
+  background: var(--glass-fill-strong);
   border: 1px solid var(--glass-stroke);
   border-radius: var(--radius-lg);
   padding: 8px 12px 10px;
   font-size: 13px;
   color: var(--text-primary);
-  box-shadow: var(--glass-shadow);
+  box-shadow: var(--glass-frame-shadow), var(--shadow-sm);
   -webkit-backdrop-filter: var(--glass-blur) var(--glass-saturate);
   backdrop-filter: var(--glass-blur) var(--glass-saturate);
   z-index: 12;
@@ -701,7 +701,7 @@
 
 .nav-range-stats-panel[hidden] { display: none !important; }
 
-.nav-range-stats-panel.is-dragging { box-shadow: inset 0 1px var(--glass-toplight), var(--shadow-lg); }
+.nav-range-stats-panel.is-dragging { box-shadow: var(--glass-frame-shadow), var(--shadow-lg); }
 
 .nav-range-stats-header {
   display: flex;
@@ -740,12 +740,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+  transition: border-color var(--transition-fast);
 }
 .nav-range-stats-min:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-subtle);
+  border-color: var(--glass-lens-edge);
 }
 
 .nav-range-stats-panel.is-minimized .nav-range-stats-grid,
@@ -877,7 +875,7 @@
 }
 
 .nav-chart-legend-bm-select:hover {
-  border-color: var(--accent, var(--text-secondary));
+  border-color: var(--glass-lens-edge);
 }
 
 .nav-chart-legend-bm-select option:disabled {

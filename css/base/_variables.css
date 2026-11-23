@@ -92,36 +92,34 @@
   --shadow-glow: 0 0 0 3px var(--accent-glow);
   --shadow-glow-strong: 0 0 0 5px var(--accent-glow);
 
-  --glass-fill: rgb(246 249 255 / 53%);
-  --glass-fill-strong: rgb(247 250 255 / 91%);
-  --glass-stroke: rgb(255 255 255 / 82%);
-  --glass-toplight: rgb(255 255 255 / 94%);
-  --glass-highlight: linear-gradient(135deg, rgb(255 255 255 / 62%), transparent 46%, rgb(156 177 236 / 11%));
-  --glass-rim: inset 0 1px 1px var(--glass-toplight), inset 0 -1px 1px rgb(76 101 181 / 15%);
-  --glass-shadow: var(--glass-rim), 0 2px 5px rgb(77 102 167 / 9%), 0 16px 44px rgb(73 94 154 / 12%);
-  --glass-blur: blur(2px);
+  --glass-fill: rgb(250 252 255 / 23%);
+  --glass-fill-strong: rgb(248 250 255 / 89%);
+  --glass-stroke: rgb(255 255 255 / 60%);
+  --glass-toplight: rgb(255 255 255 / 76%);
+  --glass-highlight: linear-gradient(145deg, rgb(255 255 255 / 9%), transparent 46%);
+  --glass-rim: inset 0 1px 0 var(--glass-toplight), inset 0 -1px 0 rgb(73 95 133 / 13%);
+  --glass-shadow: var(--glass-rim), 0 5px 18px rgb(48 71 115 / 9%);
+  --glass-blur: blur(1px);
   --glass-glint-blur: blur(.5px);
-  --glass-saturate: saturate(148%);
+  --glass-saturate: saturate(106%);
   --glass-scrim: rgb(45 62 105 / 34%);
-  --glass-lens-fill: rgb(247 250 255 / 44%);
-  --glass-lens-shine: rgb(255 255 255 / 92%);
-  --glass-lens-edge: rgb(82 114 219 / 36%);
-  --glass-lens-violet: rgb(166 115 216 / 25%);
+  --glass-lens-shine: rgb(255 255 255 / 95%);
+  --glass-lens-edge: rgb(70 94 139 / 42%);
+  --glass-frame-shadow: inset 1px 1px 1px var(--glass-lens-shine), inset -1px -1px 1px var(--glass-lens-edge);
+  --glass-frame-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   --glass-lens-ease: cubic-bezier(.22, .84, .27, 1);
 
-  --table-fill: var(--glass-fill-strong);
-  --table-header: var(--bg-elevated);
-  --table-row-hover: var(--accent-subtle);
+  --table-fill: var(--glass-fill);
+  --table-header: var(--bg-raised);
   --table-rule: var(--rule);
   --table-radius: var(--radius-lg);
-  --table-lens-fill: rgb(130 157 244 / 14%);
 
   --scene-wash:
     radial-gradient(ellipse at 7% 2%, #fcfdff 0%, transparent 47%),
-    radial-gradient(ellipse at 98% 10%, #f0d6eb 0%, transparent 39%),
-    radial-gradient(ellipse at 78% 28%, #aebefa 0%, transparent 52%),
+    radial-gradient(ellipse at 98% 10%, #e8deec 0%, transparent 39%),
+    radial-gradient(ellipse at 78% 28%, #c2d2eb 0%, transparent 52%),
     radial-gradient(ellipse at 1% 92%, #d5e9fa 0%, transparent 53%);
-  --scene-arc-edge: rgb(255 255 255 / 70%);
+  --scene-arc-edge: rgb(255 255 255 / 54%);
   --scene-arc-rim: rgb(120 143 216 / 18%);
   --scene-arc-glow: rgb(255 255 255 / 40%);
 
@@ -129,7 +127,7 @@
   --gradient-surface: var(--glass-highlight);
   --gradient-card: var(--glass-highlight);
   --gradient-glow: radial-gradient(ellipse at 50% 0%, var(--glass-lens-edge), transparent 68%);
-  --gradient-border: linear-gradient(155deg, var(--glass-lens-shine), var(--glass-lens-violet));
+  --gradient-border: linear-gradient(155deg, var(--glass-lens-shine), var(--glass-lens-edge));
 
   --chart-grid: #d1ddf2;
   --chart-axis: #4e6080;
@@ -195,27 +193,24 @@
   --shadow-lg: 0 14px 40px rgb(3 7 20 / 40%);
   --shadow-xl: 0 25px 72px rgb(3 7 20 / 58%);
 
-  --glass-fill: rgb(24 37 65 / 63%);
-  --glass-fill-strong: rgb(24 35 60 / 94%);
-  --glass-stroke: rgb(183 204 255 / 21%);
-  --glass-toplight: rgb(213 226 255 / 31%);
-  --glass-highlight: linear-gradient(135deg, rgb(170 192 255 / 12%), transparent 46%, rgb(144 123 231 / 10%));
-  --glass-rim: inset 0 1px 1px var(--glass-toplight), inset 0 -1px 1px rgb(5 9 29 / 60%);
-  --glass-shadow: var(--glass-rim), 0 2px 5px rgb(4 9 25 / 23%), 0 16px 44px rgb(4 9 25 / 30%);
+  --glass-fill: rgb(20 32 53 / 28%);
+  --glass-fill-strong: rgb(22 33 55 / 91%);
+  --glass-stroke: rgb(207 224 249 / 17%);
+  --glass-toplight: rgb(222 235 255 / 28%);
+  --glass-highlight: linear-gradient(145deg, rgb(217 231 255 / 4%), transparent 46%);
+  --glass-rim: inset 0 1px 0 var(--glass-toplight), inset 0 -1px 0 rgb(5 12 24 / 32%);
+  --glass-shadow: var(--glass-rim), 0 5px 18px rgb(5 11 24 / 18%);
   --glass-scrim: rgb(6 9 23 / 68%);
-  --glass-lens-fill: rgb(145 170 255 / 15%);
-  --glass-lens-shine: rgb(222 230 255 / 61%);
-  --glass-lens-edge: rgb(127 161 255 / 63%);
-  --glass-lens-violet: rgb(165 116 250 / 43%);
-  --table-lens-fill: rgb(147 177 255 / 18%);
+  --glass-lens-shine: rgb(230 241 255 / 66%);
+  --glass-lens-edge: rgb(167 193 230 / 38%);
 
   --scene-wash:
     radial-gradient(ellipse at 6% 8%, #2a4377 0%, transparent 53%),
-    radial-gradient(ellipse at 100% 8%, #513768 0%, transparent 43%),
-    radial-gradient(ellipse at 78% 28%, #263a78 0%, transparent 57%),
+    radial-gradient(ellipse at 100% 8%, #3a354e 0%, transparent 43%),
+    radial-gradient(ellipse at 78% 28%, #2d4163 0%, transparent 57%),
     radial-gradient(ellipse at 0% 92%, #12334c 0%, transparent 52%);
-  --scene-arc-edge: rgb(177 198 255 / 29%);
-  --scene-arc-rim: rgb(136 106 219 / 28%);
+  --scene-arc-edge: rgb(177 198 255 / 19%);
+  --scene-arc-rim: rgb(116 150 190 / 18%);
   --scene-arc-glow: rgb(109 140 246 / 17%);
 
   --gradient-primary: linear-gradient(155deg, #e1e9ff, #a7b9fc 78%);
@@ -233,7 +228,6 @@
     --scene-wash: none;
     --glass-fill: var(--bg-raised);
     --glass-fill-strong: var(--bg-elevated);
-    --glass-lens-fill: var(--bg-hover);
     --glass-blur: blur(0px);
     --glass-glint-blur: blur(0px);
     --glass-saturate: saturate(100%);

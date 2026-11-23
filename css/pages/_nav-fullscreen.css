@@ -56,8 +56,8 @@ body.is-fullscreen-nav .nav-range-stats-title { white-space: normal; }
 .nav-fs-ui button, .nav-fs-panel { pointer-events: auto; }
 .nav-fs-dock, .nav-fs-exit, .nav-fs-unfold, .nav-fs-panel, .nav-chart-benchmark {
   border: 1px solid var(--glass-stroke);
-  background: var(--glass-highlight) var(--glass-fill-strong);
-  box-shadow: var(--glass-shadow);
+  background: var(--glass-fill);
+  box-shadow: var(--glass-frame-shadow), var(--shadow-sm);
   -webkit-backdrop-filter: var(--glass-blur) var(--glass-saturate);
   backdrop-filter: var(--glass-blur) var(--glass-saturate);
 }
@@ -83,7 +83,7 @@ body.is-fullscreen-nav .nav-range-stats-title { white-space: normal; }
   cursor: pointer;
 }
 .nav-fs-tab, .nav-fs-fold, .nav-fs-close { border: 0; background: transparent; border-radius: 999px; }
-.nav-fs-tab[aria-expanded="true"] { background: var(--gradient-primary); color: var(--text-inverse); box-shadow: inset 0 1px var(--glass-toplight); }
+.nav-fs-tab[aria-expanded="true"] { background: var(--gradient-primary); color: var(--text-inverse); box-shadow: var(--glass-frame-shadow); }
 .nav-fs-ui button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .nav-fs-exit {
   position: absolute;
@@ -106,6 +106,7 @@ body.is-fullscreen-nav .nav-range-stats-title { white-space: normal; }
   display: flex;
   flex-direction: column;
   border-radius: 26px;
+  background: var(--glass-fill-strong);
   overflow: hidden;
 }
 .nav-fs-panel-heading {
@@ -202,6 +203,9 @@ body.is-fullscreen-nav .nav-range-stats-title { white-space: normal; }
   .nav-fs-content { padding: 12px; }
 }
 @media (hover: hover) {
-  .nav-fs-tab:not([aria-expanded="true"]):hover, .nav-fs-close:hover, .nav-fs-fold:hover { background: var(--bg-subtle); color: var(--accent); }
-  .nav-fs-exit:hover, .nav-fs-unfold:hover { color: var(--accent); border-color: var(--accent); }
+  :is(.nav-fs-tab:not([aria-expanded="true"]), .nav-fs-close, .nav-fs-fold):hover:not(:focus-visible) {
+    outline: 1px solid var(--glass-lens-edge);
+    outline-offset: -1px;
+  }
+  .nav-fs-exit:hover, .nav-fs-unfold:hover { border-color: var(--glass-lens-edge); }
 }

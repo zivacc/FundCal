@@ -89,11 +89,7 @@
   transition: all var(--transition-fast);
 }
 
-.modal-close-btn:hover {
-  background: var(--bg-hover);
-  border-color: var(--rule);
-  color: var(--text-primary);
-}
+.modal-close-btn:hover { box-shadow: var(--glass-frame-shadow); }
 
 .modal-body {
   flex: 1;

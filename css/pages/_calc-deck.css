@@ -1,66 +1,52 @@
 /* 舞台和各张卡片共用光标驱动的光源。 */
 .fund-card-stage {
   --deck-card-radius: 24px;
-  --deck-sky: #8fbbf387;
-  --deck-violet: #aa94f78a;
-  --deck-mint: #77d6d788;
-  --deck-wave: #5676b861;
-  --deck-shadow: #526d9670;
-  --deck-face: #f7fbff8c;
-  --deck-drag-face: #f4f8ff70;
-  --deck-glare: #ffffff57;
-  --deck-rim: #ffffffba;
-  --deck-lower-edge: #718ab449;
+  --deck-stage-tint: rgb(189 208 248 / 10%);
+  --deck-floor-line: rgb(67 91 149 / 17%);
+  --deck-shadow: rgb(40 60 113 / 20%);
+  --deck-face: rgb(242 247 255 / 10%);
+  --deck-field: rgb(235 242 255 / 20%);
+  --deck-field-line: rgb(75 103 161 / 22%);
+  --deck-rim-light: rgb(255 255 255 / 86%);
+  --deck-rim-line: rgb(81 105 157 / 37%);
   --light-x: 42%;
   --light-y: 12%;
   --light-angle: 100deg;
-  --shadow-x: 2px;
-  --shadow-y: 26px;
   position: relative;
   isolation: isolate;
   margin: 18px 0 22px;
-  border: 1px solid var(--glass-stroke);
+  border: 1px solid transparent;
   border-radius: 30px;
-  background: var(--glass-highlight), var(--glass-fill);
+  background:
+    radial-gradient(ellipse 110% 32% at 42% 115%, transparent 98.25%, var(--deck-floor-line) 98.8% 99.35%, transparent),
+    var(--deck-stage-tint);
   overflow: hidden;
-  box-shadow: var(--glass-shadow);
+  box-shadow: 0 12px 32px -18px var(--deck-shadow);
 }
 
 [data-theme="dark"] .fund-card-stage {
-  --deck-sky: #3c6be572;
-  --deck-violet: #7957d66e;
-  --deck-mint: #25839a59;
-  --deck-wave: #9aaef973;
-  --deck-shadow: #04081a9e;
-  --deck-face: #101c34ab;
-  --deck-drag-face: #101c3495;
-  --deck-glare: #c1d7ff42;
-  --deck-rim: #dfe9ff59;
-  --deck-lower-edge: #060a1d85;
+  --deck-stage-tint: rgb(10 17 34 / 22%);
+  --deck-floor-line: rgb(174 200 252 / 18%);
+  --deck-shadow: rgb(2 5 17 / 40%);
+  --deck-face: rgb(9 17 34 / 15%);
+  --deck-field: rgb(12 22 43 / 25%);
+  --deck-field-line: rgb(200 217 255 / 23%);
+  --deck-rim-light: rgb(225 235 255 / 62%);
+  --deck-rim-line: rgb(167 188 236 / 38%);
 }
 
 .fund-card-stage::before {
   content: '';
   position: absolute;
   inset: 0;
+  padding: 1px;
+  border-radius: inherit;
   background:
-    radial-gradient(ellipse at var(--light-x) var(--light-y), var(--deck-glare), transparent 64%),
-    radial-gradient(ellipse 88% 65% at 38% 109%, transparent 97.1%, var(--deck-wave) 98.1%, var(--deck-rim) 98.4%, transparent 99.6%),
-    radial-gradient(ellipse at 10% 85%, var(--deck-sky), transparent 58%),
-    radial-gradient(ellipse at 56% 112%, var(--deck-violet), transparent 64%),
-    radial-gradient(ellipse at 104% 22%, var(--deck-mint), transparent 60%);
-  pointer-events: none;
-}
-
-.fund-card-stage::after {
-  content: '';
-  position: absolute;
-  inset: auto -9% -100px;
-  height: 182px;
-  border-radius: 50%;
-  background: linear-gradient(var(--light-angle), var(--deck-mint), var(--deck-violet) 62%, var(--deck-sky));
-  box-shadow: inset 0 2px 2px var(--deck-rim), inset 0 12px 36px -24px var(--deck-glare);
-  transform: rotate(-4deg);
+    radial-gradient(ellipse at var(--light-x) var(--light-y), var(--deck-rim-light), transparent 70%),
+    var(--deck-rim-line);
+  mask: var(--glass-frame-mask);
+  mask-composite: exclude;
+  opacity: .56;
   pointer-events: none;
 }
 
@@ -100,10 +86,9 @@
   width: 38px;
   height: 38px;
   padding: 0;
-  border: 1px solid var(--glass-stroke);
+  border: 1px solid var(--deck-field-line);
   border-radius: 50%;
-  background: var(--glass-highlight), var(--glass-fill-strong);
-  box-shadow: inset 0 1px 0 var(--glass-toplight), var(--shadow-sm);
+  background: var(--deck-field);
   color: var(--text-primary);
   font-size: 19px;
   cursor: pointer;
@@ -140,22 +125,47 @@
 .fund-card-stage .fund-cards:focus-visible { outline-offset: -3px; }
 .fund-card-stage .fund-cards::-webkit-scrollbar { display: none; }
 
+.deck-card-identities {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.deck-card-identity {
+  position: absolute;
+  translate: -50% 0;
+  overflow: hidden;
+  max-height: 80px;
+  color: var(--text-secondary);
+  font: 600 10px/1.3 var(--font-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deck-card-identity.is-vertical { writing-mode: vertical-rl; }
+
+.deck-card-identity::before {
+  content: '';
+  display: inline-block;
+  inline-size: 5px;
+  block-size: 5px;
+  margin-inline-end: 4px;
+  border-radius: 50%;
+  background: var(--card-accent, var(--accent));
+  vertical-align: .12em;
+}
+
 .fund-card-stage .fund-card {
   position: absolute;
   left: 50%;
   top: 32px;
   width: 330px;
   padding: 23px 20px 20px;
-  border: 1px solid var(--glass-stroke);
+  border: 1px solid transparent;
   border-radius: var(--deck-card-radius);
-  background:
-    radial-gradient(ellipse at var(--reflection-x, 50%) var(--reflection-y, 0%), var(--deck-glare), transparent 73%),
-    linear-gradient(var(--light-angle), var(--deck-sky), transparent 36% 68%, var(--deck-mint)),
-    var(--bg-raised);
-  box-shadow:
-    inset 1px 1px 1px var(--deck-rim),
-    inset -1px -1px 0 var(--deck-lower-edge),
-    var(--shadow-x) var(--shadow-y) 34px -18px var(--deck-shadow);
+  background: var(--deck-face);
+  box-shadow: 2px 18px 30px -19px var(--deck-shadow);
   transform-origin: 50% 45%;
   backface-visibility: hidden;
 }
@@ -163,59 +173,44 @@
 .fund-card-stage .fund-card::before {
   content: '';
   position: absolute;
-  inset: 0;
+  inset: -1px;
+  padding: 1.5px;
   border-radius: inherit;
-  box-shadow: inset 0 1px 4px var(--glass-toplight);
+  background:
+    radial-gradient(ellipse 72% 46% at clamp(0%, var(--reflection-x, 50%), 100%) clamp(0%, var(--reflection-y, 0%), 100%), var(--deck-rim-light), transparent 82%),
+    linear-gradient(var(--light-angle), var(--deck-rim-line), transparent 54%, var(--deck-rim-line));
+  mask: var(--glass-frame-mask);
+  mask-composite: exclude;
+  opacity: var(--deck-frame-opacity, .58);
   pointer-events: none;
 }
 
-@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-  /* Let the highlight glide along the rim without painting over the fee inputs. */
-  .fund-card-stage .fund-card.is-deck-active::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    padding: 3px;
-    border-radius: inherit;
-    pointer-events: none;
-    background:
-      radial-gradient(ellipse 78px 19px at clamp(8%, var(--reflection-x, 50%), 92%) 0%, var(--glass-lens-shine), transparent 78%),
-      radial-gradient(ellipse 14px 70px at 100% clamp(8%, var(--reflection-y, 50%), 92%), var(--glass-lens-edge), transparent 78%),
-      radial-gradient(ellipse 55px 15px at clamp(8%, var(--reflection-x, 50%), 92%) 100%, var(--glass-lens-shine), transparent 82%);
-    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    mask-composite: exclude;
-    opacity: 0;
-    transition: opacity var(--transition-glow);
-  }
-
-  .fund-card-stage .fund-card.is-deck-active:hover::after { opacity: 1; }
+@media (hover: hover) and (pointer: fine) {
+  .fund-card-stage .fund-card::before { transition: opacity var(--transition-glow); }
+  .fund-card-stage .fund-card:hover:not(.is-deck-drag-surface, .is-basket-drag-source) { --deck-frame-opacity: .94; }
 }
 
 .fund-card-stage .fund-card:is(.is-deck-active, .is-deck-drag-surface, .is-basket-drag-source) {
-  background:
-    radial-gradient(ellipse 76% 50% at var(--reflection-x, 50%) var(--reflection-y, 0%), var(--deck-glare), transparent 82%),
-    var(--deck-face);
-  -webkit-backdrop-filter: saturate(114%) var(--glass-glint-blur, blur(.5px)) var(--glass-refraction, );
-  backdrop-filter: saturate(114%) var(--glass-glint-blur, blur(.5px)) var(--glass-refraction, );
+  -webkit-backdrop-filter: var(--glass-glint-blur, blur(.5px)) var(--glass-refraction, );
+  backdrop-filter: var(--glass-glint-blur, blur(.5px)) var(--glass-refraction, );
 }
 
 .fund-card-stage .fund-card:is(.is-deck-drag-surface, .is-basket-drag-source) {
-  --deck-face: var(--deck-drag-face);
-  border-color: var(--deck-rim);
-  box-shadow:
-    inset 2px 2px 4px var(--deck-rim),
-    inset -2px -2px 1px var(--deck-lower-edge),
-    var(--shadow-x) var(--shadow-y) 36px -14px var(--deck-shadow);
+  --deck-frame-opacity: 1;
+  box-shadow: 2px 20px 32px -15px var(--deck-shadow);
 }
 
 .fund-card-stage .fund-card:not(.is-deck-active, .is-deck-drag-surface, .is-basket-drag-source) {
-  --deck-label-opacity: .72;
-  --deck-fields-opacity: .16;
-  filter: brightness(var(--surface-light, 1));
+  --deck-frame-opacity: calc(var(--surface-light, 1) * .65);
+  --deck-content-opacity: 0;
 }
 
-.fund-card-stage .fund-card > :not(h3, .deck-card-open) {
-  opacity: var(--deck-fields-opacity, 1);
+.fund-card-stage .fund-card:not(.is-deck-active, .is-deck-drag-surface, .is-basket-drag-source)::before {
+  background: linear-gradient(135deg, var(--deck-rim-light), var(--deck-rim-line));
+}
+
+.fund-card-stage .fund-card > :not(.deck-card-open) {
+  opacity: var(--deck-content-opacity, 1);
 }
 
 .fund-card-stage .fund-card:not(.is-deck-active) { user-select: none; }
@@ -235,12 +230,16 @@
 }
 
 .fund-card-stage .deck-card-open[hidden] { display: none; }
-.fund-card-stage .fund-card h3 { min-height: 42px; margin-bottom: 17px; opacity: var(--deck-label-opacity, 1); }
+.fund-card-stage .fund-card h3 { min-height: 42px; margin-bottom: 17px; }
 .fund-card-stage .fund-card .remove-btn { opacity: .85; top: 9px; right: 9px; }
 .fund-card-stage .fund-card .fund-name { font-size: 14px; }
 .fund-card-stage .fund-card .form-row-fee { padding-block: 10px; }
 .fund-card-stage .fund-card .segment-section-label { font-size: 13px; }
 .fund-card-stage .fund-card .fund-drag-handle { background: transparent; }
+.fund-card-stage .fund-card :is(.fund-name, .input-buy-fee, .input-annual-fee, .segments-table input):not(:focus) {
+  background: var(--deck-field);
+  border-color: var(--deck-field-line);
+}
 .is-deck-dragging .fund-card { user-select: none; }
 .is-deck-dragging .fund-cards, .is-deck-dragging .deck-card-open { cursor: grabbing; }
 
@@ -287,12 +286,22 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .fund-card-stage .fund-card::before { transition: none; }
   .deck-navigation button { transition: none; }
   .deck-navigation button:active:not(:disabled) { scale: none; }
 }
 
+@supports not (mask-composite: exclude) {
+  .fund-card-stage,
+  .fund-card-stage .fund-card { border-color: var(--deck-rim-line); }
+  .fund-card-stage::before,
+  .fund-card-stage .fund-card::before { display: none; }
+}
+
 @media (prefers-reduced-transparency: reduce), (forced-colors: active) {
-  .fund-card-stage .fund-card.is-deck-active::after { display: none; }
+  .fund-card-stage { background: var(--bg-subtle); }
+  .fund-card-stage .fund-card::before { display: none; }
+  .fund-card-stage .fund-card { border-color: var(--border); }
   .fund-card-stage .fund-card:is(.is-deck-active, .is-deck-drag-surface, .is-basket-drag-source) {
     background: var(--bg-raised);
     -webkit-backdrop-filter: none;
@@ -301,6 +310,5 @@
 }
 
 @media (forced-colors: active) {
-  .fund-card-stage .fund-card:not(.is-deck-active, .is-deck-drag-surface, .is-basket-drag-source) { filter: none; }
   .deck-navigation button, .fund-card-stage .fund-card { border-color: ButtonBorder; }
 }

@@ -32,7 +32,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* 两条椭圆光弧给透明界面提供可见的折射背景。 */
+/* 单条光弧给边缘折射提供参照。 */
 body::before {
   content: "";
   position: fixed;
@@ -43,9 +43,6 @@ body::before {
     radial-gradient(ellipse 104% 92% at 100% -25%,
       transparent 79%, var(--scene-arc-rim) 82%, var(--scene-arc-edge) 83%,
       var(--scene-arc-glow) 86%, transparent 93%),
-    radial-gradient(ellipse 130% 104% at -17% -44%,
-      transparent 77%, var(--scene-arc-glow) 79%, var(--scene-arc-edge) 81%,
-      var(--scene-arc-rim) 83%, transparent 86%),
     var(--scene-wash);
 }
 

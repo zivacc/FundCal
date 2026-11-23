@@ -3,9 +3,16 @@ import { applyGlassRefraction, reducedGlassTransparency } from './glass-refracti
 const rail = document.querySelector('.top-rail');
 const tabs = rail.querySelector('.top-rail-tabs');
 const lens = tabs.querySelector('.top-rail-lens');
-const pointerLight = matchMedia('(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)');
+const hoverPointer = matchMedia('(hover: hover) and (pointer: fine)');
 let hoveredTab = null;
 let positionFrame = 0;
+
+// Keep navigation labels legible as data rows scroll underneath.
+function syncScrollSurface() {
+  rail.classList.toggle('is-scrolled', window.scrollY > 8);
+}
+window.addEventListener('scroll', syncScrollSurface, { passive: true });
+syncScrollSurface();
 
 function schedulePosition() {
   if (positionFrame) return;
@@ -18,7 +25,6 @@ function schedulePosition() {
     lens.style.setProperty('--lens-width', `${target.offsetWidth}px`);
     lens.style.setProperty('--lens-offset', `${target.offsetLeft}px`);
     lens.classList.add('is-positioned');
-    tabs.classList.toggle('is-previewing', target !== active);
     applyGlassRefraction(lens, target.offsetWidth, target.offsetHeight, { scale: 19 });
 
     if (hoveredTab) return;
@@ -38,9 +44,9 @@ function setHoveredTab(tab) {
 }
 
 tabs.addEventListener('pointerover', event => {
-  if (!pointerLight.matches || reducedGlassTransparency.matches || event.pointerType !== 'mouse') return;
+  if (!hoverPointer.matches || event.pointerType !== 'mouse') return;
   const tab = event.target.closest('.top-rail-tab');
-  if (tab) setHoveredTab(tab);
+  setHoveredTab(tab);
 });
 tabs.addEventListener('pointerleave', () => setHoveredTab(null));
 
@@ -55,24 +61,4 @@ reducedGlassTransparency.addEventListener('change', () => {
   schedulePosition();
 });
 
-let lightFrame = 0;
-function clearLight() {
-  cancelAnimationFrame(lightFrame);
-  rail.style.removeProperty('--rail-light-opacity');
-}
-
-rail.addEventListener('pointermove', event => {
-  if (!pointerLight.matches || event.pointerType !== 'mouse') return;
-  cancelAnimationFrame(lightFrame);
-  lightFrame = requestAnimationFrame(() => {
-    const bounds = rail.getBoundingClientRect();
-    rail.style.setProperty('--rail-light-x', `${event.clientX - bounds.left}px`);
-    rail.style.setProperty('--rail-light-y', `${event.clientY - bounds.top}px`);
-    rail.style.setProperty('--rail-light-opacity', '.20');
-  });
-});
-rail.addEventListener('pointerleave', clearLight);
-pointerLight.addEventListener('change', () => {
-  setHoveredTab(null);
-  clearLight();
-});
+hoverPointer.addEventListener('change', () => setHoveredTab(null));

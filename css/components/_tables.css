@@ -4,6 +4,7 @@
 
 :is(.table-container, .cached-funds-table-wrap, .fund-detail-table-wrap, .fc-table-wrap,
     .id-table-wrap, .fd-table-wrap, .nav-stats-table-wrap, .nav-range-stats-table-wrap) {
+  position: relative;
   border: 1px solid var(--glass-stroke);
   border-radius: var(--table-radius);
   background: var(--table-fill);
@@ -34,26 +35,19 @@
   border-bottom: 0;
 }
 
-@media (hover: hover) and (pointer: fine) {
-  :where(.table, .cached-funds-table, .fund-detail-table, .fc-table, .id-table, .fd-table,
-        .nav-stats-table, .nav-range-stats-table) tbody tr:not(.cached-fund-row-placeholder, .cached-funds-empty, .fc-section):hover {
-    background-color: var(--table-row-hover);
-  }
-
-  .has-table-lens {
-    --table-lens-width: clamp(112px, 20vw, 245px);
-    background-image:
-      radial-gradient(ellipse at 50% 12%, var(--glass-toplight), transparent 62%),
-      radial-gradient(ellipse, var(--table-lens-fill) 39%, transparent 72%);
-    background-position: calc(var(--table-lens-x, 0px) - var(--table-lens-width) / 2) center;
-    background-size: var(--table-lens-width) 94%;
-    background-repeat: no-repeat;
-    transition: background-position .17s var(--glass-lens-ease);
-  }
+.glass-table-frame {
+  top: 0;
+  left: 0;
+  z-index: 1;
+  border-radius: 8px;
+  transition: transform .18s var(--glass-lens-ease);
 }
 
-@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
-  .has-table-lens { background-image: none; }
+.glass-table-frame.is-scrolling { transition: none; }
+.basket-dragging .glass-table-frame { visibility: hidden; }
+
+@media (prefers-reduced-motion: reduce) {
+  .glass-table-frame { transition: none; }
 }
 
 .table {
@@ -195,7 +189,7 @@
 }
 
 .fund-detail-table td.fund-detail-fund-cell-selected {
-  background: color-mix(in srgb, var(--accent) 10%, var(--bg-raised)) !important;
+  background: var(--accent-subtle);
   border-left: 2px solid var(--accent);
   border-right: 2px solid var(--accent);
 }
@@ -278,11 +272,7 @@
   transition: all 0.15s ease;
 }
 
-.fund-detail-select-btn:hover {
-  border-color: var(--border-hover);
-  color: var(--text-primary);
-  background: var(--bg-hover);
-}
+.fund-detail-select-btn:hover { box-shadow: var(--glass-frame-shadow); }
 
 .fund-detail-select-btn.active {
   border-color: var(--accent);

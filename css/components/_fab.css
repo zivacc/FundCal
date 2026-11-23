@@ -34,22 +34,10 @@
   border-color: var(--accent);
 }
 
-.fund-detail-floating-compare:hover {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
-  box-shadow: var(--shadow-lg);
-}
-
 .fund-detail-floating-delete {
   color: var(--text-primary);
   background: var(--glass-highlight) var(--glass-fill-strong);
   border-color: var(--glass-stroke);
-}
-
-.fund-detail-floating-delete:hover {
-  border-color: var(--danger);
-  color: var(--danger);
-  background: var(--danger-subtle);
 }
 
 .fund-detail-floating-jiuquan {
@@ -58,10 +46,9 @@
   border-color: var(--warm);
 }
 
-.fund-detail-floating-jiuquan:hover {
-  background: var(--warm-hover);
-  border-color: var(--warm-hover);
-  box-shadow: var(--shadow-lg);
+.fund-detail-floating-btn:hover:not(:disabled),
+.cached-funds-compare-btn:hover:not(:disabled) {
+  box-shadow: var(--glass-frame-shadow), var(--shadow-md);
 }
 
 /* 缓存基金列表页浮动按钮 */
@@ -99,18 +86,7 @@
   transition: background var(--transition-fast), box-shadow var(--transition-fast);
 }
 
-.cached-funds-compare-btn:hover {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
-  box-shadow: var(--shadow-lg);
-}
-
 .cached-funds-jiuquan-btn {
   background: var(--warm);
   border-color: var(--warm);
-}
-
-.cached-funds-jiuquan-btn:hover {
-  background: var(--warm-hover);
-  border-color: var(--warm-hover);
 }

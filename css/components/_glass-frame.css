@@ -1,0 +1,34 @@
+/* Only the narrow rim can sample the backdrop. The open center leaves text and values untouched. */
+.glass-hover-frame,
+#basket-drag-ghost::before {
+  position: absolute;
+  pointer-events: none;
+  padding: 6px;
+  background: transparent;
+  box-shadow: var(--glass-frame-shadow);
+  -webkit-backdrop-filter: var(--glass-glint-blur);
+  backdrop-filter: var(--glass-glint-blur) var(--glass-refraction, );
+  -webkit-mask: var(--glass-frame-mask);
+  mask: var(--glass-frame-mask);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+@supports not (mask-composite: exclude) {
+  .glass-hover-frame, #basket-drag-ghost::before { -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+
+@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+  .glass-hover-frame {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    -webkit-mask: none;
+    mask: none;
+    box-shadow: none;
+    border: 1px solid var(--border-focus);
+  }
+}
+
+@media (forced-colors: active) {
+  .glass-hover-frame { border-color: Highlight; }
+}

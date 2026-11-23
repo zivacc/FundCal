@@ -26,10 +26,10 @@
   padding: 4rem 1.5rem;
   text-align: center;
   color: var(--text-tertiary);
-  background: var(--glass-highlight) var(--glass-fill);
+  background: var(--glass-fill);
   border: 1px solid var(--glass-stroke);
   border-radius: var(--radius-xl);
-  box-shadow: var(--glass-shadow);
+  box-shadow: var(--glass-frame-shadow);
 }
 
 .fd-content {
@@ -54,11 +54,11 @@
 /* ── 卡片骨架 ── */
 .fd-card {
   min-width: 0;
-  background: var(--glass-highlight) var(--glass-fill-strong);
+  background: var(--glass-fill);
   border: 1px solid var(--glass-stroke);
   border-radius: var(--radius-xl);
   padding: 1.25rem 1.5rem;
-  box-shadow: var(--glass-shadow);
+  box-shadow: var(--glass-frame-shadow);
 }
 
 .fd-card-header {
@@ -92,10 +92,6 @@
   flex-direction: column;
   gap: 0.5rem;
   padding: clamp(1.25rem, 3vw, 2rem);
-  background:
-    radial-gradient(ellipse at 0% 0%, var(--glass-toplight), transparent 75%),
-    radial-gradient(ellipse at 100% 100%, var(--accent-glow), transparent 69%),
-    var(--glass-highlight) var(--glass-fill);
 }
 
 .fd-hero-code {
@@ -235,12 +231,15 @@
   font-family: inherit;
 }
 
-.fd-nav-period-btn:hover { color: var(--text-primary); }
+.fd-nav-period-btn:not(.fd-nav-period-btn-active):hover:not(:focus-visible) {
+  outline: 1px solid var(--glass-lens-edge);
+  outline-offset: -1px;
+}
 
 .fd-nav-period-btn-active {
-  background: var(--glass-highlight) color-mix(in srgb, var(--accent) 11%, var(--glass-fill-strong));
+  background: color-mix(in srgb, var(--accent) 11%, var(--glass-fill));
   color: var(--accent);
-  box-shadow: inset 0 1px var(--glass-toplight), var(--shadow-sm);
+  box-shadow: var(--glass-frame-shadow);
 }
 
 /* ── 同指数基金 peer 行 ── */

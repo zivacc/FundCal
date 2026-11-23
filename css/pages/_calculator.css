@@ -85,11 +85,6 @@
   color: var(--text-inverse);
 }
 
-.page-calc #add-fund:hover {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
-}
-
 /* ═══════════════════════════════════════════════════════════════
    表单行
    ═══════════════════════════════════════════════════════════════ */
@@ -384,7 +379,7 @@
 
 .segment-del-btn:hover {
   color: var(--danger);
-  background: var(--danger-subtle);
+  box-shadow: var(--glass-frame-shadow);
 }
 
 .segment-toolbar {
