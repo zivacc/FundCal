@@ -38,6 +38,13 @@
   transform-origin: top left;
 }
 
+/* Vertical page scrolling and pinch zoom remain native while a fitting rail can scrub horizontally. */
+.glass-can-scrub > :is(button, a) { touch-action: pan-y pinch-zoom; }
+:is(.glass-can-scrub, .top-rail-tabs) > :is(button, a) {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 /* A moving reflection on the existing rim, clipped by the frame's hollow mask. */
 @media (any-hover: hover) and (prefers-reduced-motion: no-preference) and (prefers-reduced-transparency: no-preference) and (forced-colors: none) {
   .glass-hover-frame::after {

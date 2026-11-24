@@ -18,6 +18,20 @@ test('switching direction follows the same path at different refresh rates', () 
   assert.deepEqual(at60, { value: 1, goal: 1, velocity: 0 });
 });
 
+test('the lifted lens rebounds and settles consistently at 60 and 120 Hz', () => {
+  function sample(hz) {
+    const axis = createSpring(0);
+    axis.goal = 90;
+    for (let i = 0; i < hz / 5; i++) advanceSpring(axis, 1 / hz, .025, .77);
+    return axis;
+  }
+  const at60 = sample(60), at120 = sample(120);
+  assert.ok(at60.value > 90 && at60.value < 93);
+  assert.ok(Math.abs(at60.value - at120.value) < 1e-9);
+  advanceSpring(at60, 1, .025, .77);
+  assert.deepEqual(at60, { value: 90, goal: 90, velocity: 0 });
+});
+
 test('the moving rim keeps its velocity on reversal, settles exactly, and snaps on scroll or reduced motion', t => {
   let now = 0, pending = null;
   const preference = { matches: false };

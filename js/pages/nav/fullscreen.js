@@ -1,3 +1,5 @@
+import { bindGlassChoices } from '../../core/glass-choices.js';
+
 /** 全屏控制层：复用原 DOM，退出时归位；图表尺寸不随面板开合变化。 */
 const PANELS = [
   ['funds', '基金', '搜索、添加或隐藏对比项'],
@@ -18,6 +20,7 @@ export function setupNavFullscreen({ onResize, createRange, zoomRange, clearRang
   shell.innerHTML = `
     <button type="button" class="nav-fs-exit" aria-label="退出图表全屏">↙ <span>退出</span></button>
     <div class="nav-fs-dock" role="group" aria-label="全屏图表控制">
+      <span class="glass-hover-frame nav-choice-lens" aria-hidden="true" hidden></span>
       ${PANELS.map(([id, title]) => `<button type="button" class="nav-fs-tab" data-panel="${id}" aria-controls="nav-fs-panel" aria-expanded="false">${title}</button>`).join('')}
       <button type="button" class="nav-fs-fold" aria-label="收起控制条" title="收起控制条">${chevron}</button>
     </div>
@@ -33,6 +36,11 @@ export function setupNavFullscreen({ onResize, createRange, zoomRange, clearRang
     </section>`;
   page.appendChild(shell);
   const dock = shell.querySelector('.nav-fs-dock');
+  bindGlassChoices(dock, dock.querySelector('.nav-choice-lens'), {
+    itemSelector: '.nav-fs-tab',
+    activeAttribute: 'aria-expanded',
+    optics: { rim: 5, scale: 14 },
+  });
   const unfold = shell.querySelector('.nav-fs-unfold');
   const panel = shell.querySelector('.nav-fs-panel');
   const close = shell.querySelector('.nav-fs-close');

@@ -1,17 +1,19 @@
-// A critically damped spring preserves velocity when the pointer changes direction.
-// Its closed-form step takes elapsed seconds and behaves the same on 60 and 120 Hz displays.
+// Exact spring steps preserve velocity on reversal, independent of display refresh rate.
 const frequency = 29;
 
 export function createSpring(value) {
   return { value, goal: value, velocity: 0 };
 }
 
-export function advanceSpring(axis, seconds, tolerance = .025) {
+export function advanceSpring(axis, seconds, tolerance = .025, damping = 1) {
   const offset = axis.value - axis.goal;
-  const impulse = axis.velocity + frequency * offset;
-  const decay = Math.exp(-frequency * seconds);
-  axis.value = axis.goal + (offset + impulse * seconds) * decay;
-  axis.velocity = (axis.velocity - frequency * impulse * seconds) * decay;
+  const drag = frequency * damping;
+  const decay = Math.exp(-drag * seconds);
+  const omega = frequency * Math.sqrt(1 - damping * damping);
+  const cos = Math.cos(omega * seconds);
+  const sinOverOmega = omega ? Math.sin(omega * seconds) / omega : seconds;
+  axis.value = axis.goal + decay * (offset * cos + (axis.velocity + drag * offset) * sinOverOmega);
+  axis.velocity = decay * (axis.velocity * cos - (drag * axis.velocity + frequency * frequency * offset) * sinOverOmega);
   if (Math.abs(axis.value - axis.goal) < tolerance && Math.abs(axis.velocity) < tolerance * 26) {
     axis.value = axis.goal;
     axis.velocity = 0;
@@ -19,7 +21,7 @@ export function advanceSpring(axis, seconds, tolerance = .025) {
 }
 
 // The element is an empty, absolutely positioned rim. Its text-bearing siblings never scale.
-export function createGlassMotion(element) {
+export function createGlassMotion(element, { liftOnPress = false } = {}) {
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const centerX = createSpring(0), centerY = createSpring(0);
   const width = createSpring(0), height = createSpring(0), pressure = createSpring(0);
@@ -28,16 +30,20 @@ export function createGlassMotion(element) {
   let frame = 0;
   let previousTime = 0;
   let highlight = null;
+  let lightX = null;
 
   function paint() {
     // Limit the trailing edge even when the user skips across many rows or tabs.
     const stretchX = Math.min(Math.abs(centerX.velocity) * .012, width.value * .22, 18);
     const stretchY = Math.min(Math.abs(centerY.velocity) * .012, height.value * .22, 12);
-    const w = Math.max(1, width.value + stretchX - Math.min(2, stretchY * .22) - pressure.value * Math.min(4, width.value * .05));
-    const h = Math.max(1, height.value + stretchY - Math.min(2.5, stretchX * .22) - pressure.value * Math.min(3, height.value * .09));
+    const pressWidth = liftOnPress ? Math.min(14, width.value * .14) : -Math.min(4, width.value * .05);
+    const pressHeight = liftOnPress ? Math.min(10, height.value * .23) : -Math.min(3, height.value * .09);
+    const w = Math.max(1, width.value + stretchX - Math.min(2, stretchY * .22) + pressure.value * pressWidth);
+    const h = Math.max(1, height.value + stretchY - Math.min(2.5, stretchX * .22) + pressure.value * pressHeight);
     const x = centerX.value - w / 2 - Math.sign(centerX.velocity) * stretchX * .2;
     const y = centerY.value - h / 2 - Math.sign(centerY.velocity) * stretchY * .2;
     element.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${w / width.goal}, ${h / height.goal})`;
+    if (liftOnPress) highlightAt(lightX, { left: x, width: w });
   }
 
   function snap() {
@@ -59,7 +65,7 @@ export function createGlassMotion(element) {
     }
     const elapsed = Math.max(0, time - previousTime) / 1000;
     previousTime = time;
-    for (const axis of axes) advanceSpring(axis, elapsed);
+    for (const axis of axes) advanceSpring(axis, elapsed, .025, liftOnPress ? .77 : 1);
     paint();
     if (axes.some(axis => axis.value !== axis.goal || axis.velocity !== 0)) {
       frame = requestAnimationFrame(tick);
@@ -72,8 +78,10 @@ export function createGlassMotion(element) {
     frame = requestAnimationFrame(tick);
   }
 
-  function moveTo(rect, { immediate = false } = {}) {
+  function moveTo(rect, { immediate = false, pointerX = null } = {}) {
     if (rect.width <= 0 || rect.height <= 0) return;
+    const lightChanged = lightX !== pointerX;
+    lightX = pointerX;
     const x = rect.x + rect.width / 2, y = rect.y + rect.height / 2;
     const changed = x !== centerX.goal || y !== centerY.goal || width.goal !== rect.width || height.goal !== rect.height;
     if (width.goal !== rect.width) element.style.width = `${rect.width}px`;
@@ -88,6 +96,8 @@ export function createGlassMotion(element) {
     } else if (changed) {
       paint(); // Compensate for the new layout size in the same frame.
       start();
+    } else if (lightChanged) {
+      paint();
     }
     positioned = true;
   }
@@ -99,11 +109,10 @@ export function createGlassMotion(element) {
     start();
   }
 
-  // Coordinates come from the last target measurement. Pointer travel within a row
-  // only moves a hairline reflection and needs no new layout or displacement map.
-  function highlightAt(clientX, bounds) {
-    const next = bounds && clientX != null && !reducedMotion.matches
-      ? Math.round(Math.min(1, Math.max(0, (clientX - bounds.left) / bounds.width)) * 100)
+  // Pointer and rim bounds share a coordinate space. No layout read or new displacement map is needed.
+  function highlightAt(pointerX, bounds) {
+    const next = bounds && pointerX != null && !reducedMotion.matches
+      ? Math.round(Math.min(1, Math.max(0, (pointerX - bounds.left) / bounds.width)) * 100)
       : null;
     if (next === highlight) return;
     highlight = next;
@@ -116,6 +125,7 @@ export function createGlassMotion(element) {
     frame = 0;
     positioned = false;
     pressure.goal = 0;
+    lightX = null;
     highlightAt(null);
   }
 

@@ -93,6 +93,11 @@
   display: none;
 }
 
+.top-rail-tabs.glass-can-scrub {
+  overflow: clip;
+  overflow-clip-margin: 8px;
+}
+
 .top-rail-tab {
   position: relative;
   display: grid;
@@ -119,6 +124,7 @@
 .top-rail-lens {
   position: absolute;
   inset: 0 auto auto 0;
+  z-index: 1;
   border-radius: var(--radius-pill);
 }
 

@@ -22,6 +22,100 @@ function lensAligned(selector) {
   return ['x', 'y', 'width', 'height'].every(key => Math.abs(a[key] - b[key]) < 1);
 }
 
+async function checkRailScrub(page) {
+  const listTab = '.top-rail-tab[data-route="list"]';
+  const compareTab = '.top-rail-tab[data-route="compare"]';
+  const list = await page.locator(listTab).boundingBox();
+  const compare = await page.locator(compareTab).boundingBox();
+  const y = list.y + list.height / 2;
+  const listCenter = list.x + list.width / 2;
+  const compareCenter = compare.x + compare.width / 2;
+  const initialUrl = page.url();
+  const waitForCenter = (min, max) => page.waitForFunction(([min, max]) => {
+    const bounds = document.querySelector('.top-rail-lens').getBoundingClientRect();
+    const center = bounds.left + bounds.width / 2;
+    return center > min && center < max;
+  }, [min, max], { timeout: 4000 });
+
+  await page.mouse.move(listCenter, y);
+  await page.waitForFunction(lensAligned, listTab);
+  await page.mouse.move(list.x + list.width * .15, y);
+  await waitForCenter(list.x, listCenter - 2);
+  await page.mouse.move(list.x + list.width * .85, y);
+  await waitForCenter(listCenter + 2, list.x + list.width);
+  assert.deepEqual(await page.locator(listTab).boundingBox(), list, 'pointer attraction leaves the label stationary');
+
+  // Hold over the real gap long enough for the spring to settle.
+  const seam = (list.x + list.width + compare.x) / 2;
+  await page.mouse.move(seam, y);
+  await page.waitForFunction(([left, right]) => new Promise(resolve => {
+    let frames = 0, lastX = null;
+    function sample() {
+      const b = document.querySelector('.top-rail-lens').getBoundingClientRect();
+      const x = b.x + b.width / 2;
+      if (x <= left || x >= right || (lastX !== null && Math.abs(x - lastX) > .3)) return resolve(false);
+      lastX = x;
+      if (++frames === 8) resolve(true);
+      else requestAnimationFrame(sample);
+    }
+    sample();
+  }), [listCenter + 2, compareCenter - 2], { timeout: 4000 });
+  assert.equal(page.url(), initialUrl);
+
+  await page.mouse.move(compareCenter, y);
+  await page.mouse.down();
+  await page.mouse.move(listCenter, y, { steps: 6 });
+  assert.equal(page.url(), initialUrl, 'scrubbing previews without navigating');
+  await page.mouse.move(listCenter, y + 100, { steps: 3 });
+  await page.mouse.up();
+  await page.waitForFunction(lensAligned, compareTab);
+  assert.equal(page.url(), initialUrl, 'release outside cancels');
+
+  await page.mouse.move(compareCenter, y);
+  await page.mouse.down();
+  await page.mouse.move(listCenter, y, { steps: 6 });
+  await page.mouse.up();
+  await page.waitForURL('**/#/list');
+  await page.goBack();
+  assert.equal(page.url(), initialUrl, 'release navigates once to the destination');
+}
+
+async function checkTouchScrub(page) {
+  const session = await page.context().newCDPSession(page);
+  try {
+    await session.send('Emulation.setTouchEmulationEnabled', { enabled: true });
+    const sendTouch = (type, points) => session.send('Input.dispatchTouchEvent', { type, touchPoints: points });
+    async function slide(x, endX, y) {
+      await sendTouch('touchStart', [{ x, y }]);
+      for (let i = 1; i <= 8; i++) {
+        await sendTouch('touchMove', [{ x: x + (endX - x) * i / 8, y }]);
+        await page.evaluate(() => new Promise(requestAnimationFrame));
+      }
+    }
+    const group = page.locator('#nav-value-mode');
+    await group.evaluate(el => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
+    const start = await group.locator('[aria-pressed="true"]').boundingBox();
+    const other = group.locator('[aria-pressed="false"]');
+    const next = await other.getAttribute('data-value');
+    const end = await other.boundingBox();
+    await slide(start.x + start.width / 2, end.x + end.width / 2, start.y + start.height / 2);
+    assert.equal(await other.getAttribute('data-value'), next, 'touch preview does not select');
+    await sendTouch('touchEnd', []);
+    await group.locator(`[data-value="${next}"][aria-pressed="true"]`).waitFor({ timeout: 4000 });
+
+    const rail = page.locator('.top-rail-tabs');
+    await rail.evaluate(el => { el.scrollLeft = 0; });
+    const b = await rail.boundingBox();
+    await slide(b.x + b.width - 25, b.x + 40, b.y + b.height / 2);
+    await sendTouch('touchEnd', []);
+    await page.waitForFunction(() => document.querySelector('.top-rail-tabs').scrollLeft > 60);
+    assert.equal(await rail.locator('[aria-selected="true"]').getAttribute('data-route'), 'nav');
+  } finally {
+    await session.send('Emulation.setTouchEmulationEnabled', { enabled: false });
+    await session.detach();
+  }
+}
+
 let fail = true;
 try {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
@@ -65,6 +159,8 @@ try {
   await preview.hover();
   await page.waitForFunction(lensAligned, '.top-rail-tab[data-route="list"]');
   assert.equal(await page.locator('.top-rail-tab[data-route="compare"]').getAttribute('aria-selected'), 'true');
+  await checkRailScrub(page);
+  await page.locator('#fc-status').filter({ hasText: '已载入 2' }).waitFor();
 
   const metric = name => page.locator('#fc-table tr').filter({ has: page.locator('th[scope="row"]', { hasText: new RegExp(`^${name}$`) }) }).locator('td');
   const feeRow = metric('显性年化费率').first().locator('..');
@@ -190,13 +286,37 @@ try {
   await page.locator('#nav-chart-toolbar-fullscreen').click();
   await page.locator('.top-rail').waitFor({ state: 'hidden' });
   await page.setViewportSize({ width: 390, height: 844 });
+  const dock = page.locator('.nav-fs-dock');
+  const panelButton = id => dock.locator(`[data-panel="${id}"]`);
+  const dockLens = dock.locator('.glass-hover-frame');
+  assert.equal(await dockLens.count(), 1);
+  assert.equal(await dock.locator('[aria-pressed]').count(), 0, 'disclosures keep aria-expanded semantics');
+  assert.ok((await dock.boundingBox()).y > 700, 'mobile controls are at the bottom');
+  await panelButton('period').click();
+  await page.mouse.move(1, 1);
+  await page.waitForFunction(lensAligned, '.nav-fs-tab[data-panel="period"]');
+  const fundsTab = await panelButton('funds').boundingBox(), toolsTab = await panelButton('tools').boundingBox();
+  await page.mouse.move(fundsTab.x + fundsTab.width / 2, fundsTab.y + fundsTab.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(toolsTab.x + toolsTab.width / 2, toolsTab.y + toolsTab.height / 2, { steps: 8 });
+  assert.equal(await panelButton('period').getAttribute('aria-expanded'), 'true', 'scrub previews without switching panels');
+  await page.mouse.up();
+  await page.locator('.nav-fs-pane[data-pane="tools"]').waitFor();
+  await dock.locator('.nav-fs-fold').click();
+  await page.locator('.nav-fs-unfold').click();
+  assert.equal(await dock.locator('[aria-expanded="true"]').count(), 0, 'unfolding leaves all panels closed');
+  await panelButton('stats').press('Enter');
+  await page.locator('.nav-fs-pane[data-pane="stats"]').waitFor();
+  await page.waitForFunction(lensAligned, '.nav-fs-tab[data-panel="stats"]');
   await page.locator('.nav-fs-exit').click();
   await page.waitForFunction(lensAligned, '.top-rail-tab[data-route="nav"]');
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const maxPeriod = '.nav-period-btn[data-period="MAX"]';
-  await page.locator(maxPeriod).hover();
+  await page.locator(maxPeriod).hover({ position: { x: 6, y: 17 } });
   await page.evaluate(() => new Promise(requestAnimationFrame));
   assert.ok(await page.evaluate(lensAligned, maxPeriod), 'reduced-motion rim aligns by the next frame');
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await checkTouchScrub(page);
   assert.deepEqual(errors, []);
   console.log('Fund inspection browser checks passed: comparison, snapshots, failures, route races, basket, links, responsive themes, NAV lenses and fullscreen.');
 } finally { await browser.close(); await new Promise(resolve => server.close(resolve)); }
