@@ -60,7 +60,7 @@ body.is-fullscreen-nav .nav-range-stats-title { white-space: normal; }
   box-shadow: var(--glass-frame-shadow), var(--shadow-sm);
 }
 .nav-fs-dock {
-  box-shadow: inset 0 0 0 .5px var(--rim-shade), var(--shadow-sm);
+  box-shadow: var(--shadow-sm);
   position: absolute;
   top: calc(8px + env(safe-area-inset-top, 0px));
   left: calc(12px + env(safe-area-inset-left, 0px));

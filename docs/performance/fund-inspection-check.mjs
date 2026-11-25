@@ -28,9 +28,9 @@ function lensAligned(selector) {
 
 // Measure rendered pixels rather than CSS transforms. A filter can be present and still
 // sample an empty layer, or leave the original label visible underneath the enlarged one.
-async function sampleLabelInk(page, clip) {
+async function screenshotPixels(page, clip) {
   const png = await page.screenshot({ clip });
-  return page.evaluate(async data => {
+  return page.evaluateHandle(async data => {
     const image = new Image();
     image.src = 'data:image/png;base64,' + data;
     await image.decode();
@@ -39,7 +39,14 @@ async function sampleLabelInk(page, clip) {
     canvas.height = image.height;
     const ctx = canvas.getContext('2d');
     ctx.drawImage(image, 0, 0);
-    const { data: pixels } = ctx.getImageData(0, 0, image.width, image.height);
+    return ctx.getImageData(0, 0, image.width, image.height);
+  }, png.toString('base64'));
+}
+
+async function sampleLabelInk(page, clip) {
+  const ink = await screenshotPixels(page, clip);
+  const sample = await ink.evaluate(image => {
+    const pixels = image.data;
     let left = image.width, right = -1, sharpness = 0, colored = 0;
     for (let i = 0; i < pixels.length; i += 4) {
       const [r, g, b] = pixels.subarray(i, i + 3);
@@ -53,7 +60,9 @@ async function sampleLabelInk(page, clip) {
       right = Math.max(x, right);
     }
     return { width: right - left + 1, sharpness, colored };
-  }, png.toString('base64'));
+  });
+  await ink.dispose();
+  return sample;
 }
 
 async function checkChoiceOptics(page, lens, { stripes = false } = {}) {
@@ -89,6 +98,61 @@ async function checkChoiceOptics(page, lens, { stripes = false } = {}) {
         assert.ok(rim.colored >= 2, 'the curved lip splits the incoming monochrome stripes');
       } finally { await plate.evaluate(el => el.remove()); }
     }
+  } finally { await fixture.evaluate(el => el.remove()); }
+}
+
+// Compare a held, deformed lens with the same exposed lettering. The independent
+// mask follows the actual spring spline, including its nonuniform transform.
+async function checkLensBoundary(page, lens) {
+  const fixture = await page.addStyleTag({ content: `.top-rail-tabs, .nav-fs-dock { background: #181818 !important; }
+    .top-rail-tab, .nav-fs-tab, .glass-projection-scene > span { color: white !important; transition: none !important; }` });
+  try {
+    const rim = await lens.evaluate(async el => {
+      const edge = el.querySelector('.glass-contour-outline');
+      let previous, stable = 0;
+      for (let i = 0; i < 150 && stable < 4; i++) {
+        await new Promise(requestAnimationFrame);
+        const key = edge.getAttribute('d') + el.style.transform;
+        stable = key === previous ? stable + 1 : 0;
+        previous = key;
+      }
+      const m = el.querySelector('.glass-contour').getScreenCTM();
+      const r = el.getBoundingClientRect();
+      return { stable, d: edge.getAttribute('d'), matrix: [m.a, m.b, m.c, m.d, m.e, m.f],
+        clip: { x: Math.floor(r.x - 4), y: Math.floor(r.y - 4), width: Math.ceil(r.width + 9), height: Math.ceil(r.height + 9) } };
+    });
+    assert.equal(rim.stable, 4, 'held cross-label pose settles before the pixel comparison');
+    const glass = await screenshotPixels(page, rim.clip);
+    const hide = await page.addStyleTag({ content: '.glass-hover-frame { visibility: hidden !important; } .glass-label-cutout { clip-path: none !important; }' });
+    const bare = await screenshotPixels(page, rim.clip);
+    await hide.evaluate(el => el.remove());
+    const { coloredInside, coloredOutside } = await page.evaluate(({ rim, glass, bare }) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = glass.width;
+      canvas.height = glass.height;
+      const ctx = canvas.getContext('2d'), scale = glass.width / rim.clip.width;
+      const [a, b, c, d, e, f] = rim.matrix;
+      ctx.setTransform(scale * a, scale * b, scale * c, scale * d, scale * (e - rim.clip.x), scale * (f - rim.clip.y));
+      const outline = new Path2D(rim.d);
+      ctx.fill(outline);
+      // Include half a device pixel for antialiasing at the physical surface.
+      ctx.lineWidth = 1 / scale;
+      ctx.stroke(outline);
+      const mask = ctx.getImageData(0, 0, glass.width, glass.height).data;
+      let coloredInside = 0, coloredOutside = 0;
+      for (let i = 0; i < mask.length; i += 4) {
+        const dr = glass.data[i] - bare.data[i];
+        const dg = glass.data[i + 1] - bare.data[i + 1];
+        const db = glass.data[i + 2] - bare.data[i + 2];
+        if (Math.max(dr, dg, db) - Math.min(dr, dg, db) <= 16) continue;
+        if (mask[i + 3] === 255) coloredInside++;
+        if (mask[i + 3] === 0) coloredOutside++;
+      }
+      return { coloredInside, coloredOutside };
+    }, { rim, glass, bare });
+    await Promise.all([glass.dispose(), bare.dispose()]);
+    assert.ok(coloredInside > 0, 'the curved lip still produces visible color inside the lens');
+    assert.equal(coloredOutside, 0, 'color stays inside the moving physical outline');
   } finally { await fixture.evaluate(el => el.remove()); }
 }
 
@@ -173,6 +237,8 @@ async function checkRailScrub(page) {
 
   await page.mouse.move(compareCenter, y);
   await page.mouse.down();
+  await page.mouse.move(seam, y + 3, { steps: 5 });
+  await checkLensBoundary(page, page.locator('.top-rail-lens'));
   await page.mouse.move(listCenter, y, { steps: 6 });
   assert.equal(page.url(), initialUrl, 'scrubbing previews without navigating');
   await page.mouse.move(listCenter, y + 100, { steps: 3 });
@@ -227,7 +293,7 @@ async function checkTouchScrub(page) {
 
 let fail = true;
 try {
-  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 2 });
   await context.addInitScript(api => { window.FUND_FEE_API_BASE = api; }, `${base}/api/fund`);
   const page = await context.newPage(), errors = [];
   page.on('pageerror', error => errors.push(error.message));
@@ -286,17 +352,19 @@ try {
   assert.equal(await rowFrame.count(), 1);
   for (const frame of [navLens, rowFrame]) {
     assert.deepEqual(await frame.evaluate(surface), ['rgba(0, 0, 0, 0)', 'none']);
-    const band = frame.locator('clipPath path[clip-rule="evenodd"]');
-    assert.equal(await band.getAttribute('clip-rule'), 'evenodd');
-    assert.equal((await band.getAttribute('d')).match(/M/gi)?.length, 2, 'the outer and inner contours bound a hollow band');
     assert.match(await frame.evaluate(el => getComputedStyle(el, '::before').clipPath), /url\(.*#.+\)/);
     assert.equal(await frame.locator('svg.glass-contour').getAttribute('fill'), 'none');
-    const inset = await frame.evaluate(el =>
-      el.querySelector('.rim-shine-line').getBBox().y - el.querySelector('.glass-contour-outline').getBBox().y);
-    assert.ok(inset > .5, 'the specular reflection sits inside the outer contour');
     assert.equal(await frame.evaluate(el => getComputedStyle(el).backdropFilter), 'none', 'the host has no whole-surface blur');
     assert.equal(await frame.evaluate(el => getComputedStyle(el).pointerEvents), 'none');
   }
+  const stroke = navLens.locator('.glass-contour > use');
+  assert.equal(await stroke.count(), 1, 'the optical surface has a single painted edge');
+  assert.equal(await stroke.getAttribute('href'), '#' + await navLens.locator('.glass-contour-outline').getAttribute('id'));
+  const rowBand = rowFrame.locator('clipPath path[clip-rule="evenodd"]');
+  assert.equal((await rowBand.getAttribute('d')).match(/M/gi)?.length, 2, 'a row refracts only its hollow band');
+  const rowInset = await rowFrame.evaluate(el =>
+    el.querySelector('.rim-shine-line').getBBox().y - el.querySelector('.glass-contour-outline').getBBox().y);
+  assert.ok(rowInset > .5, 'the row reflection sits inside its physical outline');
   assert.equal(await rowFrame.evaluate(el => el.classList.contains('has-optical-lens')), false);
   const rate = metric('显性年化费率').first();
   const rateText = await rate.evaluate(el => {
@@ -442,6 +510,9 @@ try {
   const fundsTab = await panelButton('funds').boundingBox(), toolsTab = await panelButton('tools').boundingBox();
   await page.mouse.move(fundsTab.x + fundsTab.width / 2, fundsTab.y + fundsTab.height / 2);
   await page.mouse.down();
+  const statsTab = await panelButton('stats').boundingBox();
+  await page.mouse.move((statsTab.x + statsTab.width + toolsTab.x) / 2, toolsTab.y + toolsTab.height / 2 + 3, { steps: 6 });
+  await checkLensBoundary(page, dockLens);
   await page.mouse.move(toolsTab.x + toolsTab.width / 2, toolsTab.y + toolsTab.height / 2, { steps: 8 });
   assert.equal(await panelButton('period').getAttribute('aria-expanded'), 'true', 'scrub previews without switching panels');
   await page.mouse.up();

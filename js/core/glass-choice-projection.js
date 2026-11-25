@@ -99,7 +99,7 @@ export function createChoiceProjection(group, lens, items, schedule) {
   function paint(frame) {
     pose = frame;
     if (aperture.hidden) return;
-    edge ??= lens.querySelector('.glass-contour-outline');
+    edge ??= lens.querySelector('.glass-aperture-outline');
     const outline = edge?.getAttribute('d');
     if (!outline) return;
     const { x, y, w, h, width, height } = frame;

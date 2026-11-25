@@ -22,6 +22,7 @@
 /* A fine outer seam surrounds the softer, continuous reflection on the inner lip. */
 .rim-depth-line { stroke: var(--rim-shade); stroke-width: .85; }
 .rim-bevel-line { stroke-width: 1.25; }
+.rim-glint { stop-color: var(--glass-lens-shine); }
 .rim-pearl { stop-color: var(--rim-pearl); }
 .rim-silver { stop-color: var(--rim-silver); }
 .rim-depth { stop-color: var(--rim-depth); }
@@ -47,7 +48,6 @@
   -webkit-backdrop-filter: var(--glass-refraction, none);
   backdrop-filter: var(--glass-refraction, none);
 }
-.has-optical-lens .rim-bevel-line { stroke-width: .9; opacity: .50; }
 
 #basket-drag-ghost::before {
   padding: 3px;

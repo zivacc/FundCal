@@ -1,21 +1,58 @@
 import { createGlassContour } from './glass-contour.js';
-import { glassLightDirection } from './glass-optics.js';
+import { glassApertureInset, glassLightDirection } from './glass-optics.js';
 import { setGlassLight } from './glass-refraction.js';
 
 const svgNamespace = 'http://www.w3.org/2000/svg';
-// Keep room around the element for the moving lip, in both the clip and the displacement map.
+const edgeInset = 1.7;
 export const rimOutset = 5;
 let instance = 0;
 
-// The seam, reflections and optical clip share a single moving outline.
-export function attachGlassRim(host, { radius = Infinity, strength = 1, optical = false } = {}) {
-  const contour = createGlassContour();
-  const id = `glass-rim-${++instance}`;
-  const svg = document.createElementNS(svgNamespace, 'svg');
-  svg.setAttribute('class', 'glass-contour');
-  svg.setAttribute('aria-hidden', 'true');
-  svg.setAttribute('focusable', 'false');
-  svg.setAttribute('fill', 'none');
+function createChoiceSurface(svg, host, id) {
+  svg.innerHTML = `<defs>
+    <path id="${id}-edge" class="glass-contour-outline"/>
+    <path id="${id}-opening" class="glass-aperture-outline"/>
+    <clipPath id="${id}-silhouette"><use href="#${id}-edge"/></clipPath>
+    <clipPath id="${id}-aperture"><use href="#${id}-opening" transform="translate(${rimOutset} ${rimOutset})"/></clipPath>
+    <linearGradient id="${id}-light" gradientUnits="userSpaceOnUse">
+      <stop class="rim-glint" offset="0"/><stop class="rim-silver" offset=".14"/>
+      <stop class="rim-depth" offset=".38"/><stop class="rim-depth" stop-opacity=".34" offset=".60"/>
+      <stop class="rim-silver" offset=".83"/><stop class="rim-pearl" offset="1"/>
+    </linearGradient>
+  </defs>
+  <use class="rim-shine-line" href="#${id}-edge" fill="#fff" stroke="url(#${id}-light)" clip-path="url(#${id}-silhouette)"/>`;
+  host.style.setProperty('--lens-aperture', `url("#${id}-aperture")`);
+  host.classList.add('has-optical-lens');
+  const edge = svg.querySelector('.glass-contour-outline');
+  const opening = svg.querySelector('.glass-aperture-outline');
+  const gradient = svg.querySelector('linearGradient');
+  let lastLight;
+  return {
+    inset: glassApertureInset,
+    shape(outline, inner) {
+      edge.setAttribute('d', outline);
+      opening.setAttribute('d', inner);
+    },
+    light(width, height, px, py) {
+      const { x, y } = glassLightDirection(px, py);
+      const shortSide = Math.min(width, height);
+      const reach = (shortSide + Math.abs(x) * (width - shortSide) + Math.abs(y) * (height - shortSide)) / 2 - edgeInset;
+      const dx = x * reach, dy = y * reach;
+      const x1 = (width / 2 + dx).toFixed(1), y1 = (height / 2 + dy).toFixed(1);
+      const x2 = (width / 2 - dx).toFixed(1), y2 = (height / 2 - dy).toFixed(1);
+      const key = `${x1} ${y1} ${x2} ${y2}`;
+      if (key !== lastLight) {
+        lastLight = key;
+        gradient.setAttribute('x1', x1);
+        gradient.setAttribute('y1', y1);
+        gradient.setAttribute('x2', x2);
+        gradient.setAttribute('y2', y2);
+      }
+      setGlassLight(host, px, py);
+    },
+  };
+}
+
+function createRimBand(svg, host, id) {
   svg.innerHTML = `<defs>
     <path id="${id}-edge" class="glass-contour-outline"/>
     <path id="${id}-inner"/>
@@ -38,34 +75,51 @@ export function attachGlassRim(host, { radius = Infinity, strength = 1, optical 
   <use class="rim-bevel-line" href="#${id}-inner" stroke="url(#${id}-bevel)"/>
   <use class="rim-shine-line" href="#${id}-inner" stroke="url(#${id}-shine)"/>
   <use class="rim-caustic" href="#${id}-inner" stroke="url(#${id}-return)" stroke-width=".85"/>`;
-  if (optical) {
-    svg.querySelector('defs').insertAdjacentHTML('beforeend', `
-      <clipPath id="${id}-aperture"><use href="#${id}-edge" transform="translate(${rimOutset} ${rimOutset})"/></clipPath>
-      <radialGradient id="${id}-cool" gradientUnits="userSpaceOnUse">
-        <stop stop-color="#e6f6ff" stop-opacity=".64"/><stop offset=".40" stop-color="#95cce8" stop-opacity=".46"/>
-        <stop offset=".72" stop-color="#a1a5d7" stop-opacity=".22"/><stop offset="1" stop-color="#a1a5d7" stop-opacity="0"/>
-      </radialGradient>
-      <radialGradient id="${id}-warm" gradientUnits="userSpaceOnUse">
-        <stop stop-color="#fff1cf" stop-opacity=".62"/><stop offset=".42" stop-color="#d5b295" stop-opacity=".42"/>
-        <stop offset=".74" stop-color="#b895b2" stop-opacity=".18"/><stop offset="1" stop-color="#b895b2" stop-opacity="0"/>
-      </radialGradient>`);
-    svg.insertAdjacentHTML('beforeend', `<use href="#${id}-edge" stroke="url(#${id}-cool)" stroke-width="1.15"/>
-      <use href="#${id}-edge" stroke="url(#${id}-warm)" stroke-width="1"/>`);
-    host.style.setProperty('--lens-aperture', `url("#${id}-aperture")`);
-    host.classList.add('has-optical-lens');
-  }
+  host.style.setProperty('--rim-clip', `url("#${id}-band")`);
   const edge = svg.querySelector('.glass-contour-outline');
   const innerEdge = svg.getElementById(`${id}-inner`);
   const band = svg.querySelector('clipPath path');
-  const shine = svg.querySelector('radialGradient');
-  const specular = svg.querySelector('.rim-shine-line');
+  const shine = svg.getElementById(`${id}-shine`);
   const returnLight = svg.getElementById(`${id}-return`);
-  const cool = svg.getElementById(`${id}-cool`), warm = svg.getElementById(`${id}-warm`);
+  let lastLight;
+  return {
+    inset: 4.6,
+    shape(outline, inner) {
+      edge.setAttribute('d', outline);
+      innerEdge.setAttribute('d', inner);
+      band.setAttribute('d', outline + inner);
+    },
+    light(width, height, px, py) {
+      const cx = Math.round((.5 + (px ?? -.45) * .48) * width * 10) / 10;
+      const cy = Math.round((.36 + (py ?? -.8) * .5) * height * 10) / 10;
+      const r = Math.round(Math.min(96, Math.max(22, Math.min(width, height * 2.2) * .66)));
+      const key = `${cx} ${cy} ${r}`;
+      if (key === lastLight) return;
+      lastLight = key;
+      shine.setAttribute('cx', cx);
+      shine.setAttribute('cy', cy);
+      shine.setAttribute('r', r);
+      returnLight.setAttribute('cx', (width - cx).toFixed(1));
+      returnLight.setAttribute('cy', (height - cy).toFixed(1));
+      returnLight.setAttribute('r', r * .82);
+    },
+  };
+}
+
+export function attachGlassRim(host, { radius = Infinity, strength = 1, optical = false } = {}) {
+  const contour = createGlassContour();
+  const id = `glass-rim-${++instance}`;
+  const svg = document.createElementNS(svgNamespace, 'svg');
+  svg.setAttribute('class', 'glass-contour');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+  svg.setAttribute('fill', 'none');
+  const surface = optical ? createChoiceSurface(svg, host, id) : createRimBand(svg, host, id);
+  const specular = svg.querySelector('.rim-shine-line');
   host.append(svg);
   host.style.setProperty('--rim-outset', `${rimOutset}px`);
-  host.style.setProperty('--rim-clip', `url("#${id}-band")`);
   host.classList.add('has-glass-contour');
-  let lastEdge, lastLight, lastIntensity;
+  let lastEdge, lastIntensity;
 
   function paint(width, height, seconds, { velocityX, velocityY, pointerX, pointerY, pressure }, snap = false) {
     if (width < 2 || height < 2) return false;
@@ -74,47 +128,19 @@ export function attachGlassRim(host, { radius = Infinity, strength = 1, optical 
       velocityX: velocityX * strength, velocityY: velocityY * strength,
       pointerX: (pointerX ?? 0) * strength, pointerY: (pointerY ?? 0) * strength, pressure: pressure * strength,
     });
-    const outline = contour.path(width, height, radius, 1.7);
+    const outline = contour.path(width, height, radius, edgeInset);
     if (outline !== lastEdge) {
       lastEdge = outline;
-      const inner = contour.path(width, height, radius, optical ? 3.15 : 4.6);
-      edge.setAttribute('d', outline);
-      innerEdge.setAttribute('d', inner);
-      band.setAttribute('d', outline + inner);
+      surface.shape(outline, contour.path(width, height, radius, surface.inset));
     }
-
-    // Project a broad specular highlight towards the contact point on the curved lip.
-    const { x: nx, y: ny } = optical ? glassLightDirection(pointerX, pointerY)
-      : { x: pointerX ?? -.45, y: pointerY ?? -.8 };
-    const cx = Math.round((.5 + nx * .48) * width * 10) / 10;
-    const cy = Math.round((.36 + ny * .5) * height * 10) / 10;
-    const r = Math.round(Math.min(96, Math.max(22, Math.min(width, height * 2.2) * .66)));
-    const light = `${cx} ${cy} ${r}`;
-    if (lastLight !== light) {
-      lastLight = light;
-      shine.setAttribute('cx', cx);
-      shine.setAttribute('cy', cy);
-      shine.setAttribute('r', r);
-      returnLight.setAttribute('cx', (width - cx).toFixed(1));
-      returnLight.setAttribute('cy', (height - cy).toFixed(1));
-      returnLight.setAttribute('r', r * .82);
-      if (optical) {
-        // The two short glancing reflections sit on opposing shoulders of the curved surface.
-        const x = width * (.5 + .49 * nx), y = height * (.5 + .49 * ny);
-        cool.setAttribute('cx', x);
-        cool.setAttribute('cy', y);
-        cool.setAttribute('r', r * .52);
-        warm.setAttribute('cx', width - x);
-        warm.setAttribute('cy', height - y);
-        warm.setAttribute('r', r * .48);
-      }
-    }
-    if (optical) setGlassLight(host, pointerX, pointerY);
+    surface.light(width, height, pointerX, pointerY);
     const load = Math.min(1, Math.hypot(velocityX, velocityY) / 850 + pressure * .65);
-    const intensity = (.65 + load * .55).toFixed(2);
+    // The choice seam is clipped to its own silhouette, so only its inner half is painted.
+    const intensity = ((optical ? 1.45 : .65) + load * .55).toFixed(2);
     if (lastIntensity !== intensity) {
       lastIntensity = intensity;
       specular.setAttribute('stroke-width', intensity);
+      if (optical) specular.setAttribute('fill-opacity', (.02 + load * .085).toFixed(3));
     }
     return moving;
   }

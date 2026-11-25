@@ -1,3 +1,6 @@
+// Inset of the optical aperture from the nominal control bounds, in local CSS pixels.
+export const glassApertureInset = 2.55;
+
 // feDisplacementMap reads a source pixel at P + scale * (RG - 0.5).
 // Each map belongs to the padded filter box; the rounded aperture starts at outset.
 export function createGlassField(width, height, radius, rim, scale, outset, magnification, density = 1) {
@@ -9,6 +12,7 @@ export function createGlassField(width, height, radius, rim, scale, outset, magn
   const curvature = 1 - 1 / magnification;
   // Spread the bend across several pixels even on the narrow 5px dock rim.
   const bevelWidth = Math.min(radius * .58, rim * 1.6, Math.max(8, rim));
+  const prismWidth = bevelWidth - glassApertureInset;
   const deflection = Math.min(scale * .45, bevelWidth * .87);
   // Allow the encoded vectors to cover the central zoom as well as the edge bend.
   const range = dispersion ? 2 * (Math.max(filterWidth, filterHeight) * curvature / 2 + deflection + 3) : scale;
@@ -33,8 +37,12 @@ export function createGlassField(width, height, radius, rim, scale, outset, magn
         refraction[pixel + 1] = 255 * (.5 + ((height / 2 - y) * curvature - ny * deflection * bevel) / range);
         // B carries steering strength; smaller bevels allow proportionally less tilt.
         refraction[pixel + 2] = 255 * bevel * Math.min(1, rim * .08);
-        dispersion[pixel] = 255 * (.5 + nx * bevel / 2);
-        dispersion[pixel + 1] = 255 * (.5 + ny * bevel / 2);
+        // The color split rises and falls inside the bevel. The padded texture
+        // and the outer seam remain neutral, including under interpolation.
+        const u = prismWidth > 0 ? Math.max(0, Math.min(1, (depth - glassApertureInset) / prismWidth)) : 0;
+        const spread = (4 * u * (1 - u)) ** 2 * shoulder;
+        dispersion[pixel] = 255 * (.5 + nx * spread / 2);
+        dispersion[pixel + 1] = 255 * (.5 + ny * spread / 2);
         dispersion[pixel + 3] = 255;
       } else {
         // Static card and table rims leave their figures in place.
