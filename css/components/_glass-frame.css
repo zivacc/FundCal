@@ -27,7 +27,7 @@
 .rim-depth { stop-color: var(--rim-depth); }
 .rim-return { stop-color: var(--rim-caustic); }
 
-/* The clip has an open center and tracks the very same spline as the visible edge. */
+/* Table and card overlays sample just the band between the two contours. */
 .has-glass-contour::before {
   content: "";
   position: absolute;
@@ -37,6 +37,17 @@
   -webkit-backdrop-filter: var(--glass-refraction, none);
   backdrop-filter: var(--glass-refraction, none);
 }
+
+.has-optical-lens::before {
+  clip-path: var(--lens-aperture);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.has-optical-lens.uses-backdrop-lens::before {
+  -webkit-backdrop-filter: var(--glass-refraction, none);
+  backdrop-filter: var(--glass-refraction, none);
+}
+.has-optical-lens .rim-bevel-line { stroke-width: .9; opacity: .50; }
 
 #basket-drag-ghost::before {
   padding: 3px;

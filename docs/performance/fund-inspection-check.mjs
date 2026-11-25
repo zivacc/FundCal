@@ -1,14 +1,18 @@
 /** Isolated browser regression. No public DB reads/writes or upstream requests.
  * PLAYWRIGHT_MODULE=/path/to/playwright/index.mjs CHROME_PATH=/path/to/chrome \
  *   node docs/performance/fund-inspection-check.mjs
+ * Use BROWSER_ENGINE=webkit with an installed Playwright WebKit to exercise label projection.
  */
 import assert from 'node:assert/strict';
 import { createStaticServer } from '../../scripts/serve-static.js';
-const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const { chromium, webkit } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const engine = process.env.BROWSER_ENGINE || 'chromium';
+assert.ok(['chromium', 'webkit'].includes(engine));
 const server = createStaticServer();
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const base = `http://127.0.0.1:${server.address().port}`;
-const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH, headless: true });
+const browser = engine === 'webkit' ? await webkit.launch() :
+  await chromium.launch({ executablePath: process.env.CHROME_PATH, headless: true });
 const funds = Array.from({ length: 10 }, (_, i) => ({ code: String(i + 1).padStart(6, '0'), name: `测试基金${i + 1}` }));
 const raw = code => ({ ...funds.find(fund => fund.code === code), fundType: code === '000003' ? 'FOF' : '混合型',
   fundManager: '测试公司', annualFee: .012, buyFee: 0, operationFees: { managementFee: .01, custodyFee: .002, salesServiceFee: 0 },
@@ -22,20 +26,70 @@ function lensAligned(selector) {
   return ['x', 'y', 'width', 'height'].every(key => Math.abs(a[key] - b[key]) < 1);
 }
 
-async function checkRailClarity(page, lens) {
-  // Fine detail behind the *whole* header catches an ancestor filter even when the lens itself is hollow.
-  const stripes = await page.addStyleTag({ content: `body::after { content: ""; position: fixed; inset: 0;
-    z-index: 11000; pointer-events: none; background: repeating-linear-gradient(90deg,#181818 0 2px,#dfdfdf 2px 4px); }` });
-  const r = await lens.boundingBox();
-  const clip = { x: Math.ceil(r.x + r.width * .25), y: Math.ceil(r.y + r.height * .32),
-    width: Math.floor(r.width * .5), height: Math.floor(r.height * .36) };
-  const normal = await page.screenshot({ clip });
-  const reference = await page.addStyleTag({ content: `.top-rail, .top-rail::before, .top-rail-tabs, .top-rail-lens,
-    .top-rail-lens::before { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }` });
-  const clear = await page.screenshot({ clip });
-  await reference.evaluate(el => el.remove());
-  await stripes.evaluate(el => el.remove());
-  assert.ok(normal.equals(clear), 'the full header preserves fine detail behind the lens center');
+// Measure rendered pixels rather than CSS transforms. A filter can be present and still
+// sample an empty layer, or leave the original label visible underneath the enlarged one.
+async function sampleLabelInk(page, clip) {
+  const png = await page.screenshot({ clip });
+  return page.evaluate(async data => {
+    const image = new Image();
+    image.src = 'data:image/png;base64,' + data;
+    await image.decode();
+    const canvas = document.createElement('canvas');
+    canvas.width = image.width;
+    canvas.height = image.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(image, 0, 0);
+    const { data: pixels } = ctx.getImageData(0, 0, image.width, image.height);
+    let left = image.width, right = -1, sharpness = 0, colored = 0;
+    for (let i = 0; i < pixels.length; i += 4) {
+      const [r, g, b] = pixels.subarray(i, i + 3);
+      if (Math.max(r, g, b) - Math.min(r, g, b) > 15) colored++;
+      const x = i / 4 % image.width;
+      if (x > image.width * .3 && x < image.width * .7) {
+        sharpness = Math.max(sharpness, Math.abs(g - pixels[i - 3]));
+      }
+      if (g <= 145) continue;
+      left = Math.min(x, left);
+      right = Math.max(x, right);
+    }
+    return { width: right - left + 1, sharpness, colored };
+  }, png.toString('base64'));
+}
+
+async function checkChoiceOptics(page, lens, { stripes = false } = {}) {
+  // Keep the real glyphs and their layout, isolating them from theme colors and painted highlights.
+  const fixture = await page.addStyleTag({ content: `.top-rail-tabs, .nav-fs-dock { background: #151515 !important; }
+    .top-rail-tab, .nav-fs-tab, .glass-projection-scene > span { color: white !important; transition: none !important; }
+    .glass-contour > use { visibility: hidden; }` });
+  try {
+    const r = await lens.boundingBox();
+    const clip = { x: Math.ceil(r.x + 4), y: Math.ceil(r.y + r.height * .27),
+      width: Math.floor(r.width - 8), height: Math.floor(r.height * .46) };
+    const sample = () => sampleLabelInk(page, clip);
+    const glass = await sample();
+    const hide = await page.addStyleTag({ content: '.glass-hover-frame { visibility: hidden !important; } .glass-label-cutout { clip-path: none !important; }' });
+    const bare = await sample();
+    await hide.evaluate(el => el.remove());
+    assert.ok(bare.width > 10 && glass.width >= bare.width * 1.05,
+      `lens enlarges the real label (glass ${glass.width}px, original ${bare.width}px)`);
+    assert.ok(bare.sharpness > 50 && glass.sharpness >= bare.sharpness * .72, 'enlarged glyph edges retain sharp local contrast');
+    if (stripes && engine === 'chromium') {
+      // Dispersion creates color from a neutral field only where the curved lip samples different stripes.
+      const plate = await page.addStyleTag({ content: `.top-rail-tabs { background:
+        repeating-linear-gradient(90deg,#151515 0px 3px,#eee 3px 6px) !important; }` });
+      try {
+        const lit = await lens.boundingBox();
+        const middle = { x: Math.round(lit.x + lit.width / 2 - 10), y: Math.round(lit.y + lit.height / 2 - 4),
+          width: 20, height: 8 };
+        const shoulder = { x: Math.round(lit.x + 1), y: Math.round(lit.y + 1),
+          width: Math.floor(lit.height * .5), height: Math.floor(lit.height - 2) };
+        const core = await sampleLabelInk(page, middle);
+        const rim = await sampleLabelInk(page, shoulder);
+        assert.equal(core.colored, 0, 'the optical center stays free of color fringes');
+        assert.ok(rim.colored >= 2, 'the curved lip splits the incoming monochrome stripes');
+      } finally { await plate.evaluate(el => el.remove()); }
+    }
+  } finally { await fixture.evaluate(el => el.remove()); }
 }
 
 // Measure the bow between the shoulders in the outline's own coordinates. Moving or scaling
@@ -213,7 +267,7 @@ try {
   const preview = page.locator('.top-rail-tab[data-route="list"]');
   await preview.hover();
   await page.waitForFunction(lensAligned, '.top-rail-tab[data-route="list"]');
-  await checkRailClarity(page, navLens);
+  await checkChoiceOptics(page, navLens, { stripes: true });
   assert.equal(await page.locator('.top-rail-tab[data-route="compare"]').getAttribute('aria-selected'), 'true');
   await checkRailScrub(page);
   await page.locator('#fc-status').filter({ hasText: '已载入 2' }).waitFor();
@@ -232,7 +286,7 @@ try {
   assert.equal(await rowFrame.count(), 1);
   for (const frame of [navLens, rowFrame]) {
     assert.deepEqual(await frame.evaluate(surface), ['rgba(0, 0, 0, 0)', 'none']);
-    const band = frame.locator('clipPath path');
+    const band = frame.locator('clipPath path[clip-rule="evenodd"]');
     assert.equal(await band.getAttribute('clip-rule'), 'evenodd');
     assert.equal((await band.getAttribute('d')).match(/M/gi)?.length, 2, 'the outer and inner contours bound a hollow band');
     assert.match(await frame.evaluate(el => getComputedStyle(el, '::before').clipPath), /url\(.*#.+\)/);
@@ -240,11 +294,31 @@ try {
     const inset = await frame.evaluate(el =>
       el.querySelector('.rim-shine-line').getBBox().y - el.querySelector('.glass-contour-outline').getBBox().y);
     assert.ok(inset > .5, 'the specular reflection sits inside the outer contour');
-    assert.equal(await frame.evaluate(el => getComputedStyle(el).backdropFilter), 'none', 'the open center is unfiltered');
+    assert.equal(await frame.evaluate(el => getComputedStyle(el).backdropFilter), 'none', 'the host has no whole-surface blur');
     assert.equal(await frame.evaluate(el => getComputedStyle(el).pointerEvents), 'none');
   }
+  assert.equal(await rowFrame.evaluate(el => el.classList.contains('has-optical-lens')), false);
+  const rate = metric('显性年化费率').first();
+  const rateText = await rate.evaluate(el => {
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const r = range.getBoundingClientRect();
+    return { x: Math.floor(r.x), y: Math.floor(r.y), width: Math.ceil(r.width), height: Math.ceil(r.height) };
+  });
+  const framedFee = await page.screenshot({ clip: rateText });
+  const hideRow = await page.addStyleTag({ content: '.glass-table-frame { visibility: hidden !important; }' });
+  assert.ok(framedFee.equals(await page.screenshot({ clip: rateText })), 'table hover preserves the fee pixels');
+  await hideRow.evaluate(el => el.remove());
   const optics = await navLens.evaluate(el => getComputedStyle(el, '::before').backdropFilter);
-  assert.match(optics, /url\(.*#.+\)/, 'the clipped band samples the live backdrop');
+  if (engine === 'chromium') {
+    assert.match(optics, /url\(.*#.+\)/, 'the optical aperture samples the live backdrop');
+  } else {
+    const projection = navLens.locator('.glass-choice-projection');
+    assert.equal(await projection.getAttribute('aria-hidden'), 'true');
+    assert.equal(await projection.evaluate(el => el.inert), true);
+    assert.match(await projection.locator('.glass-projection-optics').evaluate(el => getComputedStyle(el).filter), /url\(.*#.+\)/);
+    assert.equal(await page.getByRole('tab', { name: '基金列表', exact: true }).count(), 1);
+  }
   assert.doesNotMatch(optics, /blur\(/);
   assert.deepEqual(await metric('显性年化费率').allTextContents(), ['1.20%', '1.20%']);
   assert.deepEqual(await metric('换手率').allTextContents(), ['0.00%', '100.00%']);
@@ -359,6 +433,9 @@ try {
   assert.equal(await dock.evaluate(el => getComputedStyle(el).backdropFilter), 'none');
   assert.equal(await dock.locator('[aria-pressed]').count(), 0, 'disclosures keep aria-expanded semantics');
   assert.ok((await dock.boundingBox()).y > 700, 'mobile controls are at the bottom');
+  await panelButton('tools').hover();
+  await page.waitForFunction(lensAligned, '.nav-fs-tab[data-panel="tools"]');
+  await checkChoiceOptics(page, dockLens);
   await panelButton('period').click();
   await page.mouse.move(1, 1);
   await page.waitForFunction(lensAligned, '.nav-fs-tab[data-panel="period"]');
@@ -388,7 +465,13 @@ try {
   await page.evaluate(() => new Promise(requestAnimationFrame));
   assert.equal(await periodOutline.getAttribute('d'), still, 'reduced motion keeps the outline still during pointer travel');
   await page.emulateMedia({ reducedMotion: 'no-preference' });
-  await checkTouchScrub(page);
+  if (engine === 'chromium') {
+    await page.emulateMedia({ forcedColors: 'active' });
+    assert.equal(await navLens.evaluate(el => getComputedStyle(el, '::before').display), 'none');
+    assert.equal(await page.getByRole('tab', { name: '净值比较', exact: true }).getAttribute('aria-selected'), 'true');
+    await page.emulateMedia({ forcedColors: 'none' });
+    await checkTouchScrub(page);
+  }
   assert.deepEqual(errors, []);
   console.log('Fund inspection browser checks passed: comparison, snapshots, failures, route races, basket, links, responsive themes, NAV lenses and fullscreen.');
 } finally { await browser.close(); await new Promise(resolve => server.close(resolve)); }

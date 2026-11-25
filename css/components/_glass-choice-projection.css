@@ -1,0 +1,46 @@
+.glass-choice-label {
+  display: inline-block;
+  text-decoration: inherit;
+  text-underline-offset: inherit;
+  pointer-events: none;
+}
+
+.glass-label-cutout { clip-path: var(--outside-choice); }
+
+.glass-choice-projection,
+.glass-projection-optics,
+.glass-projection-window,
+.glass-projection-scene,
+.glass-projection-scene > span {
+  position: absolute;
+  pointer-events: none;
+}
+
+.glass-choice-projection {
+  inset: calc(0px - var(--rim-outset));
+  clip-path: var(--lens-aperture);
+}
+
+.glass-projection-optics {
+  inset: 0;
+  overflow: hidden;
+  filter: var(--glass-refraction, none);
+}
+
+.glass-projection-window {
+  inset: 0;
+  clip-path: inset(0);
+}
+
+.glass-projection-scene,
+.glass-projection-scene > span {
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+  white-space: pre;
+}
+
+@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+  .glass-choice-projection { display: none; }
+  .glass-label-cutout { clip-path: none; }
+}

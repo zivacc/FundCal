@@ -1,8 +1,8 @@
 import { advanceSpring, createSpring } from './glass-spring.js';
 export { advanceSpring, createSpring };
 
-// The element is an empty, absolutely positioned rim. Its text-bearing siblings never scale.
-export function createGlassMotion(element, { liftOnPress = false, rim } = {}) {
+// Position the optical layer independently so the original controls keep their layout and hit areas.
+export function createGlassMotion(element, { liftOnPress = false, rim, projection } = {}) {
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const centerX = createSpring(0), centerY = createSpring(0);
   const width = createSpring(0), height = createSpring(0), pressure = createSpring(0);
@@ -26,10 +26,12 @@ export function createGlassMotion(element, { liftOnPress = false, rim } = {}) {
     if (!rim) return false;
     const relative = (value, start, size) => value == null || reducedMotion.matches ? null :
       Math.max(-1, Math.min(1, (value - start) / size * 2 - 1));
-    return rim.paint(width.goal, height.goal, seconds, {
+    const moving = rim.paint(width.goal, height.goal, seconds, {
       velocityX: centerX.velocity, velocityY: centerY.velocity, pressure: pressure.value,
       pointerX: relative(lightX, x, w), pointerY: relative(lightY, y, h),
     }, snapContour);
+    projection?.paint({ x, y, w, h, width: width.goal, height: height.goal });
+    return moving;
   }
 
   function snap() {
@@ -108,6 +110,7 @@ export function createGlassMotion(element, { liftOnPress = false, rim } = {}) {
     pressure.goal = 0;
     lightX = lightY = null;
     rim?.reset();
+    projection?.reset();
   }
 
   return { moveTo, setPressed, setPointer, reset };

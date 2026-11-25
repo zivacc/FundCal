@@ -15,6 +15,7 @@
 
 /* Components - 组件 */
 @import 'components/_glass-frame.css';
+@import 'components/_glass-choice-projection.css';
 @import 'components/_buttons.css';
 @import 'components/_inputs.css';
 @import 'components/_cards.css';

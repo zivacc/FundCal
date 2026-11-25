@@ -1,15 +1,19 @@
 import { nearestChoice, pulledChoiceRect } from './glass-choice-layout.js';
+import { createChoiceProjection } from './glass-choice-projection.js';
 import { createGlassMotion } from './glass-motion.js';
 import { attachGlassRim, rimOutset } from './glass-rim.js';
-import { applyGlassRefraction, reducedGlassTransparency, removeGlassRefraction } from './glass-refraction.js';
+import { applyGlassRefraction, glassRefractionSupported, reducedGlassTransparency, removeGlassRefraction } from './glass-refraction.js';
 
 const hoverPointer = matchMedia('(any-hover: hover)');
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
 export function bindGlassChoices(group, lens, { itemSelector, activeClass, activeAttribute, optics, scrollSelection = false }) {
   const items = [...group.querySelectorAll(itemSelector)];
-  const motion = createGlassMotion(lens, { liftOnPress: true, rim: attachGlassRim(lens) });
-  const refraction = { ...optics, outset: rimOutset };
+  const rim = attachGlassRim(lens, { optical: true });
+  const projection = glassRefractionSupported ? null : createChoiceProjection(group, lens, items, schedule);
+  const motion = createGlassMotion(lens, { liftOnPress: true, rim, projection });
+  const refraction = { ...optics, outset: rimOutset, magnification: 1.16, foreground: !!projection };
+  lens.classList.toggle('uses-backdrop-lens', glassRefractionSupported);
   let selected = null, pointer = null, gesture = null, releasedAt = null;
   let frame = 0, snapToLayout = false, revealSelected = false, ignoreClick = false;
 
@@ -65,12 +69,13 @@ export function bindGlassChoices(group, lens, { itemSelector, activeClass, activ
     const pulled = point && !reducedMotion.matches && (!gesture || gesture.canScrub);
     const rect = pulled ? pulledChoiceRect(anchor, layout.choices, point, !!gesture) : anchor;
     lens.hidden = false;
+    // Size the optics to the measured control. The spring carries the aperture across its neighbours.
+    applyGlassRefraction(lens, anchor.width, anchor.height, refraction);
+    projection?.sync(layout.choices);
     motion.moveTo(rect, { immediate: snapToLayout, pointerX: point?.x, pointerY: point?.y });
     snapToLayout = false;
     motion.setPressed(!!gesture);
     lens.classList.add('is-positioned');
-    // The displacement map belongs to the real button, independent of pointer position and spring scale.
-    applyGlassRefraction(lens, anchor.width, anchor.height, refraction);
     if (scrollSelection && revealSelected && anchor.item === selected && !gesture) {
       revealSelected = false;
       const right = anchor.x + anchor.width + 3;
@@ -183,7 +188,10 @@ export function bindGlassChoices(group, lens, { itemSelector, activeClass, activ
   window.addEventListener('blur', event => { finish(event); clearPointer(); });
   hoverPointer.addEventListener('change', clearPointer);
   reducedMotion.addEventListener('change', schedule);
-  reducedGlassTransparency.addEventListener('change', schedule);
+  reducedGlassTransparency.addEventListener('change', () => {
+    snapToLayout = true;
+    schedule();
+  });
 
   const selection = new MutationObserver(syncSelection);
   for (const item of items) selection.observe(item, { attributes: true, attributeFilter: [activeAttribute ?? 'class'] });
