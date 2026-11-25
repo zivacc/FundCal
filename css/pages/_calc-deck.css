@@ -7,8 +7,8 @@
   --deck-face: rgb(242 247 255 / 10%);
   --deck-field: rgb(235 242 255 / 20%);
   --deck-field-line: rgb(75 103 161 / 22%);
-  --deck-rim-light: rgb(255 255 255 / 86%);
-  --deck-rim-line: rgb(81 105 157 / 37%);
+  --deck-rim-light: rgb(255 255 255 / 55%);
+  --deck-rim-line: rgb(81 105 157 / 26%);
   --light-x: 42%;
   --light-y: 12%;
   --light-angle: 100deg;
@@ -31,8 +31,8 @@
   --deck-face: rgb(9 17 34 / 15%);
   --deck-field: rgb(12 22 43 / 25%);
   --deck-field-line: rgb(200 217 255 / 23%);
-  --deck-rim-light: rgb(225 235 255 / 62%);
-  --deck-rim-line: rgb(167 188 236 / 38%);
+  --deck-rim-light: rgb(225 235 255 / 40%);
+  --deck-rim-line: rgb(167 188 236 / 25%);
 }
 
 .fund-card-stage::before {
@@ -173,13 +173,15 @@
 .fund-card-stage .fund-card::before {
   content: '';
   position: absolute;
-  inset: -1px;
-  padding: 1.5px;
-  border-radius: inherit;
+  /* Align the capture with the dynamic rim and paint only the inner padding ring. */
+  inset: calc(-1px - var(--rim-outset));
+  border: calc(1.5px + var(--rim-outset)) solid transparent;
+  padding: 2.5px;
+  border-radius: calc(var(--deck-card-radius) + var(--rim-outset));
   background:
     radial-gradient(ellipse 72% 46% at clamp(0%, var(--reflection-x, 50%), 100%) clamp(0%, var(--reflection-y, 0%), 100%), var(--deck-rim-light), transparent 82%),
     linear-gradient(var(--light-angle), var(--deck-rim-line), transparent 54%, var(--deck-rim-line));
-  mask: var(--glass-frame-mask);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0) padding-box;
   mask-composite: exclude;
   opacity: var(--deck-frame-opacity, .58);
   pointer-events: none;
@@ -190,9 +192,9 @@
   .fund-card-stage .fund-card:hover:not(.is-deck-drag-surface, .is-basket-drag-source) { --deck-frame-opacity: .94; }
 }
 
-.fund-card-stage .fund-card:is(.is-deck-active, .is-deck-drag-surface, .is-basket-drag-source) {
-  -webkit-backdrop-filter: var(--glass-glint-blur, blur(.5px)) var(--glass-refraction, );
-  backdrop-filter: var(--glass-glint-blur, blur(.5px)) var(--glass-refraction, );
+.fund-card-stage .fund-card:is(.is-deck-active, .is-deck-drag-surface, .is-basket-drag-source)::before {
+  -webkit-backdrop-filter: var(--glass-refraction, none);
+  backdrop-filter: var(--glass-refraction, none);
 }
 
 .fund-card-stage .fund-card:is(.is-deck-drag-surface, .is-basket-drag-source) {
@@ -213,13 +215,12 @@
   opacity: var(--deck-content-opacity, 1);
 }
 
-.fund-card-stage .fund-card:has(> .deck-card-rim)::before { opacity: 0; }
+.fund-card-stage .fund-card:has(> .deck-card-rim)::before { content: none; }
 .fund-card-stage .fund-card > .deck-card-rim {
   position: absolute;
   inset: -1px;
   z-index: 2;
   pointer-events: none;
-  opacity: .82;
 }
 
 .fund-card-stage .fund-card:not(.is-deck-active) { user-select: none; }
@@ -313,8 +314,6 @@
   .fund-card-stage .fund-card { border-color: var(--border); }
   .fund-card-stage .fund-card:is(.is-deck-active, .is-deck-drag-surface, .is-basket-drag-source) {
     background: var(--bg-raised);
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
   }
 }
 

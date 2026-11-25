@@ -22,6 +22,22 @@ function lensAligned(selector) {
   return ['x', 'y', 'width', 'height'].every(key => Math.abs(a[key] - b[key]) < 1);
 }
 
+async function checkRailClarity(page, lens) {
+  // Fine detail behind the *whole* header catches an ancestor filter even when the lens itself is hollow.
+  const stripes = await page.addStyleTag({ content: `body::after { content: ""; position: fixed; inset: 0;
+    z-index: 11000; pointer-events: none; background: repeating-linear-gradient(90deg,#181818 0 2px,#dfdfdf 2px 4px); }` });
+  const r = await lens.boundingBox();
+  const clip = { x: Math.ceil(r.x + r.width * .25), y: Math.ceil(r.y + r.height * .32),
+    width: Math.floor(r.width * .5), height: Math.floor(r.height * .36) };
+  const normal = await page.screenshot({ clip });
+  const reference = await page.addStyleTag({ content: `.top-rail, .top-rail::before, .top-rail-tabs, .top-rail-lens,
+    .top-rail-lens::before { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }` });
+  const clear = await page.screenshot({ clip });
+  await reference.evaluate(el => el.remove());
+  await stripes.evaluate(el => el.remove());
+  assert.ok(normal.equals(clear), 'the full header preserves fine detail behind the lens center');
+}
+
 // Measure the bow between the shoulders in the outline's own coordinates. Moving or scaling
 // a rectangular capsule as a single piece leaves these edges straight.
 async function sampleRimBending(frame) {
@@ -197,6 +213,7 @@ try {
   const preview = page.locator('.top-rail-tab[data-route="list"]');
   await preview.hover();
   await page.waitForFunction(lensAligned, '.top-rail-tab[data-route="list"]');
+  await checkRailClarity(page, navLens);
   assert.equal(await page.locator('.top-rail-tab[data-route="compare"]').getAttribute('aria-selected'), 'true');
   await checkRailScrub(page);
   await page.locator('#fc-status').filter({ hasText: '已载入 2' }).waitFor();
@@ -220,10 +237,15 @@ try {
     assert.equal((await band.getAttribute('d')).match(/M/gi)?.length, 2, 'the outer and inner contours bound a hollow band');
     assert.match(await frame.evaluate(el => getComputedStyle(el, '::before').clipPath), /url\(.*#.+\)/);
     assert.equal(await frame.locator('svg.glass-contour').getAttribute('fill'), 'none');
+    const inset = await frame.evaluate(el =>
+      el.querySelector('.rim-shine-line').getBBox().y - el.querySelector('.glass-contour-outline').getBBox().y);
+    assert.ok(inset > .5, 'the specular reflection sits inside the outer contour');
     assert.equal(await frame.evaluate(el => getComputedStyle(el).backdropFilter), 'none', 'the open center is unfiltered');
     assert.equal(await frame.evaluate(el => getComputedStyle(el).pointerEvents), 'none');
   }
-  assert.match(await navLens.evaluate(el => getComputedStyle(el, '::before').backdropFilter), /blur\(0\.5px\)/);
+  const optics = await navLens.evaluate(el => getComputedStyle(el, '::before').backdropFilter);
+  assert.match(optics, /url\(.*#.+\)/, 'the clipped band samples the live backdrop');
+  assert.doesNotMatch(optics, /blur\(/);
   assert.deepEqual(await metric('显性年化费率').allTextContents(), ['1.20%', '1.20%']);
   assert.deepEqual(await metric('换手率').allTextContents(), ['0.00%', '100.00%']);
   await page.locator('#fc-period').selectOption('2024-12-31');
@@ -334,6 +356,7 @@ try {
   const panelButton = id => dock.locator(`[data-panel="${id}"]`);
   const dockLens = dock.locator('.glass-hover-frame');
   assert.equal(await dockLens.count(), 1);
+  assert.equal(await dock.evaluate(el => getComputedStyle(el).backdropFilter), 'none');
   assert.equal(await dock.locator('[aria-pressed]').count(), 0, 'disclosures keep aria-expanded semantics');
   assert.ok((await dock.boundingBox()).y > 700, 'mobile controls are at the bottom');
   await panelButton('period').click();

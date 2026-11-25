@@ -1,6 +1,6 @@
 import { nearestChoice, pulledChoiceRect } from './glass-choice-layout.js';
 import { createGlassMotion } from './glass-motion.js';
-import { attachGlassRim } from './glass-rim.js';
+import { attachGlassRim, rimOutset } from './glass-rim.js';
 import { applyGlassRefraction, reducedGlassTransparency, removeGlassRefraction } from './glass-refraction.js';
 
 const hoverPointer = matchMedia('(any-hover: hover)');
@@ -9,6 +9,7 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 export function bindGlassChoices(group, lens, { itemSelector, activeClass, activeAttribute, optics, scrollSelection = false }) {
   const items = [...group.querySelectorAll(itemSelector)];
   const motion = createGlassMotion(lens, { liftOnPress: true, rim: attachGlassRim(lens) });
+  const refraction = { ...optics, outset: rimOutset };
   let selected = null, pointer = null, gesture = null, releasedAt = null;
   let frame = 0, snapToLayout = false, revealSelected = false, ignoreClick = false;
 
@@ -69,7 +70,7 @@ export function bindGlassChoices(group, lens, { itemSelector, activeClass, activ
     motion.setPressed(!!gesture);
     lens.classList.add('is-positioned');
     // The displacement map belongs to the real button, independent of pointer position and spring scale.
-    applyGlassRefraction(lens, anchor.width, anchor.height, optics);
+    applyGlassRefraction(lens, anchor.width, anchor.height, refraction);
     if (scrollSelection && revealSelected && anchor.item === selected && !gesture) {
       revealSelected = false;
       const right = anchor.x + anchor.width + 3;

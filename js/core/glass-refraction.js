@@ -7,21 +7,22 @@ export const reducedGlassTransparency = matchMedia('(prefers-reduced-transparenc
 // SVG displacement can sample the live backdrop in Chromium. Other engines use the CSS rim.
 export const glassRefractionSupported = navigator.userAgentData?.brands.some(({ brand }) => brand === 'Chromium') ?? false;
 
-function displacementMap(width, height, radius, rim) {
+function displacementMap(width, height, radius, rim, outset) {
   const canvas = document.createElement('canvas');
-  const resolution = Math.min(1, 256 / Math.max(width, height));
-  canvas.width = Math.ceil(width * resolution);
-  canvas.height = Math.ceil(height * resolution);
+  const filterWidth = width + 2 * outset, filterHeight = height + 2 * outset;
+  const resolution = Math.min(1, 256 / Math.max(filterWidth, filterHeight));
+  canvas.width = Math.ceil(filterWidth * resolution);
+  canvas.height = Math.ceil(filterHeight * resolution);
   const context = canvas.getContext('2d');
   if (!context) return null;
 
   const image = context.createImageData(canvas.width, canvas.height);
-  const stepX = width / canvas.width;
-  const stepY = height / canvas.height;
+  const stepX = filterWidth / canvas.width;
+  const stepY = filterHeight / canvas.height;
   for (let row = 0; row < canvas.height; row += 1) {
     for (let column = 0; column < canvas.width; column += 1) {
-      const x = (column + 0.5) * stepX;
-      const y = (row + 0.5) * stepY;
+      const x = (column + 0.5) * stepX - outset;
+      const y = (row + 0.5) * stepY - outset;
       const dx = x - Math.max(radius, Math.min(x, width - radius));
       const dy = y - Math.max(radius, Math.min(y, height - radius));
       const length = Math.hypot(dx, dy);
@@ -76,7 +77,7 @@ export function removeGlassRefraction(element) {
   }
 }
 
-export function applyGlassRefraction(element, width, height, { radius = Math.min(width, height) / 2, rim = 8, scale = 14 } = {}) {
+export function applyGlassRefraction(element, width, height, { radius = Math.min(width, height) / 2, rim = 8, scale = 14, outset = 0 } = {}) {
   if (!glassRefractionSupported || reducedGlassTransparency.matches || width < 1 || height < 1) {
     removeGlassRefraction(element);
     return;
@@ -86,13 +87,13 @@ export function applyGlassRefraction(element, width, height, { radius = Math.min
   height = Math.round(height);
   radius = Math.min(radius, width / 2, height / 2);
   rim = Math.min(rim, radius);
-  const key = [width, height, radius, rim, scale].join(':');
+  const key = [width, height, radius, rim, scale, outset].join(':');
   if (bindings.get(element)?.key === key) return;
   removeGlassRefraction(element);
 
   let record = filters.get(key);
   if (!record) {
-    const map = displacementMap(width, height, radius, rim);
+    const map = displacementMap(width, height, radius, rim, outset);
     if (!map) return;
     record = { key, filter: addFilter(map, scale), uses: 0 };
     filters.set(key, record);

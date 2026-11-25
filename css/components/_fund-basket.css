@@ -56,7 +56,7 @@ body.is-fullscreen-nav { --basket-top: calc(62px + env(safe-area-inset-top)); }
   z-index: 16000;
   max-width: min(240px, calc(100vw - 16px));
   padding: 10px 15px;
-  border: 1px solid var(--glass-lens-shine);
+  border: 1px solid var(--rim-shade);
   border-radius: var(--radius-md);
   background: color-mix(in srgb, var(--glass-fill-strong) 72%, var(--glass-fill));
   box-shadow: var(--shadow-md);

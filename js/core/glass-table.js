@@ -1,5 +1,5 @@
 import { createGlassMotion } from './glass-motion.js';
-import { attachGlassRim } from './glass-rim.js';
+import { attachGlassRim, rimOutset } from './glass-rim.js';
 import { applyGlassRefraction, removeGlassRefraction, reducedGlassTransparency } from './glass-refraction.js';
 
 const tables = '.table, .cached-funds-table, .fund-detail-table, .fc-table, .id-table, .fd-table, .nav-stats-table, .nav-range-stats-table';
@@ -87,7 +87,7 @@ function updateLens() {
     pointerX: (pointer.x - hoverBounds.x) / scaleX + host.scrollLeft,
     pointerY: (pointer.y - hoverBounds.y) / scaleY + host.scrollTop });
   snapToLayout = false;
-  applyGlassRefraction(lens, width, height, { radius: rowRadius, rim: 5, scale: 10 });
+  applyGlassRefraction(lens, width, height, { radius: rowRadius, rim: 5, scale: 10, outset: rimOutset });
 }
 
 function scheduleLens() {

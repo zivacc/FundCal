@@ -1,12 +1,13 @@
 import { disposeCardImplicitFee } from './implicit-fee.js';
 import { createSpring, advanceSpring } from '../../core/glass-spring.js';
-import { attachGlassRim } from '../../core/glass-rim.js';
+import { attachGlassRim, rimOutset } from '../../core/glass-rim.js';
 import { deckPose, deckFrontCount, clampDeckIndex } from './deck-layout.js';
 import { applyGlassRefraction, glassRefractionSupported, reducedGlassTransparency, removeGlassRefraction } from '../../core/glass-refraction.js';
 
 export function setupCardDeck() {
   const rail = document.getElementById('fund-cards');
   const stage = document.getElementById('fund-card-stage');
+  stage.style.setProperty('--rim-outset', `${rimOutset}px`);
   const count = stage.querySelector('.deck-count');
   const prev = stage.querySelector('[data-deck-prev]');
   const next = stage.querySelector('[data-deck-next]');
@@ -202,12 +203,12 @@ export function setupCardDeck() {
     if (!surface.width || !surface.height) return;
     let scale = 0;
     if (glassRefractionSupported && !reducedGlassTransparency.matches) {
-      if (dragged && !reduced.matches) scale = 32;
-      else if (front) scale = 22;
+      if (dragged && !reduced.matches) scale = 18;
+      else if (front) scale = 12;
     }
     if (surface.scale === scale) return;
     surface.scale = scale;
-    if (scale) applyGlassRefraction(card, surface.width, surface.height, { radius: cardRadius, rim: 19, scale });
+    if (scale) applyGlassRefraction(card, surface.width, surface.height, { radius: cardRadius, rim: 7, scale, outset: rimOutset });
     else removeGlassRefraction(card);
   }
   function draw(time) {

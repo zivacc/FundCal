@@ -712,8 +712,6 @@
   font-size: 13px;
   color: var(--text-primary);
   box-shadow: var(--glass-frame-shadow), var(--shadow-sm);
-  -webkit-backdrop-filter: var(--glass-blur) var(--glass-saturate);
-  backdrop-filter: var(--glass-blur) var(--glass-saturate);
   z-index: 12;
   min-width: 280px;
   max-width: min(640px, calc(100% - 24px));

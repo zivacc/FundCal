@@ -22,11 +22,27 @@ try {
  const optics = locator => locator.evaluate(el => {
    const id = el.style.getPropertyValue('--glass-refraction').match(/#([^"]+)/)?.[1];
    const scale = document.getElementById(id)?.querySelector('feDisplacementMap')?.getAttribute('scale');
-   return { scale: Number(scale), filter: getComputedStyle(el).backdropFilter, foreground: getComputedStyle(el).filter };
+   const lip = el.querySelector('.deck-card-rim') || el;
+   return { scale: Number(scale), filter: getComputedStyle(el).backdropFilter,
+     edge: getComputedStyle(lip, '::before').backdropFilter, foreground: getComputedStyle(el).filter };
  });
  const initialOptics = await optics(activeCard);
- assert.match(initialOptics.filter, /blur\(0\.5px\).*url\(/);
+ assert.equal(initialOptics.filter, 'none');
+ assert.match(initialOptics.edge, /^url\(/);
  assert.equal(initialOptics.foreground, 'none');
+ const stripes = await page.addStyleTag({ content: '#fund-cards { background:repeating-linear-gradient(90deg,#484875 0 1px,#f5f5d0 1px 3px); }' });
+ async function checkClearFace() {
+   await activeCard.scrollIntoViewIfNeeded();
+   const box = await activeCard.boundingBox();
+   const clip = { x: Math.ceil(box.x + box.width / 2 - 50), y: Math.ceil(box.y + 90), width: 100, height: 52 };
+   const surface = await page.screenshot({ clip });
+   // An identity filter keeps text on the same compositor layer for a pixel-exact comparison.
+   const off = await page.addStyleTag({ content: '#fund-cards :is(.fund-card,.deck-card-rim)::before { backdrop-filter:opacity(1)!important; }' });
+   try {
+     assert.ok(surface.equals(await page.screenshot({ clip })), 'central content and underlying stripes stay pixel-identical without optics');
+   } finally { await off.evaluate(el => el.remove()); }
+ }
+ await checkClearFace();
  // Moving between editable cards transfers the same rim, including when an input has focus.
  const annualFee = activeCard.locator('.input-annual-fee');
  await annualFee.click();
@@ -37,6 +53,9 @@ try {
  const firstEdge = activeCard.locator('.deck-card-rim .glass-contour-outline');
  await firstEdge.waitFor({ state: 'attached' });
  const edgeId = await firstEdge.getAttribute('id');
+ assert.match((await optics(activeCard)).edge, /^url\(/);
+ await checkClearFace();
+ await stripes.evaluate(el => el.remove());
  const otherCard = page.locator('.fund-card.is-deck-active').nth(1);
  await otherCard.locator('.input-annual-fee').hover();
  const nextEdge = otherCard.locator('.deck-card-rim .glass-contour-outline');
@@ -122,15 +141,19 @@ try {
  await page.mouse.move(card.x-50,card.y+110,{steps:5});
  const draggedCard = page.locator('.fund-card.is-deck-drag-surface');
  await draggedCard.waitFor();
- assert.ok((await optics(draggedCard)).scale > initialOptics.scale);
+ const draggedOptics = await optics(draggedCard);
+ assert.equal(draggedOptics.filter, 'none');
+ assert.ok(draggedOptics.scale > initialOptics.scale);
  await page.mouse.move(card.x-210,card.y+110,{steps:10}); await page.mouse.up(); await page.waitForTimeout(400);
  assert.equal(await page.locator('body').evaluate(el=>el.classList.contains('basket-dragging')),false); assert.ok(Number(await page.locator('#fund-cards').getAttribute('data-active-index'))>0);
  card=await page.locator('.fund-card.is-deck-active').first().boundingBox();
  await page.mouse.move(card.x+8,card.y+100); await page.mouse.down(); await page.mouse.move(card.x+8,card.y+70,{steps:3});
  assert.equal(await page.locator('body').evaluate(el=>el.classList.contains('basket-dragging')),true);
- assert.equal(await page.locator('.fund-card.is-basket-drag-source').count(), 1);
+ const source = page.locator('.fund-card.is-basket-drag-source');
+ assert.equal(await source.count(), 1);
+ assert.equal((await optics(source)).filter, 'none');
  const ghost = page.locator('#basket-drag-ghost');
- assert.match(await ghost.evaluate(el => getComputedStyle(el, '::before').backdropFilter), /blur\(0\.5px\).*url\(/);
+ assert.match(await ghost.evaluate(el => getComputedStyle(el, '::before').backdropFilter), /^url\(/);
  const target=await page.locator('#fund-basket-button').boundingBox();
  await page.mouse.move(target.x+target.width/2,target.y+target.height/2,{steps:10}); await page.mouse.up(); await page.waitForTimeout(100);
  assert.equal(await page.locator('#fund-basket-button .basket-count').textContent(),'1');

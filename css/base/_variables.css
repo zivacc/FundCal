@@ -100,15 +100,14 @@
   --glass-rim: inset 0 1px 0 var(--glass-toplight), inset 0 -1px 0 rgb(73 95 133 / 13%);
   --glass-shadow: var(--glass-rim), 0 5px 18px rgb(48 71 115 / 9%);
   --glass-blur: blur(1px);
-  --glass-glint-blur: blur(.5px);
   --glass-saturate: saturate(106%);
   --glass-scrim: rgb(45 62 105 / 34%);
   --glass-lens-shine: rgb(255 255 255 / 95%);
-  --rim-shade: rgb(61 87 133 / 25%);
-  --rim-pearl: #fff;
-  --rim-silver: #cfdbf1;
-  --rim-depth: #8498bc;
-  --rim-caustic: #92afd4;
+  --rim-shade: rgb(61 87 119 / 22%);
+  --rim-pearl: rgb(241 248 255 / 55%);
+  --rim-silver: rgb(153 175 199 / 34%);
+  --rim-depth: rgb(67 89 116 / 46%);
+  --rim-caustic: rgb(112 159 184 / 40%);
   --glass-lens-edge: rgb(70 94 139 / 42%);
   --glass-frame-shadow: inset 1px 1px 1px var(--glass-lens-shine), inset -1px -1px 1px var(--glass-lens-edge);
   --glass-frame-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -207,11 +206,11 @@
   --glass-shadow: var(--glass-rim), 0 5px 18px rgb(5 11 24 / 18%);
   --glass-scrim: rgb(6 9 23 / 68%);
   --glass-lens-shine: rgb(230 241 255 / 66%);
-  --rim-shade: rgb(147 182 240 / 26%);
-  --rim-pearl: #f7fbff;
-  --rim-silver: #adbfdf;
-  --rim-depth: #586e8d;
-  --rim-caustic: #a4d7ed;
+  --rim-shade: rgb(147 173 209 / 24%);
+  --rim-pearl: rgb(203 221 236 / 45%);
+  --rim-silver: rgb(142 166 192 / 35%);
+  --rim-depth: rgb(43 61 86 / 64%);
+  --rim-caustic: rgb(131 178 195 / 40%);
   --glass-lens-edge: rgb(167 193 230 / 38%);
 
   --scene-wash:
@@ -239,7 +238,6 @@
     --glass-fill: var(--bg-raised);
     --glass-fill-strong: var(--bg-elevated);
     --glass-blur: blur(0px);
-    --glass-glint-blur: blur(0px);
     --glass-saturate: saturate(100%);
   }
 }

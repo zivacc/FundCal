@@ -1,6 +1,8 @@
 import { createGlassContour } from './glass-contour.js';
 
 const svgNamespace = 'http://www.w3.org/2000/svg';
+// Keep room around the element for the moving lip, in both the clip and the displacement map.
+export const rimOutset = 5;
 let instance = 0;
 
 // The bevel and its reflections follow one surface. Only the band inside it refracts the backdrop.
@@ -14,15 +16,16 @@ export function attachGlassRim(host, { radius = Infinity, strength = 1 } = {}) {
   svg.setAttribute('fill', 'none');
   svg.innerHTML = `<defs>
     <path id="${id}-edge" class="glass-contour-outline"/>
-    <clipPath id="${id}-band"><path clip-rule="evenodd" transform="translate(5 5)"/></clipPath>
+    <path id="${id}-inner"/>
+    <clipPath id="${id}-band"><path clip-rule="evenodd" transform="translate(${rimOutset} ${rimOutset})"/></clipPath>
     <linearGradient id="${id}-bevel" x1="16%" y1="0%" x2="78%" y2="100%">
       <stop class="rim-pearl" offset="0"/><stop class="rim-silver" offset=".23"/>
       <stop class="rim-depth" offset=".49"/><stop class="rim-silver" offset=".74"/>
       <stop class="rim-pearl" offset="1"/>
     </linearGradient>
     <radialGradient id="${id}-shine" gradientUnits="userSpaceOnUse">
-      <stop stop-color="white" offset="0"/><stop stop-color="white" stop-opacity=".95" offset=".36"/>
-      <stop class="rim-pearl" stop-opacity=".58" offset=".67"/><stop class="rim-pearl" stop-opacity="0" offset="1"/>
+      <stop class="rim-pearl" offset="0"/><stop class="rim-pearl" stop-opacity=".76" offset=".36"/>
+      <stop class="rim-pearl" stop-opacity=".34" offset=".67"/><stop class="rim-pearl" stop-opacity="0" offset="1"/>
     </radialGradient>
     <radialGradient id="${id}-return" gradientUnits="userSpaceOnUse">
       <stop class="rim-return" offset="0"/><stop class="rim-return" stop-opacity=".6" offset=".48"/>
@@ -30,16 +33,17 @@ export function attachGlassRim(host, { radius = Infinity, strength = 1 } = {}) {
     </radialGradient>
   </defs>
   <use class="rim-depth-line" href="#${id}-edge"/>
-  <use class="rim-bevel-line" href="#${id}-edge" stroke="url(#${id}-bevel)"/>
-  <use class="rim-shine-line" href="#${id}-edge" stroke="url(#${id}-shine)"/>
-  <path class="rim-caustic" stroke="url(#${id}-return)" stroke-width="1.15"/>`;
+  <use class="rim-bevel-line" href="#${id}-inner" stroke="url(#${id}-bevel)"/>
+  <use class="rim-shine-line" href="#${id}-inner" stroke="url(#${id}-shine)"/>
+  <use class="rim-caustic" href="#${id}-inner" stroke="url(#${id}-return)" stroke-width=".85"/>`;
   const edge = svg.querySelector('.glass-contour-outline');
+  const innerEdge = svg.getElementById(`${id}-inner`);
   const band = svg.querySelector('clipPath path');
   const shine = svg.querySelector('radialGradient');
   const specular = svg.querySelector('.rim-shine-line');
-  const reflection = svg.querySelector('.rim-caustic');
   const returnLight = svg.getElementById(`${id}-return`);
   host.append(svg);
+  host.style.setProperty('--rim-outset', `${rimOutset}px`);
   host.style.setProperty('--rim-clip', `url("#${id}-band")`);
   host.classList.add('has-glass-contour');
   let lastEdge, lastLight, lastIntensity;
@@ -56,8 +60,8 @@ export function attachGlassRim(host, { radius = Infinity, strength = 1 } = {}) {
       lastEdge = outline;
       const inner = contour.path(width, height, radius, 4.6);
       edge.setAttribute('d', outline);
+      innerEdge.setAttribute('d', inner);
       band.setAttribute('d', outline + inner);
-      reflection.setAttribute('d', inner);
     }
 
     // Project a broad specular highlight towards the contact point on the curved lip.
@@ -76,7 +80,7 @@ export function attachGlassRim(host, { radius = Infinity, strength = 1 } = {}) {
       returnLight.setAttribute('r', r * .82);
     }
     const load = Math.min(1, Math.hypot(velocityX, velocityY) / 850 + pressure * .65);
-    const intensity = (.95 + load * 1.35).toFixed(2);
+    const intensity = (.65 + load * .55).toFixed(2);
     if (lastIntensity !== intensity) {
       lastIntensity = intensity;
       specular.setAttribute('stroke-width', intensity);

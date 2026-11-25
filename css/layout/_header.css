@@ -26,18 +26,6 @@
   background-color: color-mix(in srgb, var(--glass-fill-strong) 80%, var(--glass-fill));
 }
 
-/* 滤镜放在底层，顶栏里的浮动按钮仍以视口为定位基准。 */
-.top-rail::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  border-radius: inherit;
-  -webkit-backdrop-filter: var(--glass-blur) var(--glass-saturate);
-  backdrop-filter: var(--glass-blur) var(--glass-saturate);
-}
-
 .top-rail-brand {
   display: flex;
   align-items: center;
