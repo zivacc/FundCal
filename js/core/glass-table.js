@@ -1,4 +1,5 @@
 import { createGlassMotion } from './glass-motion.js';
+import { attachGlassRim } from './glass-rim.js';
 import { applyGlassRefraction, removeGlassRefraction, reducedGlassTransparency } from './glass-refraction.js';
 
 const tables = '.table, .cached-funds-table, .fund-detail-table, .fc-table, .id-table, .fd-table, .nav-stats-table, .nav-range-stats-table';
@@ -6,7 +7,8 @@ const hoverPointer = matchMedia('(any-hover: hover)');
 const lens = document.createElement('span');
 lens.className = 'glass-hover-frame glass-table-frame';
 lens.setAttribute('aria-hidden', 'true');
-const motion = createGlassMotion(lens);
+const rowRadius = 12;
+const motion = createGlassMotion(lens, { rim: attachGlassRim(lens, { radius: rowRadius, strength: .48 }) });
 const resize = new ResizeObserver(alignToLayout);
 const mutations = new MutationObserver(alignToLayout);
 let table = null;
@@ -79,11 +81,13 @@ function updateLens() {
   }
   const top = host.scrollTop + (bounds.top - viewport.top) / scaleY - host.clientTop;
   const height = bounds.height / scaleY;
-  motion.moveTo({ x: host.scrollLeft + left, y: top, width, height }, { immediate: snapToLayout });
+  hoverBounds = { x: viewport.left + host.clientLeft * scaleX, y: viewport.top + host.clientTop * scaleY,
+    scaleX, scaleY, scrollLeft: host.scrollLeft, scrollTop: host.scrollTop };
+  motion.moveTo({ x: host.scrollLeft + left, y: top, width, height }, { immediate: snapToLayout,
+    pointerX: (pointer.x - hoverBounds.x) / scaleX + host.scrollLeft,
+    pointerY: (pointer.y - hoverBounds.y) / scaleY + host.scrollTop });
   snapToLayout = false;
-  hoverBounds = { left: viewport.left + (host.clientLeft + left) * scaleX, width: width * scaleX };
-  motion.highlightAt(pointer.x, hoverBounds);
-  applyGlassRefraction(lens, width, height, { radius: 8, rim: 5, scale: 10 });
+  applyGlassRefraction(lens, width, height, { radius: rowRadius, rim: 5, scale: 10 });
 }
 
 function scheduleLens() {
@@ -99,7 +103,10 @@ document.addEventListener('pointermove', event => {
   if (event.pointerType === 'touch' || !hoverPointer.matches) return;
   const previousTarget = pointer?.target;
   pointer = { x: event.clientX, y: event.clientY, target: event.target };
-  if (hoverBounds && event.target === previousTarget) motion.highlightAt(pointer.x, hoverBounds);
+  if (hoverBounds && event.target === previousTarget) {
+    const { x, y, scaleX, scaleY, scrollLeft, scrollTop } = hoverBounds;
+    motion.setPointer((pointer.x - x) / scaleX + scrollLeft, (pointer.y - y) / scaleY + scrollTop);
+  }
   if (event.target !== previousTarget && (table || event.target.closest(tables))) scheduleLens();
 }, { passive: true });
 
@@ -113,4 +120,5 @@ document.addEventListener('scroll', alignToLayout, { capture: true, passive: tru
 window.addEventListener('blur', clearLens);
 window.addEventListener('fundcal-route-ready', clearLens);
 hoverPointer.addEventListener('change', clearLens);
+matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', alignToLayout);
 reducedGlassTransparency.addEventListener('change', scheduleLens);

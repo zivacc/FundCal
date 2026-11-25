@@ -1,5 +1,6 @@
 import { disposeCardImplicitFee } from './implicit-fee.js';
-import { createSpring, advanceSpring } from '../../core/glass-motion.js';
+import { createSpring, advanceSpring } from '../../core/glass-spring.js';
+import { attachGlassRim } from '../../core/glass-rim.js';
 import { deckPose, deckFrontCount, clampDeckIndex } from './deck-layout.js';
 import { applyGlassRefraction, glassRefractionSupported, reducedGlassTransparency, removeGlassRefraction } from '../../core/glass-refraction.js';
 
@@ -18,10 +19,14 @@ export function setupCardDeck() {
   const cardSurfaces = new WeakMap();
   const slide = createSpring(0);
   const lightX = createSpring(42), lightY = createSpring(12);
+  const rimHost = document.createElement('span');
+  rimHost.className = 'deck-card-rim';
+  rimHost.setAttribute('aria-hidden', 'true');
+  let cardRim, rimCard = null;
   let cards = [], frame = 0, gesture = null, suppressClick = false;
   let width = 0, cardWidth = 330, cardRadius = 24, frontCount = 1, lastTime = 0;
   let lightFrame = 0, lightTime = 0, pointer = null;
-  let stageVisible = false, syncLight = true;
+  let stageVisible = false, syncLight = true, pointerInside = false;
   const maxIndex = () => Math.max(0, cards.length - frontCount);
   const clampPosition = value => clampDeckIndex(value, maxIndex() + 1);
   function paintIdentities(surfaces, bounds) {
@@ -53,6 +58,36 @@ export function setupCardDeck() {
     }
     identities.hidden = false;
   }
+  // Share one flexible rim across the deck and drive it from the existing light frame.
+  function paintCardRim(surfaces, elapsed, time) {
+    const contact = pointer && pointerInside && !reduced.matches && !reducedGlassTransparency.matches;
+    const held = contact && gesture?.dragging ? gesture.card : null;
+    const touched = held ?? (contact && !pointer.touch ? document.elementFromPoint(pointer.x, pointer.y)?.closest('.fund-card.is-deck-active') : null);
+    const target = touched ?? rimCard;
+    const surface = cardSurfaces.get(target);
+    const box = surfaces.find(entry => entry.card === target)?.box;
+    let moving = false;
+    if (surface?.width && surface.height && box && (touched || target.classList.contains('is-deck-active'))) {
+      if (target !== rimCard) {
+        cardRim ??= attachGlassRim(rimHost, { radius: cardRadius, strength: .65 });
+        cardRim.reset();
+        target.append(rimHost);
+        rimCard = target;
+      }
+      const relative = (n, start, size) => Math.max(-1, Math.min(1, 2 * (n - start) / size - 1));
+      const speed = held ? slide.velocity * Math.exp(-Math.max(0, time - gesture.lastTime) / 65) : slide.velocity;
+      moving = cardRim.paint(surface.width, surface.height, elapsed, {
+        velocityX: -speed * cardWidth, velocityY: 0, pressure: held ? 1 : 0,
+        pointerX: touched ? relative(pointer.x, box.left, box.width) : null,
+        pointerY: touched ? relative(pointer.y, box.top, box.height) : null,
+      }, !contact);
+    }
+    if (rimCard && !touched && !moving) {
+      rimHost.remove();
+      rimCard = null;
+    }
+    return moving;
+  }
   function paintLight(time) {
     lightFrame = 0;
     const bounds = stage.getBoundingClientRect();
@@ -71,6 +106,7 @@ export function setupCardDeck() {
     const lightDirection = Math.max(-1, Math.min(2, x));
     // 所有反射都由同一个舞台光源投射，先读取位置，再批量写入样式。
     const surfaces = cards.filter(card => card.style.visibility !== 'hidden').map(card => ({ card, box: card.getBoundingClientRect() }));
+    const edgeMoving = paintCardRim(surfaces, elapsed, time);
     stage.style.setProperty('--light-x', `${x * 100}%`);
     stage.style.setProperty('--light-y', `${y * 100}%`);
     stage.style.setProperty('--light-angle', `${100 + (lightDirection - .5) * 55}deg`);
@@ -79,7 +115,7 @@ export function setupCardDeck() {
       card.style.setProperty('--reflection-y', `${(bounds.y + y * bounds.height - box.y) / Math.max(1, box.height) * 100}%`);
     }
     if (identities.hidden && !gesture?.dragging && slide.value === slide.goal) paintIdentities(surfaces, bounds);
-    if (lightX.value !== lightX.goal || lightY.value !== lightY.goal || lightX.velocity || lightY.velocity) light();
+    if (edgeMoving || lightX.value !== lightX.goal || lightY.value !== lightY.goal || lightX.velocity || lightY.velocity) light();
     else lightTime = 0;
   }
   function light() {
@@ -90,9 +126,16 @@ export function setupCardDeck() {
   }
   window.addEventListener('pointermove', event => {
     if (event.pointerType !== 'mouse') return;
+    pointerInside = true;
     pointer = { x: event.clientX, y: event.clientY };
     if (!reduced.matches) light();
   }, { passive: true, capture: true });
+  function releaseRim() {
+    pointerInside = false;
+    if (rimCard) light();
+  }
+  document.addEventListener('pointerout', event => { if (!event.relatedTarget) releaseRim(); });
+  window.addEventListener('blur', releaseRim);
   // 页面滚动会改变舞台相对光标的位置；离开舞台/窗口时保留最后光源。
   window.addEventListener('scroll', () => {
     if (pointer && !reduced.matches) light();
@@ -266,7 +309,10 @@ export function setupCardDeck() {
       stage.classList.add('is-deck-dragging');
     }
     event.preventDefault();
-    if (event.pointerType === 'touch' && !reduced.matches) pointer = { x: event.clientX, y: event.clientY };
+    if (event.pointerType === 'touch' && !reduced.matches) {
+      pointerInside = true;
+      pointer = { x: event.clientX, y: event.clientY, touch: true };
+    }
     const next = clampPosition(gesture.start - dx / Math.max(160, cardWidth * .65));
     const elapsed = Math.max(8, event.timeStamp - gesture.lastTime);
     slide.velocity = reduced.matches ? 0 : Math.max(-8, Math.min(8, (next - slide.goal) * 1000 / elapsed));
@@ -302,6 +348,8 @@ export function setupCardDeck() {
       cancelAnimationFrame(frame);
       cancelAnimationFrame(lightFrame);
       frame = lastTime = lightFrame = lightTime = 0;
+      rimHost.remove();
+      rimCard = null;
     }
   }).observe(stage);
   new MutationObserver(refresh).observe(rail, { childList: true });

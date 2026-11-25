@@ -1,5 +1,6 @@
 import { nearestChoice, pulledChoiceRect } from './glass-choice-layout.js';
 import { createGlassMotion } from './glass-motion.js';
+import { attachGlassRim } from './glass-rim.js';
 import { applyGlassRefraction, reducedGlassTransparency, removeGlassRefraction } from './glass-refraction.js';
 
 const hoverPointer = matchMedia('(any-hover: hover)');
@@ -7,7 +8,7 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
 export function bindGlassChoices(group, lens, { itemSelector, activeClass, activeAttribute, optics, scrollSelection = false }) {
   const items = [...group.querySelectorAll(itemSelector)];
-  const motion = createGlassMotion(lens, { liftOnPress: true });
+  const motion = createGlassMotion(lens, { liftOnPress: true, rim: attachGlassRim(lens) });
   let selected = null, pointer = null, gesture = null, releasedAt = null;
   let frame = 0, snapToLayout = false, revealSelected = false, ignoreClick = false;
 
@@ -63,7 +64,7 @@ export function bindGlassChoices(group, lens, { itemSelector, activeClass, activ
     const pulled = point && !reducedMotion.matches && (!gesture || gesture.canScrub);
     const rect = pulled ? pulledChoiceRect(anchor, layout.choices, point, !!gesture) : anchor;
     lens.hidden = false;
-    motion.moveTo(rect, { immediate: snapToLayout, pointerX: point?.x });
+    motion.moveTo(rect, { immediate: snapToLayout, pointerX: point?.x, pointerY: point?.y });
     snapToLayout = false;
     motion.setPressed(!!gesture);
     lens.classList.add('is-positioned');

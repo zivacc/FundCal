@@ -138,7 +138,6 @@
   left: 0;
   z-index: 1;
   border-radius: var(--radius-pill);
-  padding: 5px;
 }
 
 .has-nav-choice-lens > :is(.nav-period-btn, .nav-toggle-btn) {

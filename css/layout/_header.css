@@ -94,8 +94,12 @@
 }
 
 .top-rail-tabs.glass-can-scrub {
-  overflow: clip;
-  overflow-clip-margin: 8px;
+  overflow: visible;
+}
+
+/* Contain the old desktop layout during the frame before the narrow track becomes scrollable. */
+@media (max-width: 600px) {
+  .top-rail { overflow: clip; }
 }
 
 .top-rail-tab {

@@ -27,6 +27,28 @@ try {
  const initialOptics = await optics(activeCard);
  assert.match(initialOptics.filter, /blur\(0\.5px\).*url\(/);
  assert.equal(initialOptics.foreground, 'none');
+ // Moving between editable cards transfers the same rim, including when an input has focus.
+ const annualFee = activeCard.locator('.input-annual-fee');
+ await annualFee.click();
+ await annualFee.fill('0.89');
+ await annualFee.press('Tab');
+ assert.equal(await annualFee.inputValue(), '0.89');
+ const rim = page.locator('#fund-cards .deck-card-rim');
+ const firstEdge = activeCard.locator('.deck-card-rim .glass-contour-outline');
+ await firstEdge.waitFor({ state: 'attached' });
+ const edgeId = await firstEdge.getAttribute('id');
+ const otherCard = page.locator('.fund-card.is-deck-active').nth(1);
+ await otherCard.locator('.input-annual-fee').hover();
+ const nextEdge = otherCard.locator('.deck-card-rim .glass-contour-outline');
+ await nextEdge.waitFor({ state: 'attached' });
+ assert.equal(await nextEdge.getAttribute('id'), edgeId);
+ assert.equal(await rim.count(), 1);
+ await page.mouse.move(-20, -20);
+ await rim.waitFor({ state: 'detached', timeout: 3000 });
+ await annualFee.hover();
+ await firstEdge.waitFor({ state: 'attached' });
+ await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+ await rim.waitFor({ state: 'detached', timeout: 3000 });
  const light=()=>page.locator('#fund-card-stage').evaluate(el=>({x:el.style.getPropertyValue('--light-x'),y:el.style.getPropertyValue('--light-y')}));
  const stage=await page.locator('#fund-card-stage').boundingBox();
  await page.mouse.move(stage.x+stage.width*.25,stage.y+stage.height*.3); await page.waitForTimeout(80);

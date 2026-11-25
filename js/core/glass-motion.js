@@ -1,27 +1,8 @@
-// Exact spring steps preserve velocity on reversal, independent of display refresh rate.
-const frequency = 29;
-
-export function createSpring(value) {
-  return { value, goal: value, velocity: 0 };
-}
-
-export function advanceSpring(axis, seconds, tolerance = .025, damping = 1) {
-  const offset = axis.value - axis.goal;
-  const drag = frequency * damping;
-  const decay = Math.exp(-drag * seconds);
-  const omega = frequency * Math.sqrt(1 - damping * damping);
-  const cos = Math.cos(omega * seconds);
-  const sinOverOmega = omega ? Math.sin(omega * seconds) / omega : seconds;
-  axis.value = axis.goal + decay * (offset * cos + (axis.velocity + drag * offset) * sinOverOmega);
-  axis.velocity = decay * (axis.velocity * cos - (drag * axis.velocity + frequency * frequency * offset) * sinOverOmega);
-  if (Math.abs(axis.value - axis.goal) < tolerance && Math.abs(axis.velocity) < tolerance * 26) {
-    axis.value = axis.goal;
-    axis.velocity = 0;
-  }
-}
+import { advanceSpring, createSpring } from './glass-spring.js';
+export { advanceSpring, createSpring };
 
 // The element is an empty, absolutely positioned rim. Its text-bearing siblings never scale.
-export function createGlassMotion(element, { liftOnPress = false } = {}) {
+export function createGlassMotion(element, { liftOnPress = false, rim } = {}) {
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const centerX = createSpring(0), centerY = createSpring(0);
   const width = createSpring(0), height = createSpring(0), pressure = createSpring(0);
@@ -29,10 +10,9 @@ export function createGlassMotion(element, { liftOnPress = false } = {}) {
   let positioned = false;
   let frame = 0;
   let previousTime = 0;
-  let highlight = null;
-  let lightX = null;
+  let lightX = null, lightY = null;
 
-  function paint() {
+  function paint(seconds = 0, snapContour = false) {
     // Limit the trailing edge even when the user skips across many rows or tabs.
     const stretchX = Math.min(Math.abs(centerX.velocity) * .012, width.value * .22, 18);
     const stretchY = Math.min(Math.abs(centerY.velocity) * .012, height.value * .22, 12);
@@ -43,7 +23,13 @@ export function createGlassMotion(element, { liftOnPress = false } = {}) {
     const x = centerX.value - w / 2 - Math.sign(centerX.velocity) * stretchX * .2;
     const y = centerY.value - h / 2 - Math.sign(centerY.velocity) * stretchY * .2;
     element.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${w / width.goal}, ${h / height.goal})`;
-    if (liftOnPress) highlightAt(lightX, { left: x, width: w });
+    if (!rim) return false;
+    const relative = (value, start, size) => value == null || reducedMotion.matches ? null :
+      Math.max(-1, Math.min(1, (value - start) / size * 2 - 1));
+    return rim.paint(width.goal, height.goal, seconds, {
+      velocityX: centerX.velocity, velocityY: centerY.velocity, pressure: pressure.value,
+      pointerX: relative(lightX, x, w), pointerY: relative(lightY, y, h),
+    }, snapContour);
   }
 
   function snap() {
@@ -53,7 +39,7 @@ export function createGlassMotion(element, { liftOnPress = false } = {}) {
       axis.value = axis.goal;
       axis.velocity = 0;
     }
-    paint();
+    paint(0, true);
   }
 
   function tick(time) {
@@ -66,8 +52,8 @@ export function createGlassMotion(element, { liftOnPress = false } = {}) {
     const elapsed = Math.max(0, time - previousTime) / 1000;
     previousTime = time;
     for (const axis of axes) advanceSpring(axis, elapsed, .025, liftOnPress ? .77 : 1);
-    paint();
-    if (axes.some(axis => axis.value !== axis.goal || axis.velocity !== 0)) {
+    const movingEdge = paint(elapsed);
+    if (movingEdge || axes.some(axis => axis.value !== axis.goal || axis.velocity !== 0)) {
       frame = requestAnimationFrame(tick);
     }
   }
@@ -78,10 +64,11 @@ export function createGlassMotion(element, { liftOnPress = false } = {}) {
     frame = requestAnimationFrame(tick);
   }
 
-  function moveTo(rect, { immediate = false, pointerX = null } = {}) {
+  function moveTo(rect, { immediate = false, pointerX = null, pointerY = null } = {}) {
     if (rect.width <= 0 || rect.height <= 0) return;
-    const lightChanged = lightX !== pointerX;
+    const lightChanged = lightX !== pointerX || lightY !== pointerY;
     lightX = pointerX;
+    lightY = pointerY;
     const x = rect.x + rect.width / 2, y = rect.y + rect.height / 2;
     const changed = x !== centerX.goal || y !== centerY.goal || width.goal !== rect.width || height.goal !== rect.height;
     if (width.goal !== rect.width) element.style.width = `${rect.width}px`;
@@ -93,11 +80,9 @@ export function createGlassMotion(element, { liftOnPress = false } = {}) {
     if (immediate || !positioned || reducedMotion.matches) {
       if (reducedMotion.matches) pressure.goal = 0;
       snap();
-    } else if (changed) {
+    } else if (changed || lightChanged) {
       paint(); // Compensate for the new layout size in the same frame.
       start();
-    } else if (lightChanged) {
-      paint();
     }
     positioned = true;
   }
@@ -109,15 +94,11 @@ export function createGlassMotion(element, { liftOnPress = false } = {}) {
     start();
   }
 
-  // Pointer and rim bounds share a coordinate space. No layout read or new displacement map is needed.
-  function highlightAt(pointerX, bounds) {
-    const next = bounds && pointerX != null && !reducedMotion.matches
-      ? Math.round(Math.min(1, Math.max(0, (pointerX - bounds.left) / bounds.width)) * 100)
-      : null;
-    if (next === highlight) return;
-    highlight = next;
-    element.classList.toggle('has-glint', next !== null);
-    if (next !== null) element.style.setProperty('--rim-glint-x', `${next}%`);
+  function setPointer(x, y) {
+    if (!positioned || reducedMotion.matches || (x === lightX && y === lightY)) return;
+    lightX = x;
+    lightY = y;
+    start();
   }
 
   function reset() {
@@ -125,9 +106,9 @@ export function createGlassMotion(element, { liftOnPress = false } = {}) {
     frame = 0;
     positioned = false;
     pressure.goal = 0;
-    lightX = null;
-    highlightAt(null);
+    lightX = lightY = null;
+    rim?.reset();
   }
 
-  return { moveTo, setPressed, highlightAt, reset };
+  return { moveTo, setPressed, setPointer, reset };
 }

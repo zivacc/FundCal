@@ -39,7 +39,9 @@
   top: 0;
   left: 0;
   z-index: 1;
-  border-radius: 8px;
+  border-radius: 12px;
+  /* The moving lip must not add scrollable space to a fitting table or its final row. */
+  overflow: clip;
   animation: reveal-table-frame .12s ease-out;
 }
 

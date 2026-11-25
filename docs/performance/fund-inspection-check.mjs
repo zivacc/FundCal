@@ -22,6 +22,41 @@ function lensAligned(selector) {
   return ['x', 'y', 'width', 'height'].every(key => Math.abs(a[key] - b[key]) < 1);
 }
 
+// Measure the bow between the shoulders in the outline's own coordinates. Moving or scaling
+// a rectangular capsule as a single piece leaves these edges straight.
+async function sampleRimBending(frame) {
+  const path = frame.querySelector('.glass-contour-outline');
+  const glint = frame.querySelector('.rim-shine-line');
+  const glintWidth = () => Number(glint.getAttribute('stroke-width'));
+  const curves = new Set();
+  let bow = 0, minGlint = Infinity, maxGlint = 0;
+  for (let sample = 0; sample < 24; sample++) {
+    await new Promise(requestAnimationFrame);
+    minGlint = Math.min(minGlint, glintWidth());
+    maxGlint = Math.max(maxGlint, glintWidth());
+    const curve = path.getAttribute('d');
+    if (curves.has(curve)) continue;
+    curves.add(curve);
+    const bounds = path.getBBox(), length = path.getTotalLength();
+    const upper = [], lower = [];
+    for (let i = 0; i < 120; i++) {
+      const p = path.getPointAtLength(length * i / 120);
+      const x = (p.x - bounds.x) / bounds.width, y = (p.y - bounds.y) / bounds.height;
+      if (x >= .3 && x <= .7) (y < .5 ? upper : lower).push({ x, y });
+    }
+    for (const side of [upper, lower]) {
+      if (side.length < 3) continue;
+      side.sort((a, b) => a.x - b.x);
+      const a = side[0], b = side.at(-1);
+      for (const p of side) {
+        const t = (p.x - a.x) / (b.x - a.x);
+        bow = Math.max(bow, Math.abs(p.y - (a.y + t * (b.y - a.y))));
+      }
+    }
+  }
+  return { curves: curves.size, bow, glintChange: maxGlint - minGlint };
+}
+
 async function checkRailScrub(page) {
   const listTab = '.top-rail-tab[data-route="list"]';
   const compareTab = '.top-rail-tab[data-route="compare"]';
@@ -39,11 +74,15 @@ async function checkRailScrub(page) {
 
   await page.mouse.move(listCenter, y);
   await page.waitForFunction(lensAligned, listTab);
-  await page.mouse.move(list.x + list.width * .15, y);
+  const deformation = page.locator('.top-rail-lens').evaluate(sampleRimBending);
+  await page.mouse.move(list.x + list.width * .15, list.y + list.height * .3);
   await waitForCenter(list.x, listCenter - 2);
-  await page.mouse.move(list.x + list.width * .85, y);
+  await page.mouse.move(list.x + list.width * .85, list.y + list.height * .7);
   await waitForCenter(listCenter + 2, list.x + list.width);
   assert.deepEqual(await page.locator(listTab).boundingBox(), list, 'pointer attraction leaves the label stationary');
+  const { curves, bow, glintChange } = await deformation;
+  assert.ok(curves > 2 && bow > .003, 'the moving rim curves locally across the button');
+  assert.ok(glintChange > .12, 'the specular highlight responds to the sweep');
 
   // Hold over the real gap long enough for the spring to settle.
   const seam = (list.x + list.width + compare.x) / 2;
@@ -176,10 +215,15 @@ try {
   assert.equal(await rowFrame.count(), 1);
   for (const frame of [navLens, rowFrame]) {
     assert.deepEqual(await frame.evaluate(surface), ['rgba(0, 0, 0, 0)', 'none']);
-    assert.equal(await frame.evaluate(el => getComputedStyle(el).maskComposite.split(',')[0]), 'exclude');
+    const band = frame.locator('clipPath path');
+    assert.equal(await band.getAttribute('clip-rule'), 'evenodd');
+    assert.equal((await band.getAttribute('d')).match(/M/gi)?.length, 2, 'the outer and inner contours bound a hollow band');
+    assert.match(await frame.evaluate(el => getComputedStyle(el, '::before').clipPath), /url\(.*#.+\)/);
+    assert.equal(await frame.locator('svg.glass-contour').getAttribute('fill'), 'none');
+    assert.equal(await frame.evaluate(el => getComputedStyle(el).backdropFilter), 'none', 'the open center is unfiltered');
     assert.equal(await frame.evaluate(el => getComputedStyle(el).pointerEvents), 'none');
   }
-  assert.match(await navLens.evaluate(el => getComputedStyle(el).backdropFilter), /blur\(0\.5px\)/);
+  assert.match(await navLens.evaluate(el => getComputedStyle(el, '::before').backdropFilter), /blur\(0\.5px\)/);
   assert.deepEqual(await metric('显性年化费率').allTextContents(), ['1.20%', '1.20%']);
   assert.deepEqual(await metric('换手率').allTextContents(), ['0.00%', '100.00%']);
   await page.locator('#fc-period').selectOption('2024-12-31');
@@ -315,6 +359,11 @@ try {
   await page.locator(maxPeriod).hover({ position: { x: 6, y: 17 } });
   await page.evaluate(() => new Promise(requestAnimationFrame));
   assert.ok(await page.evaluate(lensAligned, maxPeriod), 'reduced-motion rim aligns by the next frame');
+  const periodOutline = page.locator('.nav-period-group .glass-contour-outline');
+  const still = await periodOutline.getAttribute('d');
+  await page.locator(maxPeriod).hover({ position: { x: 24, y: 8 } });
+  await page.evaluate(() => new Promise(requestAnimationFrame));
+  assert.equal(await periodOutline.getAttribute('d'), still, 'reduced motion keeps the outline still during pointer travel');
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await checkTouchScrub(page);
   assert.deepEqual(errors, []);

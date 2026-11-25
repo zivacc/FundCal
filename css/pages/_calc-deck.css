@@ -213,6 +213,15 @@
   opacity: var(--deck-content-opacity, 1);
 }
 
+.fund-card-stage .fund-card:has(> .deck-card-rim)::before { opacity: 0; }
+.fund-card-stage .fund-card > .deck-card-rim {
+  position: absolute;
+  inset: -1px;
+  z-index: 2;
+  pointer-events: none;
+  opacity: .82;
+}
+
 .fund-card-stage .fund-card:not(.is-deck-active) { user-select: none; }
 
 .fund-card-stage .deck-card-open {
