@@ -1,6 +1,6 @@
 import { BASKET_DROP_DIAMETER, insideDropCircle, detailDropCode } from '../core/fund-drop.js';
 import { createGlassMotion } from '../core/glass-motion.js';
-import { attachGlassRim, rimOutset } from '../core/glass-rim.js';
+import { attachGlassRim, glassCornerRadius, rimOutset } from '../core/glass-rim.js';
 import { applyGlassRefraction, reducedGlassTransparency, removeGlassRefraction } from '../core/glass-refraction.js';
 import { normalizeFundRefs } from '../data/basket-store.js';
 import { basket as store, basketStorageFailed } from '../data/basket.js';
@@ -150,28 +150,28 @@ function positionTarget() {
   target.style.left = `${box.x + box.width / 2}px`;
   target.style.top = `${box.y + box.height / 2}px`;
 }
-function dragGlass(element, radius) {
-  const optics = { radius, rim: 8, scale: 15, outset: rimOutset, edgeOnly: true };
-  const motion = createGlassMotion(element, { rim: attachGlassRim(element, { radius, rim: optics.rim, strength: .68 }) });
-  return { optics, motion };
+const dragOptics = { rim: 8, scale: 15, outset: rimOutset, edgeOnly: true };
+function dragMotion(element) {
+  return createGlassMotion(element, { rim: attachGlassRim(element, { rim: dragOptics.rim, strength: .68 }) });
 }
-let ghostGlass, dropGlass;
-let ghostWidth = 0, ghostHeight = 0;
+let ghostMotion, dropGlass;
+let ghostWidth = 0, ghostHeight = 0, ghostRadius = 0;
 function measureGhost() {
   if (ghost.hidden) return;
-  ghostGlass ??= dragGlass(ghost, parseFloat(getComputedStyle(ghost).borderTopLeftRadius));
+  ghostMotion ??= dragMotion(ghost);
   // Measure the wrapped label independently of the last dragged fund's width.
   ghost.style.removeProperty('width');
   ghost.style.removeProperty('height');
   ghostWidth = ghost.offsetWidth;
   ghostHeight = ghost.offsetHeight;
-  applyGlassRefraction(ghost, ghostWidth, ghostHeight, ghostGlass.optics);
+  ghostRadius = glassCornerRadius(ghost, ghostWidth, ghostHeight);
+  applyGlassRefraction(ghost, ghostWidth, ghostHeight, { ...dragOptics, radius: ghostRadius });
 }
 function positionGhost(x, y) {
   const left = Math.max(8, Math.min(window.innerWidth - ghostWidth - 8, x + 12));
   const top = Math.max(8, Math.min(window.innerHeight - ghostHeight - 8, y + 18));
-  ghostGlass.motion.moveTo({ x: left, y: top, width: ghostWidth, height: ghostHeight }, { pointerX: x, pointerY: y });
-  ghostGlass.motion.setPressed(true);
+  ghostMotion.moveTo({ x: left, y: top, width: ghostWidth, height: ghostHeight }, { radius: ghostRadius, pointerX: x, pointerY: y });
+  ghostMotion.setPressed(true);
 }
 function clearDropGlass() {
   if (!dropGlass) return;
@@ -190,14 +190,16 @@ function positionDropGlass(host, x, y) {
     lens.setAttribute('aria-hidden', 'true');
     host.append(lens);
     host.classList.add('has-drop-lens');
-    const radius = host === target ? host.clientWidth / 2 : parseFloat(getComputedStyle(host).borderTopLeftRadius);
-    dropGlass = { host, lens, ...dragGlass(lens, radius) };
+    dropGlass = { host, lens, motion: dragMotion(lens) };
   }
-  const { lens, motion, optics } = dropGlass;
+  const { lens, motion } = dropGlass;
   const box = host.getBoundingClientRect();
-  const width = host.clientWidth, height = host.clientHeight;
-  applyGlassRefraction(lens, width, height, optics);
-  motion.moveTo({ x: 0, y: 0, width, height }, { pointerX: x - box.left - host.clientLeft, pointerY: y - box.top - host.clientTop });
+  const width = host.offsetWidth, height = host.offsetHeight;
+  const radius = glassCornerRadius(host, width, height);
+  lens.style.borderRadius = `${radius}px`;
+  applyGlassRefraction(lens, width, height, { ...dragOptics, radius });
+  motion.moveTo({ x: -host.clientLeft, y: -host.clientTop, width, height },
+    { radius, pointerX: x - box.left - host.clientLeft, pointerY: y - box.top - host.clientTop });
   motion.setPressed(true);
 }
 
@@ -262,7 +264,7 @@ function stopDrag() {
   picker.hidden = true; pickerItems = null;
   trigger.classList.remove('is-drop-ready', 'is-drop-over'); target.classList.remove('is-over');
   zones.hidden = true; target.hidden = true; ghost.hidden = true;
-  ghostGlass?.motion.reset();
+  ghostMotion?.reset();
   clearDropGlass();
   removeGlassRefraction(ghost);
   root.querySelectorAll('[data-basket-drop]').forEach(node => node.classList.remove('is-over'));

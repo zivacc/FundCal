@@ -81,7 +81,7 @@
   font-size: 13px;
   letter-spacing: 0.5px;
   cursor: pointer;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   transition: border-color var(--transition-fast);
 }
 
@@ -101,7 +101,7 @@
   gap: 2px;
   padding: 2px;
   border: 1px solid var(--glass-stroke);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--glass-fill);
   box-shadow: var(--glass-frame-shadow);
 }
@@ -110,7 +110,7 @@
   min-height: 28px;
   padding: 4px 12px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: transparent;
   color: var(--text-secondary);
   font-family: var(--font-mono);
@@ -272,7 +272,7 @@
 .nav-chart-legend-dot {
   width: 10px;
   height: 10px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   flex-shrink: 0;
   /* 给一圈与背景等色的描边，在浅色/深色背景下都有一点"空气感" */
   box-shadow: 0 0 0 1.5px var(--bg-raised);
@@ -358,7 +358,7 @@
   cursor: pointer;
   font-size: 15px;
   line-height: 1;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-circle);
   transition: color var(--transition-fast);
 }
 
@@ -391,7 +391,7 @@
   padding: 0;
   border: 1px solid var(--glass-stroke);
   background: var(--glass-fill);
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   color: var(--text-secondary);
   cursor: pointer;
   display: inline-flex;
@@ -449,7 +449,7 @@
   background: var(--glass-fill-strong);
   border: 1px solid var(--accent);
   color: var(--accent);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 13px;
   font-weight: 600;
   line-height: 1.2;
@@ -472,7 +472,7 @@
   color: var(--accent);
   opacity: 0.7;
   padding: 2px 4px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   transition: opacity 0.12s ease;
 }
 
@@ -559,7 +559,7 @@
   display: inline-block;
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   margin-right: 6px;
   vertical-align: middle;
 }
@@ -576,7 +576,7 @@
   font-family: var(--font-mono);
   font-size: 13px;
   letter-spacing: 0.5px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   margin-left: 0;
   box-shadow: none;
 }
@@ -629,7 +629,7 @@
   width: 8px;
   height: 28px;
   border: 1px solid var(--accent);
-  border-radius: 4px;
+  border-radius: var(--radius-pill);
   background: var(--bg-raised);
 }
 .nav-range-edge:hover::after { outline: 1px solid var(--glass-lens-edge); }
@@ -750,7 +750,7 @@
   height: 22px;
   padding: 0;
   border: 1px solid var(--rule);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-circle);
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
@@ -846,7 +846,7 @@
   display: inline-block;
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   margin-right: 6px;
   vertical-align: middle;
 }
@@ -885,7 +885,7 @@
   background: transparent;
   color: var(--text-primary);
   border: 1px solid var(--rule);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 1px 4px;
   font-family: inherit;
   font-size: 12.5px;
@@ -906,7 +906,7 @@
   flex-shrink: 0;
   font-size: 10px;
   padding: 1px 5px;
-  border-radius: 3px;
+  border-radius: var(--radius-pill);
   background: var(--bg-sunk);
   color: var(--text-tertiary);
   border: 1px solid var(--rule);

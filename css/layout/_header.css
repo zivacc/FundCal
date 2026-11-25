@@ -42,7 +42,7 @@
   height: 32px;
   flex-shrink: 0;
   border: 1px solid var(--glass-stroke);
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   background: var(--glass-highlight) var(--glass-fill);
   box-shadow: var(--glass-rim), var(--shadow-sm);
 }
@@ -136,7 +136,7 @@
   width: 40px;
   height: 40px;
   border: 1px solid var(--glass-stroke);
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   background: var(--glass-highlight) var(--glass-fill);
   box-shadow: var(--glass-rim), var(--shadow-sm);
   color: var(--text-secondary);
@@ -223,7 +223,6 @@
     grid-template-columns: 1fr auto;
     grid-template-rows: 36px 42px;
     gap: 3px 6px;
-    border-radius: 24px;
   }
 
   .top-rail-brand { padding-inline-start: 4px; }

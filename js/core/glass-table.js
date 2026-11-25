@@ -1,5 +1,5 @@
 import { createGlassMotion } from './glass-motion.js';
-import { attachGlassRim, rimOutset } from './glass-rim.js';
+import { attachGlassRim, glassCornerRadius, rimOutset } from './glass-rim.js';
 import { applyGlassRefraction, removeGlassRefraction, reducedGlassTransparency } from './glass-refraction.js';
 
 const tables = '.table, .cached-funds-table, .fund-detail-table, .fc-table, .id-table, .fd-table, .nav-stats-table, .nav-range-stats-table';
@@ -11,9 +11,8 @@ const hoverPointer = matchMedia('(any-hover: hover)');
 const lens = document.createElement('span');
 lens.className = 'glass-hover-frame glass-table-frame';
 lens.setAttribute('aria-hidden', 'true');
-const rowRadius = 12;
-const optics = { radius: rowRadius, rim: 6, scale: 10, outset: rimOutset, edgeOnly: true };
-const motion = createGlassMotion(lens, { rim: attachGlassRim(lens, { radius: rowRadius, rim: optics.rim, strength: .48 }) });
+const optics = { rim: 6, scale: 10, outset: rimOutset, edgeOnly: true };
+const motion = createGlassMotion(lens, { rim: attachGlassRim(lens, { rim: optics.rim, strength: .48 }) });
 const resize = new ResizeObserver(alignToLayout);
 const mutations = new MutationObserver(alignToLayout);
 let rowGroup = null;
@@ -91,8 +90,11 @@ function updateLens() {
   const height = bounds.height / scaleY;
   hoverBounds = { x: viewport.left + host.clientLeft * scaleX, y: viewport.top + host.clientTop * scaleY,
     scaleX, scaleY, scrollLeft: host.scrollLeft, scrollTop: host.scrollTop };
-  applyGlassRefraction(lens, width, height, optics);
-  motion.moveTo({ x: host.scrollLeft + left, y: top, width, height }, { immediate: snapToLayout,
+  // Joined table cells use the shared row frame. Standalone list items own their outline.
+  lens.style.borderRadius = table ? '' : getComputedStyle(target).borderTopLeftRadius;
+  const radius = glassCornerRadius(lens, width, height);
+  applyGlassRefraction(lens, width, height, { ...optics, radius });
+  motion.moveTo({ x: host.scrollLeft + left, y: top, width, height }, { immediate: snapToLayout, radius,
     pointerX: (pointer.x - hoverBounds.x) / scaleX + host.scrollLeft,
     pointerY: (pointer.y - hoverBounds.y) / scaleY + host.scrollTop });
   snapToLayout = false;

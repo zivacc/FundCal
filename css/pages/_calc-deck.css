@@ -1,6 +1,6 @@
 /* 舞台和各张卡片共用光标驱动的光源。 */
 .fund-card-stage {
-  --deck-card-radius: 24px;
+  --deck-card-radius: var(--radius-lg);
   --deck-stage-tint: rgb(189 208 248 / 10%);
   --deck-floor-line: rgb(67 91 149 / 17%);
   --deck-shadow: rgb(40 60 113 / 20%);
@@ -16,7 +16,7 @@
   isolation: isolate;
   margin: 18px 0 22px;
   border: 1px solid transparent;
-  border-radius: 30px;
+  border-radius: var(--radius-xl);
   background:
     radial-gradient(ellipse 110% 32% at 42% 115%, transparent 98.25%, var(--deck-floor-line) 98.8% 99.35%, transparent),
     var(--deck-stage-tint);
@@ -87,7 +87,7 @@
   height: 38px;
   padding: 0;
   border: 1px solid var(--deck-field-line);
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   background: var(--deck-field);
   color: var(--text-primary);
   font-size: 19px;
@@ -151,7 +151,7 @@
   inline-size: 5px;
   block-size: 5px;
   margin-inline-end: 4px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   background: var(--card-accent, var(--accent));
   vertical-align: .12em;
 }
@@ -214,6 +214,7 @@
 .fund-card-stage .fund-card > .deck-card-rim {
   position: absolute;
   inset: -1px;
+  border-radius: inherit;
   z-index: 2;
   pointer-events: none;
 }
@@ -279,7 +280,7 @@
 .card-implicit [hidden] { display: none !important; }
 
 @media (max-width: 768px) {
-  .fund-card-stage { margin-inline: 0; border-radius: 24px; }
+  .fund-card-stage { margin-inline: 0; }
   .deck-toolbar { padding: 16px 15px 0; }
   .deck-toolbar h2 { font-size: 1rem; }
   .deck-count { margin-right: 0; }

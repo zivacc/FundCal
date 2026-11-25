@@ -39,7 +39,7 @@
   top: 0;
   left: 0;
   z-index: 1;
-  border-radius: 12px;
+  border-radius: var(--table-row-radius);
   /* The moving lip must not add scrollable space to a fitting table or its final row. */
   overflow: clip;
   animation: reveal-table-frame .12s ease-out;
@@ -216,7 +216,7 @@
   display: inline-block;
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   margin-right: 0.4rem;
   vertical-align: middle;
   box-shadow: none;

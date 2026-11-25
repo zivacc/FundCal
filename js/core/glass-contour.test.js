@@ -6,6 +6,33 @@ function segments(path) {
   return [...path.matchAll(/C([^CZ]+)/g)].map(match => match[1].split(' ').map(Number));
 }
 
+function sampleOutline(path) {
+  const curves = segments(path);
+  let [x, y] = curves.at(-1).slice(-2);
+  const points = [[x, y]];
+  for (const [ax, ay, bx, by, ex, ey] of curves) {
+    for (let i = 1; i <= 32; i++) {
+      const t = i / 32, s = 1 - t;
+      points.push([s ** 3 * x + 3 * s * s * t * ax + 3 * s * t * t * bx + t ** 3 * ex,
+        s ** 3 * y + 3 * s * s * t * ay + 3 * s * t * t * by + t ** 3 * ey]);
+    }
+    x = ex;
+    y = ey;
+  }
+  return points;
+}
+
+// Measure rendered cross sections independently of the number and order of Bézier knots.
+function thicknessAt(points, x) {
+  const crossings = [];
+  for (let i = 1; i < points.length; i++) {
+    const [ax, ay] = points[i - 1], [bx, by] = points[i];
+    if ((ax <= x) !== (bx <= x)) crossings.push(ay + (by - ay) * (x - ax) / (bx - ax));
+  }
+  assert.equal(crossings.length, 2);
+  return Math.abs(crossings[0] - crossings[1]);
+}
+
 function checkTangents(path) {
   const curves = segments(path);
   for (let i = 0; i < curves.length; i++) {
@@ -16,27 +43,25 @@ function checkTangents(path) {
   }
 }
 
-test('a smooth closed rim follows its real footprint, including large cards and wide rows', () => {
-  const contour = createGlassContour(), inset = 1.7;
-  for (const [width, height, radius] of [[330, 420, 24], [900, 35, 8], [44, 44, Infinity]]) {
-    const path = contour.path(width, height, radius, inset);
-    checkTangents(path);
-    assert.ok(path.endsWith('Z'));
-    const corners = Math.min(radius, width / 2, height / 2) - inset;
-    const curves = segments(path);
-    let [x, y] = curves.at(-1).slice(-2);
-    for (const [ax, ay, bx, by, ex, ey] of curves) {
-      for (const t of [0, .25, .5, .75, 1]) {
-        const s = 1 - t;
-        const px = s ** 3 * x + 3 * s * s * t * ax + 3 * s * t * t * bx + t ** 3 * ex;
-        const py = s ** 3 * y + 3 * s * s * t * ay + 3 * s * t * t * by + t ** 3 * ey;
+test('resting rims follow CSS corners on cards, rows, long pills and near-capsules', () => {
+  const contour = createGlassContour();
+  for (const [width, height, radius] of [
+    [330, 420, 20], [900, 35, 8], [44, 44, Infinity], [210, 26, 999], [326, 31, Infinity],
+    [326, 31, 15], [31, 326, 15], [26, 210, 999],
+  ]) {
+    for (const inset of [0, 1.7, 6]) {
+      const path = contour.path(width, height, radius, inset);
+      checkTangents(path);
+      assert.ok(path.endsWith('Z'));
+      const corners = Math.max(0, Math.min(radius, width / 2, height / 2) - inset);
+      let deviation = 0;
+      for (const [px, py] of sampleOutline(path)) {
         const dx = Math.abs(px - width / 2) - (width / 2 - inset - corners);
         const dy = Math.abs(py - height / 2) - (height / 2 - inset - corners);
         const distance = Math.hypot(Math.max(dx, 0), Math.max(dy, 0)) + Math.min(Math.max(dx, dy), 0) - corners;
-        assert.ok(Math.abs(distance) < 1.1, 'resting curve tracks the rounded rectangle');
+        deviation = Math.max(deviation, Math.abs(distance));
       }
-      x = ex;
-      y = ey;
+      assert.ok(deviation < 1, `${width}×${height} r=${radius} inset=${inset} deviates by ${deviation}px`);
     }
   }
   assert.equal(contour.path(0, 20), '');
@@ -51,8 +76,8 @@ test('shoulders deform separately, retain momentum on reversal and settle to the
   const leftward = { velocityX: -1000, pointerX: -.8, pressure: .8 };
   function asymmetry() {
     // Compare thickness across two symmetric shoulders. A rigid scale would keep them identical.
-    const y = segments(outline()).map(curve => curve[5]);
-    return (y[9] - y[1]) - (y[13] - y[21]);
+    const points = sampleOutline(outline());
+    return thicknessAt(points, 85 * .78) - thicknessAt(points, 85 * .22);
   }
   for (let i = 0; i < 20; i++) contour.step(1 / 60, rightward);
   assert.ok(asymmetry() > 6);
@@ -72,4 +97,17 @@ test('shoulders deform separately, retain momentum on reversal and settle to the
   contour.step(.1, rightward);
   contour.reset();
   assert.equal(outline(), idle);
+});
+
+test('a tall pill bows under pressure and follows vertical motion', () => {
+  const contour = createGlassContour();
+  const path = () => contour.path(26, 210);
+  const crossSections = () => sampleOutline(path()).map(([x, y]) => [y, x]);
+  const resting = crossSections();
+  for (let i = 0; i < 20; i++) contour.step(1 / 60, { pressure: 1 });
+  assert.ok(thicknessAt(crossSections(), 105) > thicknessAt(resting, 105) + .4);
+  for (let i = 0; i < 20; i++) contour.step(1 / 60, { velocityY: 900, pointerY: .8 });
+  const moving = crossSections();
+  assert.ok(thicknessAt(moving, 160) > thicknessAt(moving, 50) + 4);
+  checkTangents(path());
 });

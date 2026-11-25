@@ -68,11 +68,14 @@
   --ledger-line: 2px solid var(--accent);
   --ledger-line-thin: 1px solid var(--rule);
 
-  --radius-sm: 9px;
-  --radius-md: 14px;
+  /* 小细节、紧凑控件、常规输入与列表行、卡片、主面板。 */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
   --radius-lg: 20px;
-  --radius-xl: 30px;
+  --radius-xl: 28px;
   --radius-pill: 999px;
+  --radius-circle: 50%;
   --page-max-width: 1400px;
   --page-gutter: clamp(14px, 3vw, 44px);
   --transition-fast: 0.16s cubic-bezier(0.2, 0.7, 0.3, 1);
@@ -117,6 +120,7 @@
   --table-header: var(--bg-raised);
   --table-rule: var(--rule);
   --table-radius: var(--radius-lg);
+  --table-row-radius: var(--radius-md);
 
   --scene-wash:
     radial-gradient(ellipse at 7% 2%, #fcfdff 0%, transparent 47%),

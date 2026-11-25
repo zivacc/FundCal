@@ -1,6 +1,6 @@
 import { bindGlassChoices } from './glass-choices.js';
 import { createGlassMotion } from './glass-motion.js';
-import { attachGlassRim, rimOutset } from './glass-rim.js';
+import { attachGlassRim, glassCornerRadius, rimOutset } from './glass-rim.js';
 import { applyGlassRefraction, reducedGlassTransparency, removeGlassRefraction } from './glass-refraction.js';
 
 const groups = [
@@ -115,9 +115,7 @@ function paint() {
   const sy = mount === document.body ? 1 : mount.offsetHeight / host.height;
   const left = mount.scrollLeft - mount.clientLeft, top = mount.scrollTop - mount.clientTop;
   const width = box.width * sx, height = box.height * sy;
-  const cssRadius = getComputedStyle(active).borderTopLeftRadius;
-  const radius = Math.min(width / 2, height / 2, parseFloat(cssRadius) *
-    (cssRadius.endsWith('%') ? Math.min(width, height) / 100 : 1));
+  const radius = glassCornerRadius(active, width, height);
   rim.style.borderRadius = `${radius}px`;
   applyGlassRefraction(rim, width, height, { radius, rim: rimWidth, scale: 12, outset: rimOutset, edgeOnly: true });
   motion.moveTo({ x: (box.left - host.left) * sx + left, y: (box.top - host.top) * sy + top, width, height },

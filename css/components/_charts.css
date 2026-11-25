@@ -5,7 +5,7 @@
 .chart-container {
   background: var(--glass-highlight), var(--glass-fill);
   border: 1px solid var(--glass-stroke);
-  border-radius: 26px;
+  border-radius: var(--radius-xl);
   padding: 16px 20px;
   margin-bottom: 1rem;
   position: relative;
@@ -40,7 +40,7 @@
   flex-direction: row;
   padding: 8px 8px 8px 0;
   border: 1px solid var(--glass-stroke);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   background: var(--glass-fill);
 }
 
@@ -194,7 +194,7 @@
   justify-content: center;
   background: transparent;
   border: none;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: var(--text-tertiary);
   font-size: 1rem;
   cursor: pointer;
@@ -253,7 +253,7 @@
 .chart-collapsed-dot {
   width: 10px;
   height: 10px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   flex-shrink: 0;
   box-shadow: 0 0 0 1px var(--rule);
   opacity: 0.35;
@@ -281,7 +281,6 @@
 .chart-fund-list-hide-all {
   font-size: 0.75rem;
   padding: 0.15rem 0.4rem;
-  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
@@ -313,7 +312,7 @@
   justify-content: space-between;
   gap: 0.5rem;
   padding: 7px 10px;
-  border-radius: 11px;
+  border-radius: var(--table-row-radius);
   border: 1px solid transparent;
   cursor: pointer;
   font-size: 11.5px;
@@ -341,7 +340,7 @@
 .chart-fund-list-color {
   width: 11px;
   height: 11px;
-  border-radius: 2.5px;
+  border-radius: var(--radius-circle);
   flex-shrink: 0;
   box-shadow: none;
 }
@@ -382,7 +381,7 @@
   width: .62em;
   height: .62em;
   margin-inline-end: .4em;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   background: var(--series-color);
   vertical-align: .1em;
 }
@@ -396,7 +395,7 @@
   padding: 4px 10px;
   background: var(--glass-fill-strong);
   border: 1px solid var(--glass-stroke);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-family: var(--font-mono);
   font-size: 11.5px;
 }
@@ -404,7 +403,7 @@
 .crossover-legend-color {
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   box-shadow: none;
 }
 
@@ -468,7 +467,7 @@
   color: var(--text-primary);
   background: var(--glass-fill-strong);
   padding: 3px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--glass-stroke);
   box-shadow: var(--shadow-sm);
   z-index: 10;
@@ -483,7 +482,7 @@
   color: var(--text-primary);
   background: var(--glass-fill-strong);
   padding: 3px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--glass-stroke);
   box-shadow: var(--shadow-sm);
   z-index: 10;
@@ -504,7 +503,7 @@
   -webkit-backdrop-filter: var(--glass-blur) var(--glass-saturate);
   backdrop-filter: var(--glass-blur) var(--glass-saturate);
   border: 1px solid var(--glass-stroke);
-  border-radius: 14px;
+  border-radius: var(--radius-md);
   padding: 0.5rem 0.75rem;
   font-size: 0.75rem;
   font-family: var(--font-mono);
@@ -534,7 +533,7 @@
 .stage-return-chart-container {
   background: var(--glass-highlight), var(--glass-fill);
   border: 1px solid var(--glass-stroke);
-  border-radius: 26px;
+  border-radius: var(--radius-xl);
   padding: 1rem 1.25rem 0.9rem;
   margin-bottom: 1rem;
   box-shadow: var(--glass-shadow);

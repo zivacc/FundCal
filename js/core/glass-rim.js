@@ -7,6 +7,15 @@ const edgeInset = 1.7;
 export const rimOutset = 5;
 let instance = 0;
 
+// Interactive glass surfaces have four equal corners. Resolve oversized pill
+// radii and percentage circles against the same local box the SVG will paint.
+export function glassCornerRadius(element, width, height) {
+  const css = getComputedStyle(element).borderTopLeftRadius;
+  const side = Math.min(width, height);
+  const radius = parseFloat(css) * (css.endsWith('%') ? side / 100 : 1);
+  return Math.min(radius, side / 2);
+}
+
 // Project the incident light onto the rounded lip. The lit patch stays short
 // even on long table rows and moves with the pointer on all four sides.
 function reflectionPoint(width, height, radius, inset, px, py, light) {

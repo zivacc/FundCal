@@ -1,6 +1,6 @@
 import { disposeCardImplicitFee } from './implicit-fee.js';
 import { createSpring, advanceSpring } from '../../core/glass-spring.js';
-import { attachGlassRim, rimOutset } from '../../core/glass-rim.js';
+import { attachGlassRim, glassCornerRadius, rimOutset } from '../../core/glass-rim.js';
 import { deckPose, deckFrontCount, clampDeckIndex } from './deck-layout.js';
 import { applyGlassRefraction, glassRefractionSupported, reducedGlassTransparency, removeGlassRefraction } from '../../core/glass-refraction.js';
 
@@ -26,7 +26,7 @@ export function setupCardDeck() {
   rimHost.setAttribute('aria-hidden', 'true');
   let cardRim, rimCard = null, pressed = null;
   let cards = [], frame = 0, gesture = null, suppressClick = false;
-  let width = 0, cardWidth = 330, cardRadius = 24, frontCount = 1, lastTime = 0;
+  let width = 0, cardWidth = 330, frontCount = 1, lastTime = 0;
   let lightFrame = 0, lightTime = 0, pointer = null;
   let stageVisible = false, syncLight = true, pointerInside = false;
   const maxIndex = () => Math.max(0, cards.length - frontCount);
@@ -77,13 +77,13 @@ export function setupCardDeck() {
     let moving = false;
     if (surface?.width && surface.height && box && (touched || target.classList.contains('is-deck-active'))) {
       if (target !== rimCard) {
-        cardRim ??= attachGlassRim(rimHost, { radius: cardRadius, strength: .65, rim: 7 });
+        cardRim ??= attachGlassRim(rimHost, { strength: .65, rim: 7 });
         cardRim.reset();
         target.append(rimHost);
         rimCard = target;
       }
       applyGlassRefraction(rimHost, surface.width, surface.height, {
-        radius: cardRadius, rim: 7, scale: 14, outset: rimOutset, edgeOnly: true,
+        radius: surface.radius, rim: 7, scale: 14, outset: rimOutset, edgeOnly: true,
       });
       const relative = (n, start, size) => Math.max(-1, Math.min(1, 2 * (n - start) / size - 1));
       const speed = gesture?.dragging ? slide.velocity * Math.exp(-Math.max(0, time - gesture.lastTime) / 65) : slide.velocity;
@@ -94,7 +94,7 @@ export function setupCardDeck() {
         pressure.velocity = 0;
       } else advanceSpring(pressure, elapsed, .005, .84);
       moving = cardRim.paint(surface.width, surface.height, elapsed, {
-        velocityX: -speed * cardWidth, velocityY: 0, pressure: pressure.value, hovered: !!touched,
+        radius: surface.radius, velocityX: -speed * cardWidth, velocityY: 0, pressure: pressure.value, hovered: !!touched,
         pointerX: follow ? relative(pointer.x, box.left, box.width) : null,
         pointerY: follow ? relative(pointer.y, box.top, box.height) : null,
       }, !contact || reduced.matches) || pressure.value !== pressure.goal;
@@ -170,6 +170,7 @@ export function setupCardDeck() {
       const size = borderBoxSize?.[0];
       surface.width = size?.inlineSize ?? card.offsetWidth;
       surface.height = size?.blockSize ?? card.offsetHeight;
+      surface.radius = glassCornerRadius(card, surface.width, surface.height);
       surface.scale = null;
     }
     measure();
@@ -178,7 +179,6 @@ export function setupCardDeck() {
     width = rail.clientWidth;
     if (!width) return;
     cardWidth = cards[0]?.offsetWidth || 330;
-    cardRadius = parseFloat(getComputedStyle(stage).getPropertyValue('--deck-card-radius')) || 24;
     frontCount = deckFrontCount(width, cardWidth, cards.length);
     const focused = cards.findIndex(card => card.contains(document.activeElement));
     if (focused >= 0 && (focused < slide.goal || focused >= slide.goal + frontCount)) slide.goal = focused;
@@ -213,7 +213,7 @@ export function setupCardDeck() {
         const identity = document.createElement('span');
         identity.className = 'deck-card-identity';
         identities.append(identity);
-        cardSurfaces.set(card, { width: 0, height: 0, scale: null, identity });
+        cardSurfaces.set(card, { width: 0, height: 0, radius: 0, scale: null, identity });
         resize.observe(card, { box: 'border-box' });
       }
     }
@@ -226,7 +226,7 @@ export function setupCardDeck() {
     const scale = front && glassRefractionSupported && !reducedGlassTransparency.matches ? 12 : 0;
     if (surface.scale === scale) return;
     surface.scale = scale;
-    if (scale) applyGlassRefraction(card, surface.width, surface.height, { radius: cardRadius, rim: 7, scale, outset: rimOutset });
+    if (scale) applyGlassRefraction(card, surface.width, surface.height, { radius: surface.radius, rim: 7, scale, outset: rimOutset });
     else removeGlassRefraction(card);
   }
   function draw(time) {

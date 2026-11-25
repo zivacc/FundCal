@@ -40,19 +40,19 @@
 .id-turnover-grid h3 { margin: 0 0 .5rem; font-size: .9rem; font-weight: 500; }
 .id-turnover-value { font-family: var(--font-mono); font-size: 1.6rem; font-weight: 500; color: var(--accent); }
 .id-turnover-method { margin-top: 1rem; }
-.id-turnover-method summary { cursor: pointer; color: var(--text-secondary); font-size: .85rem; }
+.id-turnover-method summary { cursor: pointer; color: var(--text-secondary); font-size: .85rem; border-radius: var(--radius-sm); }
 .id-description { line-height: 1.7; font-size: .9rem; color: var(--text-secondary); white-space: pre-line; }
 .id-version-links { border-top: 1px solid var(--border); padding-top: .75rem; font-size: .85rem; }
 .id-version-links:empty { display: none; }
 .id-periods { display: flex; flex-wrap: wrap; gap: .25rem; }
-.id-periods button { border: 1px solid var(--glass-stroke); border-radius: 999px; background: var(--glass-fill); color: var(--text-secondary); font-size: .82rem; padding: .3rem .7rem; cursor: pointer; }
+.id-periods button { border: 1px solid var(--glass-stroke); border-radius: var(--radius-pill); background: var(--glass-fill); color: var(--text-secondary); font-size: .82rem; padding: .3rem .7rem; cursor: pointer; }
 .id-periods button:not([aria-pressed="true"]):hover { border-color: var(--glass-lens-edge); }
 .id-periods button[aria-pressed="true"] { color: var(--accent); border-color: var(--border-glow); background: var(--accent-subtle); }
 .id-chart { width: 100%; height: clamp(270px, 34vw, 380px); }
 .id-hint { font-size: .8rem; color: var(--text-tertiary); line-height: 1.6; margin: .65rem 0; overflow-wrap: anywhere; }
 .id-warning { font-size: .85rem; line-height: 1.6; color: var(--text-secondary); padding: .75rem 1rem; border-left: 3px solid var(--warning); background: var(--warning-subtle); }
 .id-toolbar { margin: .75rem 0; }
-.id-filter { max-width: 100%; flex: 1 1 240px; min-width: 0; padding: .5rem .7rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-input); color: var(--text-primary); font: inherit; font-size: .85rem; }
+.id-filter { max-width: 100%; flex: 1 1 240px; min-width: 0; padding: .5rem .7rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-input); color: var(--text-primary); font: inherit; font-size: .85rem; }
 .id-toolbar label, .id-snapshot-label { display: flex; gap: .5rem; align-items: center; max-width: 100%; font-size: .82rem; color: var(--text-secondary); }
 .id-snapshot-label select { min-width: 0; max-width: 100%; }
 .id-table { width: 100%; min-width: 400px; border-collapse: collapse; font-size: .88rem; }
@@ -73,7 +73,7 @@
 .id-top-weights li { display: grid; grid-template-columns: minmax(0, 1fr) 4.7rem; gap: .3rem .5rem; font-size: .82rem; }
 .id-top-weights .id-weight-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .id-top-weights .id-weight-value { text-align: right; font-family: var(--font-mono); }
-.id-weight-bar { grid-column: 1 / -1; height: 5px; background: var(--bg-subtle); border-radius: 3px; overflow: hidden; }
+.id-weight-bar { grid-column: 1 / -1; height: 5px; background: var(--bg-subtle); border-radius: var(--radius-pill); overflow: hidden; }
 .id-weight-bar i { display: block; height: 100%; background: var(--accent); }
 .page-index-detail :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 @media (max-width: 768px) {

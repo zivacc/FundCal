@@ -1,18 +1,12 @@
 import { advanceSpring, createSpring } from './glass-spring.js';
 
-// A circular arc plus two gently curved flanks. The saturated coordinates extend the
-// shoulders of a wide/short control while keeping a continuous tangent around the rim.
-const segmentCount = 24;
-const angleStep = 2 * Math.PI / segmentCount;
-function shoulder(t) { return t * Math.sqrt(10 / (1 + 9 * t * t)); }
-function shoulderSlope(t) { return Math.sqrt(10) / (1 + 9 * t * t) ** 1.5; }
-const circle = Array.from({ length: segmentCount }, (_, i) => {
-  const angle = i * angleStep, x = Math.sin(angle), y = -Math.cos(angle);
-  return { x, y, sx: shoulder(x), sy: shoulder(y),
-    dx: -y, dy: x, dsx: -y * shoulderSlope(x), dsy: x * shoulderSlope(y) };
-});
+// Rotate one top-right quadrant clockwise to cover the full rim.
+const rotations = [[1, 0], [0, 1], [-1, 0], [0, -1]];
+const arcStep = Math.PI / 6;
+const arcHandle = 4 / 3 * Math.tan(arcStep / 4);
+const corner = [0, 1, 2].map(i => [Math.sin(i * arcStep), Math.cos(i * arcStep)]);
 
-const round = value => Math.round(value * 100) / 100;
+const round = value => Math.round(value * 1000) / 1000;
 const bounded = value => Math.max(-1, Math.min(1, value));
 
 // The edge beside a pulled cap bows out, with a smaller hollow toward the opposite cap.
@@ -25,47 +19,28 @@ function flankSlope(t, sum, difference, pulse) {
   return -1.3 * t * (sum * .55 + pulse * .20) + 1.65 * difference * (1 - 2.4 * t * t);
 }
 
-// Large cards and table rows have a specific corner radius. Bow each side by at
-// most 0.75px at rest, then join it tangentially to the original circular corner.
+// Follow the CSS straight flanks and circular caps at rest. A split midway along
+// each half-side lets the spring field bow long edges. Pills have no short flank
+// and circles have no straight segments at all.
 function roundedRectKnots(halfW, halfH, r) {
   const knots = [];
-  for (let quadrant = 0; quadrant < 4; quadrant++) {
-    const w = quadrant % 2 ? halfH : halfW, h = quadrant % 2 ? halfW : halfH;
-    const bowX = Math.min(.75, (w - r) / 4), bowY = Math.min(.75, (h - r) / 4);
-    const runX = w - r - bowX, runY = h - r - bowY;
-    const { dx: cos, dy: sin } = circle[quadrant * segmentCount / 4];
-    const add = (x, y, dx, dy) => {
-      const length = Math.hypot(dx, dy);
-      knots.push({ x: cos * x - sin * y, y: sin * x + cos * y,
-        dx: (cos * dx - sin * dy) / length, dy: (sin * dx + cos * dy) / length });
-    };
-    for (const t of [0, .5]) {
-      add(runX * t, -h + bowY * t * t * (3 - 2 * t), runX, bowY * 6 * t * (1 - t));
+  for (const [cos, sin] of rotations) {
+    const runX = (sin ? halfH : halfW) - r, runY = (sin ? halfW : halfH) - r;
+    const add = (x, y, dx, dy, handle) => knots.push({
+      x: cos * x - sin * y, y: sin * x + cos * y,
+      dx: cos * dx - sin * dy, dy: sin * dx + cos * dy, handle,
+    });
+    if (runX > 0) {
+      for (const t of [0, .5]) add(t * runX, -runY - r, 1, 0, runX / 6);
     }
-    for (const { x, y, dx, dy } of [circle[0], circle[2], circle[4]]) {
-      add(runX + r * x, -runY + r * y, dx, dy);
+    for (const [sx, cy] of corner) {
+      add(runX + r * sx, -runY - r * cy, cy, sx, r * arcHandle);
     }
-    for (const t of [0, .5]) {
-      add(w - bowX * (1 - t) ** 2 * (1 + 2 * t), -runY * (1 - t), bowX * 6 * t * (1 - t), runY);
+    if (runY > 0) {
+      for (const t of [0, .5]) add(runX + r, (t - 1) * runY, 0, 1, runY / 6);
     }
   }
   return knots;
-}
-
-function baseKnots(halfW, halfH, r, capsule) {
-  if (!capsule) {
-    const knots = roundedRectKnots(halfW, halfH, Math.max(r, Math.min(.5, halfW / 2, halfH / 2)));
-    for (let i = 0; i < knots.length; i++) {
-      const a = knots[i], b = knots[(i + 1) % knots.length];
-      a.handle = Math.hypot(b.x - a.x, b.y - a.y) / 3;
-    }
-    return knots;
-  }
-  return circle.map(arc => ({
-    x: r * arc.x + (halfW - r) * arc.sx, y: r * arc.y + (halfH - r) * arc.sy,
-    dx: r * arc.dx + (halfW - r) * arc.dsx, dy: r * arc.dy + (halfH - r) * arc.dsy,
-    handle: angleStep / 3,
-  }));
 }
 
 export function createGlassContour() {
@@ -100,8 +75,9 @@ export function createGlassContour() {
     const amplitude = Math.min(5, Math.min(halfW, halfH) * .30);
     const sumX = left.value + right.value, pullX = right.value - left.value;
     const sumY = top.value + bottom.value, pullY = bottom.value - top.value;
-    const capsule = radius >= shortSide * .47;
-    const knots = baseKnots(halfW, halfH, r, capsule).map(({ x, y, dx, dy, handle }) => {
+    // A subpixel corner keeps a continuous tangent even when an inset reaches a square corner.
+    const cornerRadius = Math.max(r, Math.min(.5, halfW / 2, halfH / 2));
+    const knots = roundedRectKnots(halfW, halfH, cornerRadius).map(({ x, y, dx, dy, handle }) => {
       const u = x / halfW, v = y / halfH, du = dx / halfW, dv = dy / halfH;
       const bowX = flank(v, sumY, pullY, pulse.value);
       const bowY = flank(u, sumX, pullX, pulse.value);
@@ -116,8 +92,7 @@ export function createGlassContour() {
         handle,
       };
     });
-    // Cubic Hermite segments in SVG coordinates; angleStep/3 converts an angular
-    // derivative into a Bézier handle. The last segment shares the first tangent.
+    // Adjacent cubic segments share the tangent of the displaced knot.
     let d = `M${round(knots[0].x)} ${round(knots[0].y)}`;
     for (let i = 0; i < knots.length; i++) {
       const a = knots[i], b = knots[(i + 1) % knots.length];

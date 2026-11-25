@@ -1,7 +1,7 @@
 import { nearestChoice, pulledChoiceRect } from './glass-choice-layout.js';
 import { createChoiceProjection } from './glass-choice-projection.js';
 import { createGlassMotion } from './glass-motion.js';
-import { attachGlassRim, rimOutset } from './glass-rim.js';
+import { attachGlassRim, glassCornerRadius, rimOutset } from './glass-rim.js';
 import { applyGlassRefraction, glassRefractionSupported, reducedGlassTransparency, removeGlassRefraction } from './glass-refraction.js';
 
 const hoverPointer = matchMedia('(any-hover: hover)');
@@ -70,9 +70,11 @@ export function bindGlassChoices(group, lens, { itemSelector, activeClass, activ
     const rect = pulled ? pulledChoiceRect(anchor, layout.choices, point, !!gesture) : anchor;
     lens.hidden = false;
     // Size the optics to the measured control. The spring carries the aperture across its neighbours.
-    applyGlassRefraction(lens, anchor.width, anchor.height, refraction);
+    const radius = glassCornerRadius(anchor.item, anchor.width, anchor.height);
+    lens.style.borderRadius = `${radius}px`;
+    applyGlassRefraction(lens, anchor.width, anchor.height, { ...refraction, radius });
     projection?.sync(layout.choices);
-    motion.moveTo(rect, { immediate: snapToLayout, pointerX: point?.x, pointerY: point?.y });
+    motion.moveTo(rect, { immediate: snapToLayout, radius, pointerX: point?.x, pointerY: point?.y });
     snapToLayout = false;
     motion.setPressed(!!gesture);
     lens.classList.add('is-positioned');

@@ -65,12 +65,28 @@ async function sampleLabelInk(page, clip) {
   return sample;
 }
 
+async function waitForSettledLens(lens) {
+  const settled = await lens.evaluate(async el => {
+    const edge = el.querySelector('.glass-contour-outline');
+    let previous, stable = 0;
+    for (let i = 0; i < 150 && stable < 4; i++) {
+      await new Promise(requestAnimationFrame);
+      const key = edge.getAttribute('d') + el.style.transform;
+      stable = key === previous ? stable + 1 : 0;
+      previous = key;
+    }
+    return stable === 4;
+  });
+  assert.ok(settled, 'lens settles before the pixel comparison');
+}
+
 async function checkChoiceOptics(page, lens, { stripes = false } = {}) {
   // Keep the real glyphs and their layout, isolating them from theme colors and painted highlights.
   const fixture = await page.addStyleTag({ content: `.top-rail-tabs, .nav-fs-dock { background: #151515 !important; }
     .top-rail-tab, .nav-fs-tab, .glass-projection-scene > span { color: white !important; transition: none !important; }
     .glass-contour > use, .glass-contour .rim-reflection { visibility: hidden; }` });
   try {
+    await waitForSettledLens(lens);
     const r = await lens.boundingBox();
     const clip = { x: Math.ceil(r.x + 4), y: Math.ceil(r.y + r.height * .27),
       width: Math.floor(r.width - 8), height: Math.floor(r.height * .46) };
@@ -81,7 +97,8 @@ async function checkChoiceOptics(page, lens, { stripes = false } = {}) {
     await hide.evaluate(el => el.remove());
     assert.ok(bare.width > 10 && glass.width >= bare.width * 1.05,
       `lens enlarges the real label (glass ${glass.width}px, original ${bare.width}px)`);
-    assert.ok(bare.sharpness > 50 && glass.sharpness >= bare.sharpness * .72, 'enlarged glyph edges retain sharp local contrast');
+    assert.ok(bare.sharpness > 50 && glass.sharpness >= bare.sharpness * .72,
+      `enlarged glyph edges retain sharp local contrast (glass ${glass.sharpness}, original ${bare.sharpness})`);
     if (stripes && engine === 'chromium') {
       // Dispersion creates color from a neutral field only where the curved lip samples different stripes.
       const plate = await page.addStyleTag({ content: `.top-rail-tabs { background:
@@ -107,21 +124,14 @@ async function checkLensBoundary(page, lens) {
   const fixture = await page.addStyleTag({ content: `.top-rail-tabs, .nav-fs-dock { background: #181818 !important; }
     .top-rail-tab, .nav-fs-tab, .glass-projection-scene > span { color: white !important; transition: none !important; }` });
   try {
-    const rim = await lens.evaluate(async el => {
+    await waitForSettledLens(lens);
+    const rim = await lens.evaluate(el => {
       const edge = el.querySelector('.glass-contour-outline');
-      let previous, stable = 0;
-      for (let i = 0; i < 150 && stable < 4; i++) {
-        await new Promise(requestAnimationFrame);
-        const key = edge.getAttribute('d') + el.style.transform;
-        stable = key === previous ? stable + 1 : 0;
-        previous = key;
-      }
       const m = el.querySelector('.glass-contour').getScreenCTM();
       const r = el.getBoundingClientRect();
-      return { stable, d: edge.getAttribute('d'), matrix: [m.a, m.b, m.c, m.d, m.e, m.f],
+      return { d: edge.getAttribute('d'), matrix: [m.a, m.b, m.c, m.d, m.e, m.f],
         clip: { x: Math.floor(r.x - 4), y: Math.floor(r.y - 4), width: Math.ceil(r.width + 9), height: Math.ceil(r.height + 9) } };
     });
-    assert.equal(rim.stable, 4, 'held cross-label pose settles before the pixel comparison');
     const glass = await screenshotPixels(page, rim.clip);
     const hide = await page.addStyleTag({ content: '.glass-hover-frame { visibility: hidden !important; } .glass-label-cutout { clip-path: none !important; }' });
     const bare = await screenshotPixels(page, rim.clip);

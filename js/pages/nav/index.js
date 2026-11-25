@@ -736,7 +736,7 @@ function ensureChart() {
   return state.chart;
 }
 
-function readThemeColors() {
+function readChartTheme() {
   const css = getComputedStyle(document.documentElement);
   const v = (n, fb) => css.getPropertyValue(n).trim() || fb;
   return {
@@ -749,6 +749,7 @@ function readThemeColors() {
     bgSubtle:  v('--bg-subtle',      '#f5f3ec'),
     accent:    v('--accent',         '#c47a3d'),
     accentSub: v('--accent-subtle',  'rgba(196,122,61,0.08)'),
+    labelRadius: parseFloat(v('--radius-xs', '0')),
   };
 }
 
@@ -782,7 +783,7 @@ function renderChart({ interaction = false } = {}) {
   // 派生指标 select 的 options 跟 selected/valueMode 走，这里统一刷
   if (!interaction) refreshExcessSelects();
 
-  const theme = readThemeColors();
+  const theme = readChartTheme();
   const valueMode = state.valueMode;
   const axisScale = state.axisScale;
 
@@ -1069,7 +1070,7 @@ function renderChart({ interaction = false } = {}) {
     // 原因：ECharts toolbox 只能画在 canvas 内，会和 markPoint 标签重叠。
     series: [...mainSeries, ...subplotSeries].map((s, i) => ({ ...s, id: `nav-series-${i}`, animation: false, sampling: 'lttb', clip: true,
       ...(s.markPoint ? { markPoint: { ...s.markPoint, label: { ...s.markPoint.label, fontSize,
-        backgroundColor: theme.bgRaised, borderRadius: 3, padding: [2, 3] } } } : {}) })),
+        backgroundColor: theme.bgRaised, borderRadius: theme.labelRadius, padding: [2, 3] } } } : {}) })),
   };
 
   state._extremaCache = { series: option.series, start: sIdx, end: eIdx, baselineStart: extremaStartIdx };
@@ -2311,7 +2312,7 @@ function setupChartToolbar() {
     saveBtn.dataset.bound = '1';
     saveBtn.addEventListener('click', () => {
       if (!state.chart) return;
-      const theme = readThemeColors();
+      const theme = readChartTheme();
       const dataURL = state.chart.getDataURL({
         type: 'png',
         pixelRatio: 2,

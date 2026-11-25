@@ -14,11 +14,6 @@
 
 /* ── 中等屏幕及以下 (1024px) ── */
 @media (max-width: 1024px) {
-  :root {
-    --radius-lg: 18px;
-    --radius-xl: 24px;
-  }
-
   .container {
     padding: 24px 18px 32px;
   }
@@ -70,11 +65,6 @@
 
 /* ── 平板及以下 (768px) ── */
 @media (max-width: 768px) {
-  :root {
-    --radius-lg: 16px;
-    --radius-xl: 22px;
-  }
-
   .page-header {
     flex-direction: column;
     align-items: flex-start;
@@ -215,7 +205,6 @@
   .modal {
     width: 100%;
     max-height: calc(100dvh - 2rem);
-    border-radius: var(--radius-xl);
   }
 
   .modal-header,
@@ -228,7 +217,6 @@
     width: 100%;
     height: calc(100dvh - 2rem);
     max-height: calc(100dvh - 2rem);
-    border-radius: var(--radius-xl);
   }
 
   /* 窄屏改回上下布局 */

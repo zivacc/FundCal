@@ -59,7 +59,7 @@
   width: 13px;
   height: 13px;
   border: 1.5px solid currentColor;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   transform: translateY(-60%);
 }
 
@@ -67,7 +67,7 @@
   left: 26px;
   width: 6px;
   height: 1.5px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: currentColor;
   transform: translateY(4px) rotate(45deg);
   transform-origin: left;
@@ -76,7 +76,7 @@
 .page-calc .actions-above-cards .fund-search-input {
   min-height: 44px;
   padding-inline: 40px 14px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 
 .page-calc #add-fund {
@@ -125,7 +125,7 @@
   margin: 0;
   padding: 10px 13px;
   border: 1px solid var(--glass-stroke);
-  border-radius: 18px;
+  border-radius: var(--radius-lg);
   background: var(--glass-highlight), var(--glass-fill);
   box-shadow: inset 0 1px 0 var(--glass-toplight), var(--shadow-sm);
   align-items: center;
@@ -148,7 +148,7 @@
   min-width: 3.35rem;
   min-height: 34px;
   max-width: 90px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 
 .calc-days-sep {
@@ -167,7 +167,7 @@
 .calc-days-quick-btn {
   min-height: 34px;
   padding: 0.35rem 0.6rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 0.8rem;
 }
 
@@ -192,7 +192,7 @@
 
 .calc-discount-wrap .toggle-select {
   min-height: 34px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -206,7 +206,7 @@
   justify-content: center;
   gap: 7px;
   padding: 0.48rem 0.7rem 0.48rem 0.56rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-family: var(--font-body);
   font-size: 0.85rem;
   font-weight: 500;
@@ -228,7 +228,7 @@
   height: 17px;
   flex: 0 0 auto;
   border: 1px solid var(--rule-strong);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--bg-sunk);
   transition: background-color var(--transition-fast);
 }
@@ -239,7 +239,7 @@
   inset: calc(50% - 5.5px) auto auto calc(0.56rem + 3px);
   width: 11px;
   height: 11px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   background: var(--text-tertiary);
   box-shadow: var(--shadow-sm);
   transition: transform var(--transition-fast), background-color var(--transition-fast);
@@ -372,7 +372,7 @@
   cursor: pointer;
   font-size: 1.1rem;
   line-height: 1;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-circle);
   font-family: inherit;
   transition: all var(--transition-fast);
 }
@@ -441,7 +441,7 @@
 .discount-tag {
   font-size: 0.7rem;
   padding: 0.1rem 0.3rem;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-pill);
   background: var(--accent-subtle);
   color: var(--accent);
   margin-left: 0.35rem;
@@ -450,6 +450,5 @@
 .page-calc .fund-detail-table-wrap {
   background: var(--glass-highlight), var(--glass-fill);
   border-color: var(--glass-stroke);
-  border-radius: 22px;
   box-shadow: var(--glass-shadow);
 }
