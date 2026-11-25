@@ -10,11 +10,11 @@ export const reducedGlassTransparency = matchMedia('(prefers-reduced-transparenc
 // SVG displacement can sample the live backdrop in Chromium; other engines can filter a foreground.
 export const glassRefractionSupported = navigator.userAgentData?.brands.some(({ brand }) => brand === 'Chromium') ?? false;
 
-function encodeMaps(width, height, radius, rim, scale, outset, magnification, density) {
+function encodeMaps(width, height, radius, rim, scale, outset, magnification, density, edgeOnly) {
   const canvas = document.createElement('canvas');
   const context = canvas.getContext('2d');
   if (!context) return null;
-  const field = createGlassField(width, height, radius, rim, scale, outset, magnification, density);
+  const field = createGlassField(width, height, radius, rim, scale, outset, magnification, density, edgeOnly);
   canvas.width = field.width;
   canvas.height = field.height;
   function encode(bytes) {
@@ -32,12 +32,12 @@ function primitive(parent, type, attributes) {
 }
 
 function displace(filter, source, map, scale, result) {
-  primitive(filter, 'feDisplacementMap', {
+  return primitive(filter, 'feDisplacementMap', {
     in: source, in2: map, scale, xChannelSelector: 'R', yChannelSelector: 'G', result,
   });
 }
 
-function addFilter(maps) {
+function addFilter(maps, edgeOnly) {
   const filter = document.createElementNS(svgNamespace, 'filter');
   filter.id = `glass-refraction-${++nextFilterId}`;
   filter.setAttribute('x', '0%');
@@ -53,8 +53,8 @@ function addFilter(maps) {
     displace(filter, 'SourceGraphic', 'lit-surface', maps.range, 'bent');
     primitive(filter, 'feImage', { href: maps.dispersion, preserveAspectRatio: 'none', result: 'normals' });
     record.color = primitive(filter, 'feColorMatrix', { in: 'normals', type: 'matrix', result: 'lit-edge' });
-    displace(filter, 'bent', 'lit-edge', 2.8, 'red-rays');
-    displace(filter, 'bent', 'lit-edge', -2.8, 'blue-rays');
+    record.red = displace(filter, 'bent', 'lit-edge', 2.8, 'red-rays');
+    record.blue = displace(filter, 'bent', 'lit-edge', -2.8, 'blue-rays');
     // Reassemble the three samples, retaining the original refracted alpha for
     // translucent foreground glyphs. All channel filters work in sRGB.
     for (const [channel, input] of ['red-rays', 'bent', 'blue-rays'].entries()) {
@@ -65,7 +65,19 @@ function addFilter(maps) {
     }
     primitive(filter, 'feComposite', { in: 'channel-0', in2: 'channel-1', operator: 'arithmetic', k2: 1, k3: 1, result: 'rg' });
     primitive(filter, 'feComposite', { in: 'rg', in2: 'channel-2', operator: 'arithmetic', k2: 1, k3: 1, result: 'rgb' });
-    primitive(filter, 'feComposite', { in: 'rgb', in2: 'bent', operator: 'in' });
+    primitive(filter, 'feComposite', { in: 'rgb', in2: 'bent', operator: 'in', result: 'glass' });
+    if (edgeOnly) {
+      // A translucent backdrop painted a second time shows its entire clip as
+      // a dark stripe. Paint only the rays whose sampled colour actually changed.
+      primitive(filter, 'feColorMatrix', { in: 'SourceGraphic', result: 'original-color',
+        values: '1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0 1' });
+      primitive(filter, 'feBlend', { in: 'rgb', in2: 'original-color', mode: 'difference', result: 'difference' });
+      // A smooth alpha ramp over the first ~2% of luminance change also
+      // preserves antialiased strokes passing through the inner shoulder.
+      primitive(filter, 'feColorMatrix', { in: 'difference', result: 'coverage',
+        values: '0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  15 30 5 0 0' });
+      primitive(filter, 'feComposite', { in: 'glass', in2: 'coverage', operator: 'in' });
+    }
     steer(record, null, null);
   } else {
     displace(filter, 'SourceGraphic', 'surface', maps.range, 'bent');
@@ -85,9 +97,16 @@ function steer(record, x, y) {
   record.color.setAttribute('values', color.join(' '));
 }
 
-export function setGlassLight(element, x, y) {
+export function setGlassLight(element, x, y, intensity = 1) {
   const record = bindings.get(element);
-  if (record?.bend) steer(record, x, y);
+  if (!record?.bend) return;
+  steer(record, x, y);
+  const spread = Math.round(intensity * 2.8 * 16) / 16;
+  if (record.spread !== spread) {
+    record.spread = spread;
+    record.red.setAttribute('scale', spread);
+    record.blue.setAttribute('scale', -spread);
+  }
 }
 
 export function removeGlassRefraction(element) {
@@ -104,7 +123,7 @@ export function removeGlassRefraction(element) {
 
 export function applyGlassRefraction(element, width, height, {
   radius = Math.min(width, height) / 2, rim = 8, scale = 14, outset = 0,
-  magnification = 1, foreground = false,
+  magnification = 1, foreground = false, edgeOnly = false,
 } = {}) {
   if ((!glassRefractionSupported && !foreground) || reducedGlassTransparency.matches || width < 1 || height < 1) {
     removeGlassRefraction(element);
@@ -113,9 +132,10 @@ export function applyGlassRefraction(element, width, height, {
   width = Math.round(width);
   height = Math.round(height);
   radius = Math.min(radius, width / 2, height / 2);
-  rim = Math.min(rim, radius);
-  const density = magnification > 1 ? Math.min(2, Math.max(1, devicePixelRatio)) : 1;
-  const key = [width, height, radius, rim, scale, outset, magnification, density].join(':');
+  rim = Math.min(rim, edgeOnly ? Math.min(width, height) / 2 : radius);
+  if (edgeOnly) magnification = 1;
+  const density = edgeOnly || magnification > 1 ? Math.min(2, Math.max(1, devicePixelRatio)) : 1;
+  const key = [width, height, radius, rim, scale, outset, magnification, density, edgeOnly].join(':');
   if (bindings.get(element)?.key === key) return;
   removeGlassRefraction(element);
 
@@ -123,14 +143,14 @@ export function applyGlassRefraction(element, width, height, {
   if (!record) {
     let maps = lensMaps.get(key);
     if (!maps) {
-      maps = encodeMaps(width, height, radius, rim, scale, outset, magnification, density);
+      maps = encodeMaps(width, height, radius, rim, scale, outset, magnification, density, edgeOnly);
       if (!maps) return;
       if (maps.dispersion) {
         if (lensMaps.size >= 24) lensMaps.delete(lensMaps.keys().next().value);
         lensMaps.set(key, maps);
       }
     }
-    record = addFilter(maps);
+    record = addFilter(maps, edgeOnly);
     record.key = key;
     if (!record.bend) sharedRims.set(key, record);
   }

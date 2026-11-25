@@ -69,7 +69,7 @@ async function checkChoiceOptics(page, lens, { stripes = false } = {}) {
   // Keep the real glyphs and their layout, isolating them from theme colors and painted highlights.
   const fixture = await page.addStyleTag({ content: `.top-rail-tabs, .nav-fs-dock { background: #151515 !important; }
     .top-rail-tab, .nav-fs-tab, .glass-projection-scene > span { color: white !important; transition: none !important; }
-    .glass-contour > use { visibility: hidden; }` });
+    .glass-contour > use, .glass-contour .rim-reflection { visibility: hidden; }` });
   try {
     const r = await lens.boundingBox();
     const clip = { x: Math.ceil(r.x + 4), y: Math.ceil(r.y + r.height * .27),
@@ -363,8 +363,10 @@ try {
   const rowBand = rowFrame.locator('clipPath path[clip-rule="evenodd"]');
   assert.equal((await rowBand.getAttribute('d')).match(/M/gi)?.length, 2, 'a row refracts only its hollow band');
   const rowInset = await rowFrame.evaluate(el =>
-    el.querySelector('.rim-shine-line').getBBox().y - el.querySelector('.glass-contour-outline').getBBox().y);
+    el.querySelector('.rim-reflection').getBBox().y - el.querySelector('.glass-contour-outline').getBBox().y);
   assert.ok(rowInset > .5, 'the row reflection sits inside its physical outline');
+  assert.equal(await rowFrame.locator('.glass-contour > use').count(), 1);
+  assert.ok(await rowFrame.locator('.rim-reflection').evaluate(el => Number(el.getAttribute('opacity')) > 0));
   assert.equal(await rowFrame.evaluate(el => el.classList.contains('has-optical-lens')), false);
   const rate = metric('显性年化费率').first();
   const rateText = await rate.evaluate(el => {

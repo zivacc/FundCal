@@ -177,7 +177,7 @@ DB → build-allfund-from-db 等构建脚本 → data/allfund/* 公共分片
 ## 前端结构
 
 - 单一 index.html，hash SPA，8 个页面懒加载，映射见 [js/core/router.js](js/core/router.js)：`calc → pages/calc`、`list → pages/list`、`index → pages/index-picker`、`nav → pages/nav`、`stats → pages/stats`、`fund → pages/fund-detail`、`index-detail → pages/index-detail`、`compare → pages/fund-compare`。
-- 顶栏、净值页分段控件及全屏图表底栏通过 `js/core/glass-choices.js` 复用一个移动透镜。`js/core/glass-choice-layout.js` 按按钮实测位置计算指针牵引，`js/core/glass-motion.js` 驱动弹性跟随，`js/core/glass-contour.js` 按速度和按压力度调整轮廓。透镜中心清晰放大。移动透镜用单条渐变描边，色散在随轮廓变形的内侧开口中合成。Chromium 采样实际背景，WebKit 对框内按钮文字应用相同位移场。基金卡片和表格只在内侧窄带折射，费率数字保持原尺寸。悬停预览，按住横拖并在目标上松手执行选择。顶栏超出屏宽时保留原生触屏滚动。滚动表格或开启「减少动态效果」时，边框直接对齐目标。
+- 顶栏、净值页分段控件及全屏图表底栏通过 `js/core/glass-choices.js` 复用一个移动透镜。`js/core/glass-choice-layout.js` 按按钮实测位置计算指针牵引，`js/core/glass-motion.js` 驱动弹性跟随，`js/core/glass-contour.js` 按速度和按压力度调整轮廓。透镜中心清晰放大。移动透镜用单条渐变描边，色散在随轮廓变形的内侧开口中合成。Chromium 采样实际背景，WebKit 对框内按钮文字应用相同位移场。周期选择与统计维度也使用该透镜。按钮、输入框和筛选标签由 `js/core/glass-controls.js` 共用一个悬停边框。基金卡片、表格行、篮子拖影和接收区同样使用单圈轮廓，按压增强内沿反光。反光沿法线渐隐，只有高光自身经过羽化。边缘滤镜仅合成取样后颜色发生变化的像素，费率数字保持原尺寸。悬停预览，按住横拖并在目标上松手执行选择。顶栏超出屏宽时保留原生触屏滚动。滚动表格或开启「减少动态效果」时，边框直接对齐目标。
 - 基金比较 `#/compare/<六位代码逗号串>` 最多 8 只，复用原始单基金与晨星 API；现行小数费率与历史百分数分开，报告期整期选择，不跨期补缺。旧静态分片将缺失费率默认为零，比较页只用它兜底基本资料，不作为现行费用依据。单基金 API 缺失费率保留 null。
 - 基金详情的 `/related` 显示严格名称/管理人匹配的其他份额和本地联接关系；缺失母基金时 `?resolveMaster=1` 按需核验东财明确的“查看相关ETF”链接。FOF `/holdings` 只读来源前十披露，显示报告期，不代表完整组合；上游请求有界、共享并发限制、不写库。没有场外详情的基金打开来源页。
 - 指数详情基于只读连接；换手实际披露与同源两期完整权重变化代理分开，后者未扣价格漂移、未年化；未经独立核验日期的Wind快照不参与推算。当前每源仅一期快照，实际披露尚无存量，缺口不填零。可选披露表契约位于 `scripts/nav/index-turnover.js`，不由 GET 初始化。

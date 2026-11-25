@@ -45,6 +45,8 @@
   animation: reveal-table-frame .12s ease-out;
 }
 
+:is(#fund-basket-list, .fund-stats-detail-list) { position: relative; }
+
 @keyframes reveal-table-frame { from { opacity: 0; } }
 .basket-dragging .glass-table-frame { visibility: hidden; }
 

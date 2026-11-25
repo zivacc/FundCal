@@ -8,6 +8,23 @@ const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH,
 const funds = Array.from({ length: 120 }, (_, i) => ({
   code: String(i + 1).padStart(6, '0'), name: `测试基金${i + 1}`, needsCrawl: i === 2,
 }));
+
+async function checkTranslucentFilterChip(page) {
+  const chip = page.locator('#cf-filter-fundType button').first();
+  await chip.hover();
+  await page.locator('#cf-filter-fundType .has-control-edge').waitFor();
+  const lens = page.locator('.control-edge-lens');
+  assert.match(await lens.evaluate(el => getComputedStyle(el, '::before').backdropFilter), /url\(/);
+  const { x, y, width } = await chip.boundingBox();
+  // This patch lies in the refracting upper lip, above blank space past the label.
+  const clip = { x: Math.round(x + width * .64), y: Math.round(y + 4), width: 16, height: 2 };
+  const glass = await page.screenshot({ clip });
+  const off = await page.addStyleTag({ content: '.control-edge-lens::before { backdrop-filter: none !important; }' });
+  const bare = await page.screenshot({ clip });
+  await off.evaluate(el => el.remove());
+  assert.ok(glass.equals(bare), 'the glass edge preserves the flat color of a translucent sidebar');
+}
+
 try {
   for (const touch of [false, true]) {
     const context = await browser.newContext({ viewport: touch ? { width: 390, height: 844 } : { width: 1440, height: 960 }, hasTouch: touch });
@@ -20,13 +37,15 @@ try {
       if (params.get('q')) list = list.filter(f => f.code.includes(params.get('q')));
       return route.fulfill({ json: { total: list.length, page: n, size, rows: list.slice((n - 1) * size, n * size) } });
     });
-    await page.route('**/api/fund/filter-options*', route => route.fulfill({ json: {} }));
+    await page.route('**/api/fund/filter-options*', route => route.fulfill({ json: { fundType: [{ label: '混合型', count: 36 }] } }));
+    if (!touch) await page.addInitScript(() => localStorage.setItem('fundcal-theme', 'dark'));
     await page.goto(process.env.FUND_CAL_URL || 'http://localhost:3456/#/list');
     const row = n => page.locator(`#cached-funds-tbody tr[data-code="${String(n).padStart(6, '0')}"]`);
     const cell = n => row(n).locator('td').nth(2);
     const selection = () => page.locator('#cached-funds-tbody tr[aria-selected="true"]').evaluateAll(rows => rows.map(r => Number(r.dataset.code)));
     const choose = async (n, modifiers = []) => touch ? cell(n).tap() : cell(n).click({ modifiers });
     await row(1).waitFor();
+    if (!touch) await checkTranslucentFilterChip(page);
     await choose(1); await choose(4, ['Meta']);
     assert.deepEqual(await selection(), [1, 4]);
     await choose(1, ['Meta']); assert.deepEqual(await selection(), [4]);
@@ -69,7 +88,13 @@ try {
     await page.keyboard.press('Escape'); await page.mouse.up();
     assert.equal((await selection()).length, selectedCount);
     if (!touch) {
-      await page.locator('#cached-funds-next').click(); await row(101).waitFor();
+      const next = page.locator('#cached-funds-next');
+      const label = await next.textContent();
+      await next.hover();
+      await page.locator('#cached-funds-next.has-control-edge').waitFor();
+      assert.equal(await next.textContent(), label, 'hover preserves the pagination label');
+      assert.ok(await page.locator('.control-edge-lens').evaluate(el => el.inert && !el.closest('button')));
+      await next.click(); await row(101).waitFor();
       assert.equal(await page.locator('#cached-funds-compare-btn').textContent(), `去比较 (${selectedCount})`);
       await choose(104, ['Meta', 'Shift']); assert.deepEqual(await selection(), [104]);
       await page.locator('#cached-funds-prev').click(); await row(1).waitFor();

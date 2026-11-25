@@ -1,4 +1,6 @@
 import { BASKET_DROP_DIAMETER, insideDropCircle, detailDropCode } from '../core/fund-drop.js';
+import { createGlassMotion } from '../core/glass-motion.js';
+import { attachGlassRim, rimOutset } from '../core/glass-rim.js';
 import { applyGlassRefraction, reducedGlassTransparency, removeGlassRefraction } from '../core/glass-refraction.js';
 import { normalizeFundRefs } from '../data/basket-store.js';
 import { basket as store, basketStorageFailed } from '../data/basket.js';
@@ -18,7 +20,7 @@ root.innerHTML = `
   <div id="basket-drop-zones" hidden><button type="button" data-basket-drop="add"><strong>＋ 添加</strong><span>保留当前基金，去重后加入</span></button><button type="button" data-basket-drop="replace"><strong>⇄ 替换</strong><span>替换当前基金，保留页面设置</span></button><button type="button" id="basket-drag-cancel" aria-label="取消拖动">取消 · Esc</button></div>
   <section id="basket-fund-picker" aria-label="选择要查看的基金" hidden><header><strong id="basket-fund-picker-title"></strong><button type="button" data-basket-action="cancel">取消 · Esc</button></header><div id="basket-fund-choices"></div></section>
   <button type="button" id="basket-drop-target" aria-label="加入基金篮子" hidden><span>加入篮子</span></button>
-  <div id="basket-drag-ghost" aria-hidden="true" hidden></div>
+  <div id="basket-drag-ghost" class="glass-hover-frame" aria-hidden="true" hidden><span class="basket-ghost-label"></span></div>
   <div id="basket-live-status" role="status" aria-live="polite" hidden></div>`;
 document.body.append(root);
 const panel = root.querySelector('#fund-basket-panel');
@@ -148,12 +150,56 @@ function positionTarget() {
   target.style.left = `${box.x + box.width / 2}px`;
   target.style.top = `${box.y + box.height / 2}px`;
 }
-function updateGhostRefraction() {
-  if (ghost.hidden) return;
-  const radius = parseFloat(getComputedStyle(ghost).borderTopLeftRadius);
-  applyGlassRefraction(ghost, ghost.offsetWidth, ghost.offsetHeight, { radius, rim: 8, scale: 19 });
+function dragGlass(element, radius) {
+  const optics = { radius, rim: 8, scale: 15, outset: rimOutset, edgeOnly: true };
+  const motion = createGlassMotion(element, { rim: attachGlassRim(element, { radius, rim: optics.rim, strength: .68 }) });
+  return { optics, motion };
 }
-reducedGlassTransparency.addEventListener('change', updateGhostRefraction);
+let ghostGlass, dropGlass;
+let ghostWidth = 0, ghostHeight = 0;
+function measureGhost() {
+  if (ghost.hidden) return;
+  ghostGlass ??= dragGlass(ghost, parseFloat(getComputedStyle(ghost).borderTopLeftRadius));
+  // Measure the wrapped label independently of the last dragged fund's width.
+  ghost.style.removeProperty('width');
+  ghost.style.removeProperty('height');
+  ghostWidth = ghost.offsetWidth;
+  ghostHeight = ghost.offsetHeight;
+  applyGlassRefraction(ghost, ghostWidth, ghostHeight, ghostGlass.optics);
+}
+function positionGhost(x, y) {
+  const left = Math.max(8, Math.min(window.innerWidth - ghostWidth - 8, x + 12));
+  const top = Math.max(8, Math.min(window.innerHeight - ghostHeight - 8, y + 18));
+  ghostGlass.motion.moveTo({ x: left, y: top, width: ghostWidth, height: ghostHeight }, { pointerX: x, pointerY: y });
+  ghostGlass.motion.setPressed(true);
+}
+function clearDropGlass() {
+  if (!dropGlass) return;
+  dropGlass.motion.reset();
+  removeGlassRefraction(dropGlass.lens);
+  dropGlass.host.classList.remove('has-drop-lens');
+  dropGlass.lens.remove();
+  dropGlass = null;
+}
+function positionDropGlass(host, x, y) {
+  if (host !== dropGlass?.host) clearDropGlass();
+  if (!host) return;
+  if (!dropGlass) {
+    const lens = document.createElement('span');
+    lens.className = 'glass-hover-frame basket-drop-lens';
+    lens.setAttribute('aria-hidden', 'true');
+    host.append(lens);
+    host.classList.add('has-drop-lens');
+    const radius = host === target ? host.clientWidth / 2 : parseFloat(getComputedStyle(host).borderTopLeftRadius);
+    dropGlass = { host, lens, ...dragGlass(lens, radius) };
+  }
+  const { lens, motion, optics } = dropGlass;
+  const box = host.getBoundingClientRect();
+  const width = host.clientWidth, height = host.clientHeight;
+  applyGlassRefraction(lens, width, height, optics);
+  motion.moveTo({ x: 0, y: 0, width, height }, { pointerX: x - box.left - host.clientLeft, pointerY: y - box.top - host.clientTop });
+  motion.setPressed(true);
+}
 
 function startDrag(source, keyboard = false) {
   const surface = source.node.closest('.fund-card, tr, .basket-fund-row, .fund-stats-detail-row') || source.node;
@@ -165,8 +211,8 @@ function startDrag(source, keyboard = false) {
   if (source.items.length === 1) fundTab.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   target.hidden = source.origin === 'basket';
   ghost.hidden = keyboard;
-  ghost.textContent = `${source.items.length} 只基金 · ${source.items[0].name}${source.items.length > 1 ? ' 等' : ''}`;
-  updateGhostRefraction();
+  ghost.querySelector('.basket-ghost-label').textContent = `${source.items.length} 只基金 · ${source.items[0].name}${source.items.length > 1 ? ' 等' : ''}`;
+  measureGhost();
   refreshContext();
   if (keyboard) {
     if (!picker.hidden) choices.querySelector('[data-basket-drop]').focus();
@@ -191,7 +237,9 @@ function highlightDrop(x, y) {
   const mode = dropAt(x, y);
   target.classList.toggle('is-over', mode === 'basket'); trigger.classList.toggle('is-drop-over', mode === 'basket');
   fundTab.classList.toggle('is-fund-drop-over', drag?.items.length === 1 && onFundTab(x, y));
-  root.querySelectorAll('[data-basket-drop]').forEach(node => node.classList.toggle('is-over', node.dataset.basketDrop === mode));
+  const area = mode === 'basket' ? target : mode && document.elementFromPoint(x, y)?.closest('[data-basket-drop]');
+  root.querySelectorAll('[data-basket-drop]').forEach(node => node.classList.toggle('is-over', node === area));
+  positionDropGlass(area, x, y);
 }
 function scrollChoices() {
   scrollFrame = 0;
@@ -214,6 +262,8 @@ function stopDrag() {
   picker.hidden = true; pickerItems = null;
   trigger.classList.remove('is-drop-ready', 'is-drop-over'); target.classList.remove('is-over');
   zones.hidden = true; target.hidden = true; ghost.hidden = true;
+  ghostGlass?.motion.reset();
+  clearDropGlass();
   removeGlassRefraction(ghost);
   root.querySelectorAll('[data-basket-drop]').forEach(node => node.classList.remove('is-over'));
   if (source?.keyboard) (source.node?.isConnected ? source.node : trigger).focus({ preventScroll: true });
@@ -263,8 +313,7 @@ document.addEventListener('pointermove', event => {
   if (!drag && candidate.deckPan && Math.abs(event.clientX - candidate.x) >= Math.abs(event.clientY - candidate.y)) { candidate = null; return; }
   if (!drag) { startDrag(candidate); candidate.node.setPointerCapture(event.pointerId); }
   event.preventDefault();
-  ghost.style.left = `${Math.max(8, Math.min(window.innerWidth - ghost.offsetWidth - 8, event.clientX + 12))}px`;
-  ghost.style.top = `${Math.max(8, Math.min(window.innerHeight - ghost.offsetHeight - 8, event.clientY + 18))}px`;
+  positionGhost(event.clientX, event.clientY);
   drag.point = { x: event.clientX, y: event.clientY };
   highlightDrop(event.clientX, event.clientY);
   if (!scrollFrame) scrollFrame = requestAnimationFrame(scrollChoices);
@@ -301,7 +350,18 @@ document.addEventListener('keydown', event => {
 window.addEventListener('fundcal-selection-change', refreshContext);
 window.addEventListener('fundcal-route-ready', refreshContext);
 window.addEventListener('hashchange', refreshContext);
-window.addEventListener('resize', () => { if (drag) { positionTarget(); positionDropLabels(); } });
+function updateDragLayout() {
+  if (!drag) return;
+  positionTarget();
+  positionDropLabels();
+  measureGhost();
+  if (drag.point) {
+    positionGhost(drag.point.x, drag.point.y);
+    highlightDrop(drag.point.x, drag.point.y);
+  }
+}
+window.addEventListener('resize', updateDragLayout);
+reducedGlassTransparency.addEventListener('change', updateDragLayout);
 new ResizeObserver(() => { if (drag) positionDropLabels(); }).observe(panel);
 window.addEventListener('blur', () => { if (drag && !drag.keyboard) stopDrag(); });
 // NAV 全屏隐藏顶栏时，保留同一个篮子入口；退出后归位。

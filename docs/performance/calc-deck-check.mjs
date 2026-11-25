@@ -4,8 +4,9 @@
  */
 import assert from 'node:assert/strict';
 import { createStaticServer } from '../../scripts/serve-static.js';
-const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
-const browser = await chromium.launch({ executablePath:process.env.CHROME_PATH, headless:true });
+const { chromium, webkit } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const useWebKit = process.env.BROWSER_ENGINE === 'webkit';
+const browser = useWebKit ? await webkit.launch() : await chromium.launch({ executablePath:process.env.CHROME_PATH, headless:true });
 const server = createStaticServer();
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const base = `http://127.0.0.1:${server.address().port}`;
@@ -20,24 +21,25 @@ try {
  await page.waitForSelector('.fund-card.is-deck-active'); await page.waitForTimeout(350);
  const activeCard = page.locator('.fund-card.is-deck-active').first();
  const optics = locator => locator.evaluate(el => {
-   const id = el.style.getPropertyValue('--glass-refraction').match(/#([^"]+)/)?.[1];
-   const scale = document.getElementById(id)?.querySelector('feDisplacementMap')?.getAttribute('scale');
    const lip = el.querySelector('.deck-card-rim') || el;
-   return { scale: Number(scale), filter: getComputedStyle(el).backdropFilter,
+   const id = lip.style.getPropertyValue('--glass-refraction').match(/#([^"]+)/)?.[1];
+   const rays = document.getElementById(id)?.querySelectorAll('feDisplacementMap').length ?? 0;
+   const seam = lip.querySelector('.rim-shine-line');
+   return { rays, line: Number(seam?.getAttribute('stroke-width')), filter: getComputedStyle(el).backdropFilter,
      edge: getComputedStyle(lip, '::before').backdropFilter, foreground: getComputedStyle(el).filter };
  });
  const initialOptics = await optics(activeCard);
  assert.equal(initialOptics.filter, 'none');
- assert.match(initialOptics.edge, /^url\(/);
+ if (!useWebKit) assert.match(initialOptics.edge, /^url\(/);
  assert.equal(initialOptics.foreground, 'none');
  const stripes = await page.addStyleTag({ content: '#fund-cards { background:repeating-linear-gradient(90deg,#484875 0 1px,#f5f5d0 1px 3px); }' });
  async function checkClearFace() {
    await activeCard.scrollIntoViewIfNeeded();
-   const box = await activeCard.boundingBox();
-   const clip = { x: Math.ceil(box.x + box.width / 2 - 50), y: Math.ceil(box.y + 90), width: 100, height: 52 };
+   const box = await activeCard.locator('.input-annual-fee').boundingBox();
+   const clip = { x: Math.ceil(box.x + 3), y: Math.ceil(box.y + 3), width: Math.floor(box.width - 6), height: Math.floor(box.height - 6) };
    const surface = await page.screenshot({ clip });
    // An identity filter keeps text on the same compositor layer for a pixel-exact comparison.
-   const off = await page.addStyleTag({ content: '#fund-cards :is(.fund-card,.deck-card-rim)::before { backdrop-filter:opacity(1)!important; }' });
+   const off = await page.addStyleTag({ content: '#fund-cards .deck-card-rim { visibility: hidden !important; } #fund-cards .fund-card::before { backdrop-filter:opacity(1)!important; }' });
    try {
      assert.ok(surface.equals(await page.screenshot({ clip })), 'central content and underlying stripes stay pixel-identical without optics');
    } finally { await off.evaluate(el => el.remove()); }
@@ -53,7 +55,21 @@ try {
  const firstEdge = activeCard.locator('.deck-card-rim .glass-contour-outline');
  await firstEdge.waitFor({ state: 'attached' });
  const edgeId = await firstEdge.getAttribute('id');
- assert.match((await optics(activeCard)).edge, /^url\(/);
+ const hover = await optics(activeCard);
+ if (!useWebKit) {
+   assert.match(hover.edge, /^url\(/);
+   assert.equal(hover.rays, 3, 'the interactive edge separates three optical samples');
+ }
+ assert.equal(await rim.locator('.glass-contour > use').count(), 1, 'hover draws one visible rim');
+ await annualFee.hover();
+ await page.mouse.down();
+ await page.waitForFunction(width => +document.querySelector('.deck-card-rim .rim-shine-line').getAttribute('stroke-width') > width, hover.line);
+ assert.equal(await annualFee.evaluate(el => el === document.activeElement), true, 'pressing the fee field still focuses the native input');
+ await page.mouse.up();
+ await annualFee.press('Tab');
+ const frontBox = await activeCard.boundingBox();
+ await page.mouse.move(frontBox.x + 8, frontBox.y + 100);
+ await annualFee.evaluate(el => Promise.all(el.getAnimations().map(animation => animation.finished.catch(() => {}))));
  await checkClearFace();
  await stripes.evaluate(el => el.remove());
  const otherCard = page.locator('.fund-card.is-deck-active').nth(1);
@@ -143,7 +159,7 @@ try {
  await draggedCard.waitFor();
  const draggedOptics = await optics(draggedCard);
  assert.equal(draggedOptics.filter, 'none');
- assert.ok(draggedOptics.scale > initialOptics.scale);
+ assert.ok(draggedOptics.line > hover.line, 'the pressed material follows the dragged card');
  await page.mouse.move(card.x-210,card.y+110,{steps:10}); await page.mouse.up(); await page.waitForTimeout(400);
  assert.equal(await page.locator('body').evaluate(el=>el.classList.contains('basket-dragging')),false); assert.ok(Number(await page.locator('#fund-cards').getAttribute('data-active-index'))>0);
  card=await page.locator('.fund-card.is-deck-active').first().boundingBox();
@@ -153,7 +169,7 @@ try {
  assert.equal(await source.count(), 1);
  assert.equal((await optics(source)).filter, 'none');
  const ghost = page.locator('#basket-drag-ghost');
- assert.match(await ghost.evaluate(el => getComputedStyle(el, '::before').backdropFilter), /^url\(/);
+ if (!useWebKit) assert.match(await ghost.evaluate(el => getComputedStyle(el, '::before').backdropFilter), /^url\(/);
  const target=await page.locator('#fund-basket-button').boundingBox();
  await page.mouse.move(target.x+target.width/2,target.y+target.height/2,{steps:10}); await page.mouse.up(); await page.waitForTimeout(100);
  assert.equal(await page.locator('#fund-basket-button .basket-count').textContent(),'1');
@@ -170,17 +186,19 @@ try {
  await mp.addInitScript(()=>localStorage.setItem('fundCalState',JSON.stringify({calcDaysMax:365,funds:Array.from({length:5},(_,i)=>({name:'测试基金 '+i,code:String(i+1).padStart(6,'0'),annualFee:.005,buyFee:0,sellFeeSegments:[{to:null,rate:0}]}))})));
  await mp.goto(`${base}/#/calc`,{waitUntil:'domcontentloaded'}); await mp.waitForSelector('.fund-card.is-deck-active'); await mp.waitForTimeout(300);
  await mp.evaluate(()=>scrollTo(0,200)); await mp.waitForTimeout(100);
- const mb=await mp.locator('.fund-card.is-deck-active').first().boundingBox();
- const cdp=await mobile.newCDPSession(mp);
- const swipe=async(x,y,dx,dy)=>{await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});for(let i=1;i<=12;i++){await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x+dx*i/12,y:y+dy*i/12}]});await mp.waitForTimeout(12);}await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await mp.waitForTimeout(300);};
- await swipe(mb.x+mb.width-8,mb.y+100,-180,0);
- assert.ok(Number(await mp.locator('#fund-cards').getAttribute('data-active-index'))>0,'touch horizontal swipe navigates');
- const scrollBefore=await mp.evaluate(()=>scrollY); const mb2=await mp.locator('.fund-card.is-deck-active').first().boundingBox();
- await swipe(mb2.x+8,Math.max(160,mb2.y+180),0,-100); assert.ok(await mp.evaluate(()=>scrollY)>scrollBefore,'touch scrolls');
+ if (!useWebKit) {
+   const mb=await mp.locator('.fund-card.is-deck-active').first().boundingBox();
+   const cdp=await mobile.newCDPSession(mp);
+   const swipe=async(x,y,dx,dy)=>{await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});for(let i=1;i<=12;i++){await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x+dx*i/12,y:y+dy*i/12}]});await mp.waitForTimeout(12);}await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await mp.waitForTimeout(300);};
+   await swipe(mb.x+mb.width-8,mb.y+100,-180,0);
+   assert.ok(Number(await mp.locator('#fund-cards').getAttribute('data-active-index'))>0,'touch horizontal swipe navigates');
+   const scrollBefore=await mp.evaluate(()=>scrollY); const mb2=await mp.locator('.fund-card.is-deck-active').first().boundingBox();
+   await swipe(mb2.x+8,Math.max(160,mb2.y+180),0,-100); assert.ok(await mp.evaluate(()=>scrollY)>scrollBefore,'touch scrolls');
+ }
  assert.equal(await mp.locator('body').evaluate(el=>el.classList.contains('basket-dragging')),false);
  await mp.locator('#fund-basket-button').tap(); await mp.waitForTimeout(300); await mp.locator('[data-basket-action=collect]').tap({timeout:3000});
  assert.equal(await mp.locator('#fund-basket-button .basket-count').textContent(),'5');
  assert.equal(await mp.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
- console.log('PASS: mobile horizontal gallery swipe, vertical scroll, button-based collection and width.');
+ console.log('PASS: mobile collection and width' + (useWebKit ? '.' : ', horizontal gallery swipe and vertical scroll.'));
  await mobile.close();
 } finally { await browser.close(); await new Promise(resolve => server.close(resolve)); }

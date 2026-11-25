@@ -694,20 +694,15 @@ async function loadStats() {
     // 默认显示按跟踪标的
     applyView('tracking');
 
-    // 绑定滑块切换
+    // 切换统计维度，同时同步透镜读取的选中状态。
     const buttons = document.querySelectorAll('.fund-stats-toggle-btn');
-    const slider = document.querySelector('.fund-stats-toggle-slider');
     buttons.forEach(btn => {
       btn.addEventListener('click', () => {
         const key = btn.getAttribute('data-key');
-        const idx = parseInt(btn.getAttribute('data-index') || '0', 10);
         buttons.forEach(b => {
           b.classList.toggle('fund-stats-toggle-btn-active', b === btn);
           b.setAttribute('aria-selected', b === btn ? 'true' : 'false');
         });
-        if (slider && !Number.isNaN(idx)) {
-          slider.style.transform = `translateX(${idx * 100}%)`;
-        }
         applyView(key);
       });
     });

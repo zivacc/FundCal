@@ -10,7 +10,7 @@ export function createGlassMotion(element, { liftOnPress = false, rim, projectio
   let positioned = false;
   let frame = 0;
   let previousTime = 0;
-  let lightX = null, lightY = null;
+  let lightX = null, lightY = null, shapeRadius;
 
   function paint(seconds = 0, snapContour = false) {
     // Limit the trailing edge even when the user skips across many rows or tabs.
@@ -29,6 +29,7 @@ export function createGlassMotion(element, { liftOnPress = false, rim, projectio
     const moving = rim.paint(width.goal, height.goal, seconds, {
       velocityX: centerX.velocity, velocityY: centerY.velocity, pressure: pressure.value,
       pointerX: relative(lightX, x, w), pointerY: relative(lightY, y, h),
+      hovered: lightX != null || lightY != null, radius: shapeRadius,
     }, snapContour);
     projection?.paint({ x, y, w, h, width: width.goal, height: height.goal });
     return moving;
@@ -66,11 +67,12 @@ export function createGlassMotion(element, { liftOnPress = false, rim, projectio
     frame = requestAnimationFrame(tick);
   }
 
-  function moveTo(rect, { immediate = false, pointerX = null, pointerY = null } = {}) {
+  function moveTo(rect, { immediate = false, pointerX = null, pointerY = null, radius } = {}) {
     if (rect.width <= 0 || rect.height <= 0) return;
-    const lightChanged = lightX !== pointerX || lightY !== pointerY;
+    const lightChanged = lightX !== pointerX || lightY !== pointerY || radius !== shapeRadius;
     lightX = pointerX;
     lightY = pointerY;
+    shapeRadius = radius;
     const x = rect.x + rect.width / 2, y = rect.y + rect.height / 2;
     const changed = x !== centerX.goal || y !== centerY.goal || width.goal !== rect.width || height.goal !== rect.height;
     if (width.goal !== rect.width) element.style.width = `${rect.width}px`;

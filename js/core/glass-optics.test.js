@@ -89,3 +89,22 @@ test('ring-only optics still sample card and table centers in place, with bounde
   const p = 4 * (Math.floor(ring.height / 2) * ring.width + Math.floor(ring.width / 2));
   assert.deepEqual([...ring.refraction.slice(p, p + 4)], [128, 128, 0, 255]);
 });
+
+test('interactive row and card edges split light inside the bevel while fee pixels stay still', () => {
+  // Sample a square-cornered filter field as well as a rounded one. A zero CSS
+  // radius still has a normal on each straight side.
+  for (const radius of [0, 16]) {
+    const field = createGlassField(640, 42, radius, 7, 14, 5, 1, 2, true);
+    assert.ok(field.width <= 1024 && field.width * field.height < 100000);
+    let peak = 0;
+    for (let row = 0; row < field.height; row++) {
+      const depth = (row + .5) * 52 / field.height - 5;
+      const p = 4 * (row * field.width + Math.floor(field.width / 2));
+      const split = Math.abs(128 - field.dispersion[p + 1]);
+      if (depth <= glassApertureInset || depth >= 7 && depth <= 35) assert.equal(split, 0);
+      if (depth > 8 && depth < 34) assert.deepEqual([...field.refraction.slice(p, p + 2)], [128, 128]);
+      if (depth > glassApertureInset && depth < 7) peak = Math.max(peak, split);
+    }
+    assert.ok(peak > 90);
+  }
+});

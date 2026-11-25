@@ -1,0 +1,27 @@
+.glass-control-choices, .glass-control-anchor { position: relative; }
+.control-edge-lens, .control-choice-lens { left: 0; top: 0; z-index: 2; }
+.control-choice-lens { border-radius: var(--radius-pill); }
+
+@media not (forced-colors: active) {
+  /* The shared seam supplies the hover edge. Keep the control's focus indicator
+     and its selected/disabled colors meaningful under the transparent surface. */
+  .has-control-edge:not(:focus-visible):not(:has(:focus-visible)) {
+    border-color: transparent !important;
+    box-shadow: none !important;
+    outline-color: transparent !important;
+  }
+  .glass-control-choices > :is(.index-page-period-btn, .fd-nav-period-btn, button[data-period]) {
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+  }
+  .glass-control-choices > button[data-period]:hover:not(:focus-visible) {
+    outline: none;
+    box-shadow: none;
+    border-color: transparent;
+  }
+  .glass-control-choices > button[data-period]:is([aria-pressed="true"], .fd-nav-period-btn-active, .index-page-period-btn-active) {
+    color: var(--accent);
+    font-weight: 650;
+  }
+}

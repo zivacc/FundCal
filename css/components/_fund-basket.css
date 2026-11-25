@@ -48,27 +48,40 @@ body.is-fullscreen-nav { --basket-top: calc(62px + env(safe-area-inset-top)); }
 #basket-drop-zones [data-basket-drop].is-over, #basket-drop-zones [data-basket-drop]:focus-visible { border-style: solid; box-shadow: var(--glass-frame-shadow); }
 #basket-drag-cancel { pointer-events: auto; position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%); border: 1px solid var(--rule); background: var(--bg-raised); color: var(--text-secondary); border-radius: 20px; padding: 10px 20px; }
 #basket-drop-target { position: fixed; z-index: 15000; width: var(--basket-drop-diameter); height: var(--basket-drop-diameter); transform: translate(-50%, -50%); border: 2px dashed var(--accent); border-radius: 50%; background: var(--glass-fill); color: var(--accent); pointer-events: auto; box-shadow: var(--glass-shadow); }
-#basket-drop-target span { position: absolute; bottom: 14px; left: 0; right: 0; font-size: 12px; }
+#basket-drop-target > span:first-child { position: absolute; bottom: 14px; left: 0; right: 0; font-size: 12px; }
 #basket-drop-target.is-over { border-style: solid; box-shadow: var(--glass-frame-shadow); }
 #basket-drag-ghost {
   position: fixed;
+  top: 0;
+  left: 0;
   pointer-events: none;
   z-index: 16000;
+  width: max-content;
   max-width: min(240px, calc(100vw - 16px));
-  padding: 10px 15px;
-  border: 1px solid var(--rim-shade);
   border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--glass-fill-strong) 72%, var(--glass-fill));
-  box-shadow: var(--shadow-md);
   font-size: 12px;
   font-weight: 600;
   overflow-wrap: anywhere;
 }
 #basket-drag-ghost::before {
-  content: "";
-  z-index: -1;
-  inset: 0;
-  border-radius: inherit;
+  z-index: 1;
+}
+#basket-drag-ghost > .glass-contour { z-index: 2; }
+.basket-ghost-label {
+  display: block;
+  padding: 10px 15px;
+  background: color-mix(in srgb, var(--glass-fill-strong) 86%, var(--glass-fill));
+  clip-path: var(--glass-silhouette);
+}
+.basket-drop-lens { left: 0; top: 0; z-index: 1; }
+#basket-drop-zones [data-basket-drop], #basket-fund-choices button { position: relative; }
+#basket-drop-target.has-drop-lens, #basket-drop-zones [data-basket-drop].has-drop-lens,
+#basket-fund-choices button.has-drop-lens, #basket-fund-picker.is-over.has-drop-lens {
+  border-color: transparent;
+  box-shadow: none;
+}
+@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+  .basket-ghost-label { clip-path: none; border-radius: inherit; }
 }
 :is(tr, .basket-fund-row, .fund-stats-detail-row).is-basket-drag-source {
   outline: 1px solid var(--glass-lens-edge);
@@ -117,6 +130,5 @@ body.is-fullscreen-nav { --basket-top: calc(62px + env(safe-area-inset-top)); }
 
 @media (hover: hover) and (pointer: fine) {
   #fund-basket-button:not(.is-drop-ready):hover,
-  #fund-basket-panel button:enabled:hover,
-  .basket-fund-row:hover:not(:has(button:hover, input:hover)) { box-shadow: var(--glass-frame-shadow); }
+  #fund-basket-panel button:enabled:hover { box-shadow: var(--glass-frame-shadow); }
 }

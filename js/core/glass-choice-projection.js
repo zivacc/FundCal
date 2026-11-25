@@ -3,7 +3,8 @@ import { rimOutset } from './glass-rim.js';
 const ns = 'http://www.w3.org/2000/svg';
 let nextClip = 0;
 const textStyles = ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'lineHeight',
-  'letterSpacing', 'color', 'textDecorationLine', 'textDecorationColor', 'textUnderlineOffset'];
+  'letterSpacing', 'whiteSpace', 'wordBreak', 'overflowWrap', 'textAlign', 'color',
+  'textDecorationLine', 'textDecorationColor', 'textUnderlineOffset'];
 
 // WebKit supports SVG displacement on foreground pixels. Mirror only the ink
 // inside the aperture, leaving the real links/buttons and their focus rings in place.
@@ -88,6 +89,7 @@ export function createChoiceProjection(group, lens, items, schedule) {
       entry.height = label.height * sy;
       const style = getComputedStyle(item);
       for (const property of textStyles) entry.copy.style[property] = style[property];
+      entry.copy.style.width = `${entry.width}px`;
       entry.copy.style.left = `${entry.x}px`;
       entry.copy.style.top = `${entry.y}px`;
       if (entry.copy.textContent !== entry.original.textContent) entry.copy.textContent = entry.original.textContent;

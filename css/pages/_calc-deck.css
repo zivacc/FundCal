@@ -187,11 +187,6 @@
   pointer-events: none;
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .fund-card-stage .fund-card::before { transition: opacity var(--transition-glow); }
-  .fund-card-stage .fund-card:hover:not(.is-deck-drag-surface, .is-basket-drag-source) { --deck-frame-opacity: .94; }
-}
-
 .fund-card-stage .fund-card:is(.is-deck-active, .is-deck-drag-surface, .is-basket-drag-source)::before {
   -webkit-backdrop-filter: var(--glass-refraction, none);
   backdrop-filter: var(--glass-refraction, none);
@@ -211,7 +206,7 @@
   background: linear-gradient(135deg, var(--deck-rim-light), var(--deck-rim-line));
 }
 
-.fund-card-stage .fund-card > :not(.deck-card-open) {
+.fund-card-stage .fund-card > :not(.deck-card-open, .deck-card-rim) {
   opacity: var(--deck-content-opacity, 1);
 }
 
@@ -296,7 +291,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .fund-card-stage .fund-card::before { transition: none; }
   .deck-navigation button { transition: none; }
   .deck-navigation button:active:not(:disabled) { scale: none; }
 }
