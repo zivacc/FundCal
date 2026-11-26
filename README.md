@@ -2,7 +2,7 @@
 
 多基金费率对比工具：输入或拉取基金费率，在同一张图上展示不同基金在各持有期限下的累计费用曲线，并自动标注交叉点。
 
-**在线体验**：[https://f.z-c.me](https://f.z-c.me/) — PC 开发机 + Cloudflare Tunnel 暴露
+**在线体验**：[https://f.z-c.me](https://f.z-c.me/)
 
 > **部署模式**: 本机 `npm run dev` 起 `localhost:3456/3457`, 由 Cloudflare Tunnel (`cloudflared`) 反代到公网域名, 零端口暴露。历史的 Oracle Cloud / 阿里云 ECS / Cloudflare Workers+KV / D1+R2 方案已归档至 [`archive/docs/`](archive/docs/)。
 
