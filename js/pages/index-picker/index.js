@@ -57,7 +57,7 @@ function cacheEls() {
 
 /* ── helpers ── */
 
-function setHint(text, isError = false) {
+function setHint(text = `可搜索 ${state.stats.tracking.length} 个指数`, isError = false) {
   if (!els.searchHint) return;
   els.searchHint.textContent = text;
   els.searchHint.classList.toggle('error', isError);
@@ -500,7 +500,7 @@ async function triggerRefresh() {
     state.sortedRows = [];
     state.lastLoadMeta = { loaded: 0, total: 0, failed: 0 };
     els.main?.classList.add('index-page-main-hidden');
-    setHint('从上方搜索并选择想买的指数。');
+    setHint();
     return;
   }
 
@@ -599,7 +599,7 @@ async function init() {
     setHint(`已还原 ${restored.length} 个指数，正在加载基金...`);
     triggerRefresh();
   } else {
-    setHint(`已加载 ${tracking.length} 个指数，输入关键词搜索并选择。`);
+    setHint();
   }
 }
 

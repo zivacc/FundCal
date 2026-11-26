@@ -29,13 +29,13 @@
     <defs id="glass-filter-definitions"></defs>
   </svg>
   <nav class="top-rail" aria-label="主导航">
-    <a class="top-rail-brand" href="#/calc">
-      <span class="top-rail-logo">
-        <img src="pics/bronzecoinlogo.png" alt="" class="logo-light">
-        <img src="pics/goldencoinlogo.png" alt="" class="logo-dark">
-      </span>
-      <span class="top-rail-name">FundCal</span>
-    </a>
+    <div class="top-rail-brand">
+      <button type="button" class="top-rail-logo" id="theme-toggle" aria-label="切换主题">
+        <img src="pics/bronzecoinlogo.png" alt="" class="logo-light" draggable="false">
+        <img src="pics/goldencoinlogo.png" alt="" class="logo-dark" draggable="false">
+      </button>
+      <a class="top-rail-name" href="#/calc">FundCal</a>
+    </div>
     <div class="top-rail-tabs" role="tablist" aria-label="功能页面">
       <span class="top-rail-lens glass-hover-frame" aria-hidden="true"></span>
       <a href="#/calc" class="top-rail-tab" data-route="calc" role="tab">计算器</a>
@@ -50,10 +50,6 @@
     <div class="top-rail-right">
       <button type="button" id="fund-basket-button" aria-label="基金篮子" aria-controls="fund-basket-panel" aria-expanded="false" title="点击打开基金篮子，拖动使用整篮">
         <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m8 3-4 7m12-7 4 7M3 10h18l-2 10H5L3 10Zm6 4v3m6-3v3"/></svg><span class="basket-label">篮子</span><span class="basket-receive-label" aria-hidden="true">加入<span>篮子</span></span><span class="basket-count">0</span>
-      </button>
-      <button type="button" class="theme-toggle" id="theme-toggle" aria-label="切换主题">
-        <svg class="theme-icon-light" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M20.5 15.5A9 9 0 0 1 8.5 3.5a9 9 0 1 0 12 12Z"/></svg>
-        <svg class="theme-icon-dark" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.4m11.2 11.2L19 19M5 19l1.4-1.4M17.6 6.4 19 5"/></svg>
       </button>
     </div>
   </nav>
@@ -379,7 +375,7 @@
 
       <div class="ix-hero-search-wrap">
         <div class="ix-hero-search">
-          <svg class="ix-hero-search-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg class="ix-hero-search-icon" aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="11" cy="11" r="7"></circle>
             <path d="M21 21l-4.35-4.35"></path>
           </svg>
@@ -387,7 +383,8 @@
             id="index-page-search-input"
             class="ix-hero-search-input"
             type="text"
-            placeholder="沪深300 · hs300 · 黄金9999 · 科创50 · hstec …"
+            aria-label="搜索指数"
+            placeholder="搜索指数，例如沪深300"
             autocomplete="off"
             aria-autocomplete="list"
             aria-controls="index-page-search-dropdown">
@@ -395,7 +392,7 @@
         </div>
 
         <div class="ix-hero-meta">
-          <span id="index-page-search-hint" class="cached-funds-status">正在加载指数数据...</span>
+          <span id="index-page-search-hint" class="cached-funds-status" role="status">正在加载指数数据...</span>
         </div>
         <div class="index-page-suggestions ix-hero-suggestions" id="index-page-suggestions"></div>
         <div class="index-page-selected-chips ix-hero-chips" id="index-page-selected-chips"></div>

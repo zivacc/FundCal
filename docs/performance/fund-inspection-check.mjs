@@ -357,9 +357,11 @@ try {
       feederFunds: [], isFof: code === '000003', isFeeder: false, shareClassBasis: '测试关系', feederIndexAvailable: true });
     if (url.pathname.endsWith('/holdings')) return json({ code, status: 'available', asOfDate: '2026-09-30', source: '测试披露', coverage: 'top10',
       rows: [{ code: '000001', name: '测试基金1', weightPct: 9.5, available: true }, { code: '510310', name: '库外ETF', weightPct: 8, available: false }] });
-    if (url.pathname.endsWith('/nav/compare')) return json({ series: [
-      { ...funds[0], dates: ['20260907', '20260908'], navs: [1, 1.02], adjNavs: [1, 1.02] },
-    ], stats: [], range: {} });
+    if (url.pathname.endsWith('/nav/compare')) {
+      const dates = [7, 8, 9, 10, 11, 14, 15, 16, 17, 18, 21, 22, 23].map(day => `202609${String(day).padStart(2, '0')}`);
+      const navs = dates.map((_, i) => 1 + .02 * i);
+      return json({ series: [{ ...funds[0], dates, navs, adjNavs: navs }], stats: [], range: {} });
+    }
     if (url.pathname.endsWith('/compare')) return json({ series: [], stats: [], range: {} });
     if (url.pathname.endsWith('/stats/detail')) return json([]);
     return json({});
@@ -440,6 +442,11 @@ try {
   assert.deepEqual(await metric('换手率').allTextContents(), ['0.00%', '100.00%']);
   await page.locator('#fc-period').selectOption('2024-12-31');
   assert.deepEqual(await metric('换手率').allTextContents(), ['20.00%', '—']);
+  const coin = page.locator('.top-rail-brand button#theme-toggle');
+  const compareUrl = page.url();
+  assert.equal(await page.locator('.top-rail-name').getAttribute('href'), '#/calc');
+  assert.equal(await page.locator('.top-rail-right button').count(), 1);
+  await coin.click();
   for (const width of [1440, 692, 390, 320]) {
     await page.setViewportSize({ width, height: 844 });
     if (width <= 1024) {
@@ -450,7 +457,11 @@ try {
         `FundCal is centered with room for the basket at ${width}px`);
     }
     for (const theme of ['light', 'dark']) {
-      await page.evaluate(theme => { document.documentElement.dataset.theme = theme; }, theme);
+      await coin.press('Space');
+      assert.equal(await page.evaluate(() => localStorage.getItem('fundcal-theme')), theme);
+      assert.equal(await coin.locator(`.logo-${theme}`).isVisible(), true);
+      assert.equal(await coin.getAttribute('aria-label'), theme === 'dark' ? '切换到浅色主题' : '切换到深色主题');
+      assert.equal(page.url(), compareUrl);
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `overflow ${width}/${theme}`);
     }
   }
@@ -489,6 +500,7 @@ try {
   await page.locator('#fc-clear').click();
   await page.locator('#fc-empty').waitFor();
   await page.reload(); await page.locator('#fc-empty').waitFor();
+  assert.equal(await coin.locator('.logo-dark').isVisible(), true, 'the coin restores the saved theme');
   await page.locator('#fc-search').fill('000002'); await page.locator('#fc-add-code').click();
   await page.locator('#fc-status').filter({ hasText: '已载入 1' }).waitFor();
   // Related share links and FOF disclosure links keep code identity and report date.
@@ -553,6 +565,27 @@ try {
 
   await page.locator('#nav-chart-toolbar-fullscreen').click();
   await page.locator('.top-rail').waitFor({ state: 'hidden' });
+  await page.setViewportSize({ width: 692, height: 753 });
+  await page.locator('#nav-chart-canvas').press('Shift+F10');
+  for (const edge of ['start', 'end']) {
+    const handle = page.locator(`.nav-range-edge-${edge}`);
+    await handle.waitFor();
+    const box = await handle.boundingBox();
+    const x = box.x + box.width / 2, y = box.y + box.height * .77;
+    const original = Number(await handle.getAttribute('aria-valuenow'));
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.waitForFunction(edge => document.querySelector(`.nav-range-edge-${edge}`).classList.contains('is-dragging'), edge);
+    await page.evaluate(() => new Promise(requestAnimationFrame));
+    assert.equal(await page.locator('#nav-range-select-overlay .control-edge-lens').count(), 0, 'flat boundary handle while pressed');
+    await page.mouse.move(x + 96, y, { steps: 4 });
+    await page.mouse.up();
+    const dragged = Number(await handle.getAttribute('aria-valuenow'));
+    assert.ok(dragged > original, 'drag moves the boundary');
+    await handle.press('ArrowLeft');
+    assert.equal(Number(await handle.getAttribute('aria-valuenow')), dragged - 1, 'keyboard still adjusts the boundary');
+  }
+  await page.locator('.nav-range-ctrl-btn[data-action="close"]').click();
   await page.setViewportSize({ width: 390, height: 844 });
   const dock = page.locator('.nav-fs-dock');
   const panelButton = id => dock.locator(`[data-panel="${id}"]`);

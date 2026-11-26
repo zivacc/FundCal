@@ -592,6 +592,51 @@
   cursor: pointer;
 }
 
+.stage-return-tooltip {
+  position: absolute;
+  z-index: 2;
+  width: max-content;
+  max-width: min(23rem, calc(100% - 12px));
+  max-height: 60%;
+  overflow: auto;
+  overscroll-behavior: contain;
+  pointer-events: none;
+  padding: .6rem .8rem;
+  border: 1px solid var(--glass-stroke);
+  border-radius: var(--radius-lg);
+  background: var(--surface-glint, none), var(--glass-highlight), var(--glass-fill-strong);
+  box-shadow: var(--glass-shadow);
+  color: var(--text-primary);
+  font: .81rem/1.4 var(--font-body);
+}
+
+@supports ((backdrop-filter: blur(4px)) or (-webkit-backdrop-filter: blur(4px))) {
+  .stage-return-tooltip {
+    background-color: color-mix(in srgb, var(--glass-fill-strong) 78%, transparent);
+    -webkit-backdrop-filter: blur(4px) var(--glass-saturate);
+    backdrop-filter: blur(4px) var(--glass-saturate);
+  }
+}
+
+.stage-return-tooltip.scrollable { pointer-events: auto; }
+.stage-tooltip-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: .8rem;
+  margin-top: .25rem;
+}
+.stage-tooltip-row .chart-fund-label { overflow-wrap: anywhere; }
+.stage-tooltip-row > :last-child { flex: none; font-family: var(--font-mono); }
+
+@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+  .stage-return-tooltip {
+    background: var(--bg-raised);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
 .stage-return-chart-footer {
   display: flex;
   justify-content: space-between;

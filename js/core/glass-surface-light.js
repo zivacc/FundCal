@@ -6,7 +6,7 @@ const surfaces = [
   '.calc-days-row', '.cf-sidebar', '.list-basket-pool', '#fund-basket-panel',
   '.fund-stats-summary-card', '.fund-stats-card', '.fund-stats-detail-card', '.fd-empty', '.fd-card', '.fd-raw-body',
   '.index-picker-index-card', '.index-picker-index-list', '.index-picker-fund-list', '.index-page-search-hero',
-  '.index-page-panel', '.ix-hero', '.id-empty', '.id-card', '.id-turnover-grid article', '.id-weight-summary div',
+  '.index-page-panel', '.id-empty', '.id-card', '.id-turnover-grid article', '.id-weight-summary div',
   '.fc-toolbar', '.fc-empty', '.nav-controls', '.nav-chart-wrap', '.nav-chart-header', '.nav-range-stats-panel',
   '.nav-baseline-panel', '.nav-range-control-panel', '.nav-fs-panel', '.table-container',
   '.modal-json-table', '.segments-table', '.cached-funds-table-wrap', '.fund-detail-table-wrap',

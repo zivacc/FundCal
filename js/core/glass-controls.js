@@ -36,7 +36,7 @@ const controls = [
 const excluded = [
   '.basket-fund-name', ':disabled', '[aria-disabled="true"]', '.fund-drag-handle', '.nav-period-btn', '.nav-toggle-btn', '.nav-fs-tab',
   '.deck-card-open', '[data-basket-drop]', '#fund-basket-button.is-drop-ready', '#basket-fund-choices button',
-  'input[type="hidden"]', 'input[type="file"]', 'input[type="range"]', 'input[type="radio"]',
+  '.ix-hero-search-input', '[role="slider"]', 'input[type="hidden"]', 'input[type="file"]', 'input[type="range"]', 'input[type="radio"]',
 ].join(',');
 const hoverPointer = matchMedia('(any-hover: hover)');
 const rim = document.createElement('span');

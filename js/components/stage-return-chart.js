@@ -11,6 +11,7 @@
 import { getColorForIndex } from '../utils/color.js';
 import { escapeHtml } from '../utils/format.js';
 import { getChartTheme } from '../core/theme.js';
+import { chartPointer } from '../pages/calc/chart-layout.js';
 
 const TODAY_LABEL = '今天';
 
@@ -153,6 +154,87 @@ function formatPct(n) {
   return sign + n.toFixed(2) + '%';
 }
 
+// An HTML surface can soften the chart behind it while its text stays sharp.
+function createStageTooltip(canvas) {
+  const panel = document.createElement('div');
+  panel.id = 'stage-return-tooltip';
+  panel.className = 'stage-return-tooltip surface-lit';
+  panel.setAttribute('role', 'tooltip');
+  panel.hidden = true;
+  const wrapper = canvas.parentElement;
+  wrapper.append(panel);
+  const listeners = new AbortController();
+  const options = { signal: listeners.signal, passive: true };
+  const hide = () => {
+    panel.hidden = true;
+    canvas.removeAttribute('aria-describedby');
+  };
+  wrapper.addEventListener('pointerleave', event => { if (event.pointerType !== 'touch') hide(); }, options);
+  window.addEventListener('scroll', hide, options);
+  window.addEventListener('hashchange', hide, options);
+  document.addEventListener('pointerdown', event => { if (!wrapper.contains(event.target)) hide(); }, options);
+
+  return {
+    id: 'stage-return-tooltip',
+    resize: hide,
+    beforeEvent(chart, args) {
+      const { event } = args;
+      const pointer = event.native.touches?.[0] ?? event.native.changedTouches?.[0] ?? event.native;
+      const box = canvas.getBoundingClientRect();
+      if (!box.width || !box.height || !Number.isFinite(pointer.clientX)) return;
+      // Canvas offsetX/Y can be in zoomed CSS pixels. Use the same coordinates
+      // for Chart.js hit testing, the baseline click and the HTML tooltip.
+      Object.assign(event, chartPointer(pointer.clientX, pointer.clientY, box, chart.width, chart.height));
+      args.inChartArea = chart.isPointInArea(event);
+    },
+    afterDestroy() {
+      listeners.abort();
+      canvas.removeAttribute('aria-describedby');
+      panel.remove();
+    },
+    show({ chart, tooltip }) {
+      if (!tooltip.opacity || !tooltip.dataPoints?.length) {
+        if (!panel.matches(':hover')) hide();
+        return;
+      }
+      const title = document.createElement('strong');
+      const label = tooltip.dataPoints[0].label;
+      title.textContent = label === currentBaseline ? label + '（基准）' : label;
+      const rows = tooltip.dataPoints.map(({ dataset, parsed }) => {
+        const row = document.createElement('div');
+        row.className = 'stage-tooltip-row';
+        const name = document.createElement('span');
+        name.className = 'chart-fund-label';
+        name.style.setProperty('--series-color', dataset.borderColor);
+        name.textContent = dataset.label;
+        const value = document.createElement('span');
+        value.textContent = formatPct(parsed.y);
+        row.append(name, value);
+        return row;
+      });
+      const opening = panel.hidden;
+      panel.replaceChildren(title, ...rows);
+      panel.hidden = false;
+      canvas.setAttribute('aria-describedby', panel.id);
+      const width = panel.offsetWidth, height = panel.offsetHeight;
+      const scrollable = panel.scrollHeight > panel.clientHeight;
+      // A long list stays in place so the pointer can reach it and scroll.
+      const keepPosition = !opening && scrollable && panel.classList.contains('scrollable');
+      const { caretX, caretY } = tooltip;
+      const fit = (start, max) => Math.max(6, Math.min(max - 6, start));
+      const left = caretX + width + 18 <= chart.width ? caretX + 12 : caretX - width - 12;
+      const top = scrollable ? (caretY > chart.height / 2 ? 6 : chart.height - height - 6) : caretY - height / 2;
+      const x = fit(keepPosition ? panel.offsetLeft : left, chart.width - width);
+      const y = fit(keepPosition ? panel.offsetTop : top, chart.height - height);
+      panel.style.left = x + 'px';
+      panel.style.top = y + 'px';
+      const lightY = Math.max(0, Math.min(100, (caretY - y) / height * 100));
+      panel.style.setProperty('--surface-light-at', `${caretX < x + width / 2 ? 0 : 100}% ${lightY}%`);
+      panel.classList.toggle('scrollable', scrollable);
+    },
+  };
+}
+
 function updateBaselineHint(baseline, isDefault, defaultBaseline) {
   const el = document.getElementById('stage-return-baseline-hint');
   if (!el) return;
@@ -293,9 +375,11 @@ export function renderStageReturnChart(funds, metas) {
     borderDash: [2, 4],
   };
 
+  const stageTooltip = createStageTooltip(canvas);
   chartInstance = new Chart(canvas, {
     type: 'line',
     data: { labels, datasets },
+    plugins: [stageTooltip],
     options: {
       responsive: true,
       maintainAspectRatio: false,
@@ -362,28 +446,7 @@ export function renderStageReturnChart(funds, metas) {
             usePointStyle: true,
           }
         },
-        tooltip: {
-          backgroundColor: textPrimary,
-          borderColor: theme.accent,
-          borderWidth: 1,
-          titleColor: onColorText,
-          bodyColor: onColorText,
-          titleFont: { ...chartFont, size: 13, weight: '600' },
-          bodyFont: { ...chartFont, size: 13 },
-          padding: 10,
-          callbacks: {
-            title: (items) => {
-              if (!items?.length) return '';
-              const lbl = items[0].label;
-              return lbl === currentBaseline ? `${lbl}（基准）` : lbl;
-            },
-            label: (ctx) => {
-              const v = ctx.parsed.y;
-              const fundLabel = ctx.dataset.label || '';
-              return `${fundLabel}: ${formatPct(v)}`;
-            }
-          }
-        },
+        tooltip: { enabled: false, external: stageTooltip.show },
         annotation: { annotations }
       },
       onClick: (evt, _els, chart) => {
@@ -397,8 +460,13 @@ export function renderStageReturnChart(funds, metas) {
         if (rounded < 0 || rounded >= labels.length) return;
         const label = labels[rounded];
         if (!label || label === currentBaseline) return;
-        currentBaseline = label;
-        renderStageReturnChart(funds, metas);
+        // Chart.js still dispatches this click to its legend and tooltip plugins.
+        // Rebuild once they have finished with the current chart.
+        queueMicrotask(() => {
+          if (chart !== chartInstance) return;
+          currentBaseline = label;
+          renderStageReturnChart(funds, metas);
+        });
       }
     }
   });

@@ -55,6 +55,53 @@ async function hoverPoint(page, curve = false) {
   }, curve);
 }
 
+async function verifyStageTooltip(page) {
+  const render = async count => {
+    const { renderStageReturnChart } = await import('/js/components/stage-return-chart.js');
+    const funds = Array.from({ length: count }, (_, i) => ({ name: '基金' + (i + 1) }));
+    renderStageReturnChart(funds, funds.map((_, i) => ({
+      stageReturns: [{ period: '近1年', returnPct: (i + 1) * 12 }, { period: '近1月', returnPct: 0 }],
+    })));
+  };
+  const canvas = page.locator('#stage-return-canvas'), tooltip = page.locator('#stage-return-tooltip');
+  async function hover(count) {
+    await page.evaluate(render, count);
+    await canvas.evaluate(async el => {
+      scrollTo({ top: scrollY + el.getBoundingClientRect().top - 115, behavior: 'instant' });
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    });
+    await page.waitForFunction(() => Chart.getChart('stage-return-canvas').getDatasetMeta(0).data.every(point => {
+      const end = point.getProps(['x', 'y'], true);
+      return point.x === end.x && point.y === end.y;
+    }));
+    const point = await canvas.evaluate(el => {
+      const chart = Chart.getChart(el), box = el.getBoundingClientRect();
+      const x = chart.scales.x.getPixelForValue(1), y = chart.chartArea.top + chart.chartArea.height / 2;
+      return { x: box.x + x * box.width / chart.width, y: box.y + y * box.height / chart.height };
+    });
+    await page.mouse.move(point.x, point.y);
+    await tooltip.waitFor({ state: 'visible' });
+    return point;
+  }
+  const point = await hover(2);
+  assert.deepEqual(await tooltip.locator('.stage-tooltip-row > :last-child').allTextContents(), ['+12.00%', '+24.00%']);
+  assert.ok(await tooltip.evaluate(el => {
+    const box = el.getBoundingClientRect(), host = el.parentElement.getBoundingClientRect();
+    return box.left >= host.left - 1 && box.right <= host.right + 1 && box.top >= host.top - 1 && box.bottom <= host.bottom + 1;
+  }), 'the stage tooltip stays inside the chart at the current width and zoom');
+  await page.mouse.click(point.x, point.y);
+  await page.locator('#stage-return-baseline-hint').filter({ hasText: '当前基准：近1月' }).waitFor();
+  await page.locator('#stage-return-reset').click();
+  assert.match(await page.locator('#stage-return-baseline-hint').innerText(), /当前基准：近1年（默认）/);
+  assert.equal(await tooltip.count(), 1, 'a rebuilt chart owns exactly one tooltip');
+  await hover(14);
+  const box = await tooltip.boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.wheel(0, 160);
+  await page.waitForFunction(() => document.getElementById('stage-return-tooltip')?.scrollTop > 0);
+  assert.ok(await tooltip.isVisible(), 'a long stage tooltip remains open for scrolling');
+}
+
 try {
   for (const [width, height, zoom, deviceScaleFactor] of cases) {
     const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor, hasTouch: width < 500 });
@@ -132,6 +179,7 @@ try {
       await page.waitForFunction(() => document.querySelector('.page-calc.active'));
       await verifyLayout(page);
     }
+    if (width === 320 || (width === 1440 && zoom === 1.75)) await verifyStageTooltip(page);
     assert.deepEqual(errors, []);
     console.log(`PASS ${width}×${height}, zoom ${zoom}, DPR ${deviceScaleFactor}`);
     await context.close();

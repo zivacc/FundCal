@@ -31,7 +31,6 @@
   align-items: center;
   justify-self: start;
   gap: 8px;
-  border-radius: var(--radius-pill);
   color: var(--text-primary);
 }
 
@@ -45,7 +44,11 @@
   border-radius: var(--radius-circle);
   background: var(--glass-highlight) var(--glass-fill);
   box-shadow: var(--glass-rim), var(--shadow-sm);
+  transition: transform var(--transition-fast);
 }
+
+.top-rail-logo:hover { box-shadow: var(--glass-frame-shadow); }
+.top-rail-logo:active { transform: scale(.94); }
 
 .top-rail-logo img {
   width: 25px;
@@ -58,6 +61,10 @@
 [data-theme="dark"] .top-rail-logo .logo-dark { display: block; }
 
 .top-rail-name {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  border-radius: var(--radius-sm);
   font-size: 1rem;
   font-weight: 720;
   letter-spacing: -0.035em;
@@ -127,35 +134,7 @@
   display: flex;
   justify-self: end;
   align-items: center;
-  gap: 7px;
 }
-
-.theme-toggle {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border: 1px solid var(--glass-stroke);
-  border-radius: var(--radius-circle);
-  background: var(--glass-highlight) var(--glass-fill);
-  box-shadow: var(--glass-rim), var(--shadow-sm);
-  color: var(--text-secondary);
-  transition: color var(--transition-fast), transform var(--transition-fast);
-}
-
-.theme-toggle:hover { box-shadow: var(--glass-frame-shadow); }
-.theme-toggle:active { transform: scale(.94); }
-.theme-toggle svg {
-  grid-area: 1 / 1;
-  pointer-events: none;
-  transition: transform .24s var(--glass-lens-ease), opacity .16s ease-out;
-}
-.theme-toggle .theme-icon-dark,
-[data-theme="dark"] .theme-toggle .theme-icon-light {
-  opacity: 0;
-  transform: rotate(-35deg) scale(.72);
-}
-[data-theme="dark"] .theme-toggle .theme-icon-dark { opacity: 1; transform: none; }
 
 .page-header {
   display: flex;
@@ -227,17 +206,15 @@
 
   .top-rail-brand { grid-area: 1 / 2; position: relative; justify-self: center; }
   .top-rail-logo { position: absolute; inset-inline-end: calc(100% + 8px); }
-  .top-rail-right { grid-area: 1 / 3; gap: 5px; }
+  .top-rail-right { grid-area: 1 / 3; }
   .top-rail-tabs { grid-area: 2 / 1 / 3 / -1; }
   .top-rail-tab { min-height: 34px; padding-inline: 11px; }
-  .theme-toggle { width: 34px; height: 34px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .top-rail-tab,
-  .theme-toggle,
-  .theme-toggle svg { transition: none; }
-  .theme-toggle:active { transform: none; }
+  .top-rail-logo { transition: none; }
+  .top-rail-logo:active { transform: none; }
 }
 
 @media (prefers-reduced-transparency: reduce) {

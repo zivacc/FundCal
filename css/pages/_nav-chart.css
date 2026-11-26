@@ -625,8 +625,8 @@
   border-radius: var(--radius-pill);
   background: var(--bg-raised);
 }
-.nav-range-edge:hover::after { outline: 1px solid var(--glass-lens-edge); }
-.nav-range-edge.is-dragging::after { background: var(--accent-subtle); }
+.nav-range-edge:hover::after,
+.nav-range-edge.is-dragging::after { background: var(--accent); }
 .nav-range-edge:focus-visible { outline: none; }
 .nav-range-edge:focus-visible::after { outline: 2px solid var(--accent); outline-offset: 2px; }
 
