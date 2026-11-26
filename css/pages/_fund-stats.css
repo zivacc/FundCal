@@ -227,10 +227,8 @@
   transform: translateX(0);
 }
 
-.fund-stats-detail-section {
-  margin-top: 0;
-  max-height: none;
-  overflow: hidden;
+.fund-stats-detail-section,
+#fund-stats-detail {
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
@@ -273,6 +271,7 @@
 }
 
 .fund-stats-detail-header {
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -319,8 +318,8 @@
 
 .fund-stats-detail-list {
   margin-top: 0.35rem;
-  max-height: 100%;
   overflow: auto;
+  overscroll-behavior-y: contain;
   padding-right: 0.25rem;
   flex: 1 1 auto;
   min-height: 0;

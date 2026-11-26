@@ -28,6 +28,10 @@
 
 /* ── 平板竖屏及以下 (900px) ── */
 @media (max-width: 900px) {
+  body:has(.page-stats.active .fund-stats-main-show-detail) {
+    overflow-y: hidden;
+  }
+
   .fund-stats-main {
     flex-direction: column;
   }
