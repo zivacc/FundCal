@@ -17,6 +17,7 @@ export function setupCardImplicitFee(card, initial, onChange) {
   function render(message) {
     value.textContent = reference ? (reference.rate * 100).toFixed(2) : '—';
     value.disabled = !reference && !failed;
+    value.toggleAttribute('data-navigation', !!reference);
     if (failed && !reference) value.textContent = '重试';
     root.title = message;
     value.setAttribute('aria-label', `隐性年化 ${reference ? `${(reference.rate * 100).toFixed(2)}%` : '暂无'}；${message}`);

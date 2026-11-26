@@ -51,6 +51,13 @@ a {
   text-decoration: none;
 }
 
+@media (any-hover: hover) {
+  :is(a[href], [data-navigation], [data-navigation-list] [role="option"]):not(:disabled):hover {
+    text-decoration-line: underline;
+    text-underline-offset: .18em;
+  }
+}
+
 button {
   font-family: inherit;
   cursor: pointer;

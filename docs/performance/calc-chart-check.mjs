@@ -106,7 +106,7 @@ try {
       const r = el.getBoundingClientRect(), p = el.closest('.chart-wrapper').getBoundingClientRect();
       return r.left >= p.left - 1 && r.right <= p.right + 1 && r.top >= p.top - 1 && r.bottom <= p.bottom + 1;
     }));
-    await page.locator('label[for="show-tooltip"]').click();
+    await page.locator('#show-tooltip').click();
     point = await hoverPoint(page, true);
     await page.mouse.move(point.x, point.y);
     await page.waitForTimeout(100);

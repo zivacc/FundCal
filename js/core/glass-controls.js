@@ -34,9 +34,9 @@ const controls = [
   '.page-header-link', '.index-picker-index-item', '.index-picker-fund-item', '.chart-fund-list-item',
 ].join(',');
 const excluded = [
-  ':disabled', '[aria-disabled="true"]', '.fund-drag-handle', '.nav-period-btn', '.nav-toggle-btn', '.nav-fs-tab',
-  '.deck-card-open', '[data-basket-drop]', '#basket-drop-target', '#basket-fund-choices button',
-  'input[type="hidden"]', 'input[type="file"]', 'input[type="range"]', 'input[type="radio"]', 'input[type="checkbox"]',
+  '.basket-fund-name', ':disabled', '[aria-disabled="true"]', '.fund-drag-handle', '.nav-period-btn', '.nav-toggle-btn', '.nav-fs-tab',
+  '.deck-card-open', '[data-basket-drop]', '#fund-basket-button.is-drop-ready', '#basket-fund-choices button',
+  'input[type="hidden"]', 'input[type="file"]', 'input[type="range"]', 'input[type="radio"]',
 ].join(',');
 const hoverPointer = matchMedia('(any-hover: hover)');
 const rim = document.createElement('span');
@@ -83,7 +83,7 @@ function anchorFor(item) {
 }
 
 function targetAt(element) {
-  const item = element?.closest?.('.toggle-btn-input')?.closest('.toggle-btn') ?? element?.closest?.(controls);
+  const item = element?.closest?.('.index-picker-fund-main')?.closest('.index-picker-fund-item') ?? element?.closest?.(controls);
   if (!item || item.matches(excluded) || choiceItems.has(item) || item.closest('.top-rail-tabs')) return null;
   return item;
 }

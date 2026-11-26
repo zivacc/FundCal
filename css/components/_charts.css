@@ -3,7 +3,7 @@
    ══════════════════════════════════════════════════════════════ */
 
 .chart-container {
-  background: var(--glass-highlight), var(--glass-fill);
+  background: var(--surface-glint, none), var(--glass-highlight), var(--glass-fill);
   border: 1px solid var(--glass-stroke);
   border-radius: var(--radius-xl);
   padding: 16px 20px;
@@ -41,7 +41,7 @@
   padding: 8px 8px 8px 0;
   border: 1px solid var(--glass-stroke);
   border-radius: var(--radius-lg);
-  background: var(--glass-fill);
+  background: var(--surface-glint, none), var(--glass-fill);
 }
 
 /* 图表区域 */
@@ -499,7 +499,7 @@
   overflow: auto;
   pointer-events: auto;
   visibility: hidden;
-  background: var(--glass-highlight), var(--glass-fill-strong);
+  background: var(--surface-glint, none), var(--glass-highlight), var(--glass-fill-strong);
   -webkit-backdrop-filter: var(--glass-blur) var(--glass-saturate);
   backdrop-filter: var(--glass-blur) var(--glass-saturate);
   border: 1px solid var(--glass-stroke);
@@ -531,7 +531,7 @@
    ═══════════════════════════════════════════════════════════════ */
 
 .stage-return-chart-container {
-  background: var(--glass-highlight), var(--glass-fill);
+  background: var(--surface-glint, none), var(--glass-highlight), var(--glass-fill);
   border: 1px solid var(--glass-stroke);
   border-radius: var(--radius-xl);
   padding: 1rem 1.25rem 0.9rem;

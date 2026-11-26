@@ -1,3 +1,33 @@
+.surface-lit {
+  --surface-glint: radial-gradient(ellipse 72% 85% at var(--surface-light-at),
+    var(--surface-light-color), transparent 82%) border-box border-area;
+}
+
+@supports not (background-clip: border-area) {
+  /* Older engines can paint the straight portions of the border as thin
+     background layers. Leave the curved ends to the native border. */
+  .surface-lit {
+    --surface-strip: radial-gradient(ellipse 68% 75% at var(--surface-light-at), var(--surface-light-color), transparent);
+    --surface-run: max(0px, calc(100% - var(--radius-xl) - var(--radius-xl)));
+    --surface-glint: var(--surface-strip) top / var(--surface-run) 1px no-repeat border-box,
+      var(--surface-strip) bottom / var(--surface-run) 1px no-repeat border-box,
+      var(--surface-strip) left / 1px var(--surface-run) no-repeat border-box,
+      var(--surface-strip) right / 1px var(--surface-run) no-repeat border-box;
+  }
+}
+
+/* A hovered panel's light belongs only to its own border, including in nested tables. */
+@property --surface-glint {
+  syntax: "*";
+  inherits: false;
+  initial-value: none;
+}
+@property --surface-light-at {
+  syntax: "<percentage>+";
+  inherits: false;
+  initial-value: 35% 0%;
+}
+
 .glass-hover-frame {
   position: absolute;
   pointer-events: none;

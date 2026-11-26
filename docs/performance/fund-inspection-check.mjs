@@ -80,10 +80,38 @@ async function waitForSettledLens(lens) {
   assert.ok(settled, 'lens settles before the pixel comparison');
 }
 
+async function checkSurfaceLight(page, selector) {
+  const panel = page.locator(selector);
+  await page.evaluate(() => document.fonts.ready);
+  await panel.scrollIntoViewIfNeeded();
+  const box = await panel.boundingBox();
+  const x = Math.round(box.x + box.width * .2), y = Math.floor(box.y);
+  const edge = { x, y, width: 12, height: 2 };
+  const inside = { x, y: y + 5, width: 12, height: 2 };
+  const track = async fraction => {
+    await page.mouse.move(box.x + box.width * fraction, y + 2);
+    await page.waitForFunction(({ selector, fraction }) => {
+      const el = document.querySelector(selector);
+      return el.classList.contains('surface-lit') &&
+        Math.abs(parseFloat(el.style.getPropertyValue('--surface-light-at')) / 100 - fraction) < .01;
+    }, { selector, fraction });
+  };
+  await track(.2);
+  const lit = await page.screenshot({ clip: edge }), face = await page.screenshot({ clip: inside });
+  // Hold the pointer and the underlying hover state still. Disable only the
+  // new border background to test whether any light enters the face.
+  const off = await page.addStyleTag({ content: '.surface-lit { --surface-glint: none !important; }' });
+  try {
+    assert.ok(face.equals(await page.screenshot({ clip: inside })), selector + ' interior remains clear');
+  } finally { await off.evaluate(el => el.remove()); }
+  await track(.8);
+  assert.ok(!lit.equals(await page.screenshot({ clip: edge })), selector + ' border reflects the moving pointer');
+}
+
 async function checkChoiceOptics(page, lens, { stripes = false } = {}) {
   // Keep the real glyphs and their layout, isolating them from theme colors and painted highlights.
   const fixture = await page.addStyleTag({ content: `.top-rail-tabs, .nav-fs-dock { background: #151515 !important; }
-    .top-rail-tab, .nav-fs-tab, .glass-projection-scene > span { color: white !important; transition: none !important; }
+    .top-rail-tab, .nav-fs-tab, .glass-projection-scene > span { color: white !important; text-decoration-color: white !important; transition: none !important; }
     .glass-contour > use, .glass-contour .rim-reflection { visibility: hidden; }` });
   try {
     await waitForSettledLens(lens);
@@ -100,7 +128,7 @@ async function checkChoiceOptics(page, lens, { stripes = false } = {}) {
     assert.ok(bare.sharpness > 50 && glass.sharpness >= bare.sharpness * .72,
       `enlarged glyph edges retain sharp local contrast (glass ${glass.sharpness}, original ${bare.sharpness})`);
     if (stripes && engine === 'chromium') {
-      // Dispersion creates color from a neutral field only where the curved lip samples different stripes.
+      // A short tab bends the striped backdrop without separating RGB channels.
       const plate = await page.addStyleTag({ content: `.top-rail-tabs { background:
         repeating-linear-gradient(90deg,#151515 0px 3px,#eee 3px 6px) !important; }` });
       try {
@@ -112,7 +140,7 @@ async function checkChoiceOptics(page, lens, { stripes = false } = {}) {
         const core = await sampleLabelInk(page, middle);
         const rim = await sampleLabelInk(page, shoulder);
         assert.equal(core.colored, 0, 'the optical center stays free of color fringes');
-        assert.ok(rim.colored >= 2, 'the curved lip splits the incoming monochrome stripes');
+        assert.equal(rim.colored, 0, 'the short lip keeps alternating neutral stripes achromatic');
       } finally { await plate.evaluate(el => el.remove()); }
     }
   } finally { await fixture.evaluate(el => el.remove()); }
@@ -122,7 +150,8 @@ async function checkChoiceOptics(page, lens, { stripes = false } = {}) {
 // mask follows the actual spring spline, including its nonuniform transform.
 async function checkLensBoundary(page, lens) {
   const fixture = await page.addStyleTag({ content: `.top-rail-tabs, .nav-fs-dock { background: #181818 !important; }
-    .top-rail-tab, .nav-fs-tab, .glass-projection-scene > span { color: white !important; transition: none !important; }` });
+    .top-rail-tab, .nav-fs-tab, .glass-projection-scene > span { color: white !important; text-decoration-color: white !important; transition: none !important; }
+    .glass-contour > use, .glass-contour .rim-reflection { visibility: hidden; }` });
   try {
     await waitForSettledLens(lens);
     const rim = await lens.evaluate(el => {
@@ -136,7 +165,7 @@ async function checkLensBoundary(page, lens) {
     const hide = await page.addStyleTag({ content: '.glass-hover-frame { visibility: hidden !important; } .glass-label-cutout { clip-path: none !important; }' });
     const bare = await screenshotPixels(page, rim.clip);
     await hide.evaluate(el => el.remove());
-    const { coloredInside, coloredOutside } = await page.evaluate(({ rim, glass, bare }) => {
+    const { changedInside, coloredInside, coloredOutside } = await page.evaluate(({ rim, glass, bare }) => {
       const canvas = document.createElement('canvas');
       canvas.width = glass.width;
       canvas.height = glass.height;
@@ -149,19 +178,21 @@ async function checkLensBoundary(page, lens) {
       ctx.lineWidth = 1 / scale;
       ctx.stroke(outline);
       const mask = ctx.getImageData(0, 0, glass.width, glass.height).data;
-      let coloredInside = 0, coloredOutside = 0;
+      let changedInside = 0, coloredInside = 0, coloredOutside = 0;
       for (let i = 0; i < mask.length; i += 4) {
         const dr = glass.data[i] - bare.data[i];
         const dg = glass.data[i + 1] - bare.data[i + 1];
         const db = glass.data[i + 2] - bare.data[i + 2];
+        if (mask[i + 3] === 255 && Math.abs(dg) > 16) changedInside++;
         if (Math.max(dr, dg, db) - Math.min(dr, dg, db) <= 16) continue;
         if (mask[i + 3] === 255) coloredInside++;
         if (mask[i + 3] === 0) coloredOutside++;
       }
-      return { coloredInside, coloredOutside };
+      return { changedInside, coloredInside, coloredOutside };
     }, { rim, glass, bare });
     await Promise.all([glass.dispose(), bare.dispose()]);
-    assert.ok(coloredInside > 0, 'the curved lip still produces visible color inside the lens');
+    assert.ok(changedInside > 0, 'the held lens still refracts the crossing label');
+    assert.equal(coloredInside, 0, 'a held short lens also keeps its lettering achromatic');
     assert.equal(coloredOutside, 0, 'color stays inside the moving physical outline');
   } finally { await fixture.evaluate(el => el.remove()); }
 }
@@ -341,12 +372,17 @@ try {
   await page.locator('#fc-status').filter({ hasText: '已载入 2' }).waitFor();
   const navLens = page.locator('.top-rail-lens');
   const preview = page.locator('.top-rail-tab[data-route="list"]');
+  const decoration = element => getComputedStyle(element).textDecorationLine;
+  assert.equal(await preview.evaluate(decoration), 'none');
   await preview.hover();
+  assert.equal(await preview.evaluate(decoration), 'underline');
   await page.waitForFunction(lensAligned, '.top-rail-tab[data-route="list"]');
   await checkChoiceOptics(page, navLens, { stripes: true });
   assert.equal(await page.locator('.top-rail-tab[data-route="compare"]').getAttribute('aria-selected'), 'true');
   await checkRailScrub(page);
   await page.locator('#fc-status').filter({ hasText: '已载入 2' }).waitFor();
+  await checkSurfaceLight(page, '.fc-toolbar');
+  await checkSurfaceLight(page, '.fc-table-wrap');
 
   const metric = name => page.locator('#fc-table tr').filter({ has: page.locator('th[scope="row"]', { hasText: new RegExp(`^${name}$`) }) }).locator('td');
   const feeRow = metric('显性年化费率').first().locator('..');
@@ -404,8 +440,15 @@ try {
   assert.deepEqual(await metric('换手率').allTextContents(), ['0.00%', '100.00%']);
   await page.locator('#fc-period').selectOption('2024-12-31');
   assert.deepEqual(await metric('换手率').allTextContents(), ['20.00%', '—']);
-  for (const width of [1440, 390, 320]) {
+  for (const width of [1440, 692, 390, 320]) {
     await page.setViewportSize({ width, height: 844 });
+    if (width <= 1024) {
+      const title = await page.locator('.top-rail-name').boundingBox();
+      const rail = await page.locator('.top-rail').boundingBox();
+      const actions = await page.locator('.top-rail-right').boundingBox();
+      assert.ok(Math.abs(title.x + title.width / 2 - (rail.x + rail.width / 2)) <= 1 && title.x + title.width <= actions.x,
+        `FundCal is centered with room for the basket at ${width}px`);
+    }
     for (const theme of ['light', 'dark']) {
       await page.evaluate(theme => { document.documentElement.dataset.theme = theme; }, theme);
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `overflow ${width}/${theme}`);
@@ -414,7 +457,7 @@ try {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.locator('#fc-table .fund-drag-handle').first().focus();
   await page.keyboard.press('Enter');
-  await page.locator('#basket-drop-target').waitFor();
+  await page.locator('#fund-basket-button.is-drop-ready').waitFor();
   assert.match(await page.locator('#basket-drag-ghost').textContent(), /^1 只基金/);
   await page.keyboard.press('Escape');
   // An old response must never overwrite a newly selected comparison.
@@ -453,6 +496,11 @@ try {
   await page.locator('[data-fof-holdings]').filter({ hasText: '2026-09-30' }).waitFor();
   assert.equal(await page.locator('[data-fof-holdings] a[href="#/fund/000001"]').count(), 1);
   assert.equal(await page.locator('[data-fof-holdings] a[href="https://fund.eastmoney.com/510310.html"]').count(), 1);
+  const sourceLink = page.locator('[data-fof-holdings] a[href="https://fund.eastmoney.com/510310.html"]');
+  await sourceLink.hover();
+  assert.equal(await sourceLink.evaluate(decoration), 'underline');
+  await page.mouse.move(1, 1);
+  assert.equal(await sourceLink.evaluate(decoration), 'none');
   await page.locator('a[href="#/compare/000003,000002"]').click();
   await page.locator('#fc-status').filter({ hasText: '已载入 2' }).waitFor();
   // A pending lazy import must neither delay nor reinitialize the newly selected page.

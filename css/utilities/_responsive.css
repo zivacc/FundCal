@@ -140,7 +140,7 @@
     white-space: nowrap;
   }
 
-  .toggle-btn-text,
+  .toggle-btn,
   .toggle-select,
   .calc-discount-label {
     font-size: 0.72rem;
@@ -305,7 +305,7 @@
     font-size: 0.8125rem;
   }
 
-  .toggle-btn-text,
+  .toggle-btn,
   .toggle-select,
   .calc-discount-label {
     font-size: 0.75rem;

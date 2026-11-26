@@ -52,6 +52,8 @@ export function createChoiceProjection(group, lens, items, schedule) {
   const selection = new MutationObserver(invalidate);
   for (const item of items) selection.observe(item, { attributes: true, attributeFilter: ['class'] });
   group.addEventListener('transitionend', event => { if (event.propertyName === 'color') invalidate(); });
+  group.addEventListener('pointerover', invalidate);
+  group.addEventListener('pointerout', invalidate);
   document.fonts.addEventListener('loadingdone', invalidate);
   let visible = [], edge, pose, boxes = [];
 

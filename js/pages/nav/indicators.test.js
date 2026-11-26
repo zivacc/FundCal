@@ -31,12 +31,12 @@ import { computeMA } from '../../domain/nav-chart-transform.js';
 
 /* ============== 注册表 shape ============== */
 
-test('INDICATOR_REGISTRY: 每个指标必须有 id / label / persist.key / ui.checkboxId / panel / build', () => {
+test('INDICATOR_REGISTRY: 每个指标必须有 id / label / persist.key / ui.buttonId / panel / build', () => {
   for (const ind of INDICATORS_LIST) {
     assert.equal(typeof ind.id, 'string', `${ind.id}: id`);
     assert.equal(typeof ind.label, 'string', `${ind.id}: label`);
     assert.equal(typeof ind.persist?.key, 'string', `${ind.id}: persist.key`);
-    assert.equal(typeof ind.ui?.checkboxId, 'string', `${ind.id}: ui.checkboxId`);
+    assert.equal(typeof ind.ui?.buttonId, 'string', `${ind.id}: ui.buttonId`);
     assert.equal(typeof ind.panel, 'string', `${ind.id}: panel`);
     assert.equal(typeof ind.build, 'function', `${ind.id}: build`);
   }

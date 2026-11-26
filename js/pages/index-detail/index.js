@@ -1,3 +1,4 @@
+import { bindFundRowSelection, syncSelectAll } from '../../components/selection.js';
 import { createTypeahead } from '../../components/typeahead.js';
 import { fetchIndexDetailSearch, fetchIndexDetail } from '../../data/index-api.js';
 import { fetchNavCompare, periodToRange } from '../../data/nav-api.js';
@@ -72,9 +73,7 @@ function visibleFunds() {
 function updateSelection() {
   const visible = visibleFunds().rows;
   const count = visible.filter(fund => state.selected.has(fund.code)).length;
-  $('fund-select-page').checked = visible.length > 0 && count === visible.length;
-  $('fund-select-page').indeterminate = count > 0 && count < visible.length;
-  $('fund-select-page').disabled = !visible.length;
+  syncSelectAll($('fund-select-page'), count, visible.length);
   $('add-basket').disabled = state.selected.size === 0;
   $('add-basket').textContent = state.selected.size ? `加入篮子（${state.selected.size}）` : '加入篮子';
   notifyFundSelection();
@@ -84,13 +83,12 @@ function renderFunds() {
   $('fund-count').textContent = `(${funds.length})`;
   const result = visibleFunds();
   state.fundPage = result.page;
-  $('fund-rows').innerHTML = result.rows.length ? result.rows.map(row => `<tr ${fundDragAttrs(row)}>
-    <td><input type="checkbox" data-code="${row.code}" aria-label="选择 ${escapeFundAttribute(row.name)}" ${state.selected.has(row.code) ? 'checked' : ''}></td>
+  $('fund-rows').innerHTML = result.rows.length ? result.rows.map(row => `<tr ${fundDragAttrs(row)} tabindex="0" aria-selected="${state.selected.has(row.code)}">
     <td><a class="id-fund-name" href="#/fund/${row.code}">${escapeHtml(row.name)}</a><span class="id-sub id-mono">${row.code}</span>${fundDragHandle()}</td>
     <td>${escapeHtml(row.fundType || '—')}<span class="id-sub">${escapeHtml(row.management || '—')}</span></td>
     <td class="id-numeric id-mono">${row.annualFee == null ? '—' : percentLabel(row.annualFee * 100)}</td>
     <td>${escapeHtml(({ exact: '精确', fullname: '全名', name: '名称', fuzzy: '模糊', manual: '人工' })[row.matchType] || row.matchType || '—')}</td></tr>`).join('')
-    : `<tr><td colspan="5">${funds.length ? '没有匹配的基金' : '暂无该代码的场外跟踪关系；可查看上方已核验关联版本。'}</td></tr>`;
+    : `<tr><td colspan="4">${funds.length ? '没有匹配的基金' : '暂无该代码的场外跟踪关系；可查看上方已核验关联版本。'}</td></tr>`;
   pagination($('fund-pages'), result, 'fund');
   updateSelection();
 }
@@ -162,7 +160,7 @@ function renderChart(preserveZoom = false) {
   const t = getChartTheme();
   const zoom = preserveZoom ? state.chart.getOption().dataZoom?.[0] : null;
   const range = { start: zoom?.start ?? 0, end: zoom?.end ?? 100 };
-  state.chart.setOption({ animation: false, textStyle: { color: t.textSecondary },
+  state.chart.setOption({ animation: false, textStyle: { color: t.textSecondary, fontFamily: t.fontFamily },
     grid: { left: 12, right: 24, top: 24, bottom: 70, containLabel: true },
     tooltip: { trigger: 'axis', confine: true, backgroundColor: t.bgElevated, borderColor: t.rule,
       textStyle: { color: t.textPrimary }, valueFormatter: value => numberLabel(value) },
@@ -264,14 +262,13 @@ function onRoute() {
 export function pageInit() {
   setupSearch();
   registerFundSource('index-detail-funds', 'index-detail', () => state.data?.trackingFunds.filter(row => state.selected.has(row.code)) || [], 10);
-  $('fund-rows').addEventListener('change', event => {
-    const code = event.target.dataset.code;
-    if (!code) return;
-    if (event.target.checked) state.selected.add(code); else state.selected.delete(code);
-    updateSelection();
-  });
-  $('fund-select-page').addEventListener('change', event => {
-    visibleFunds().rows.forEach(row => { if (event.target.checked) state.selected.add(row.code); else state.selected.delete(row.code); });
+  bindFundRowSelection($('fund-rows'), state.selected, updateSelection);
+  $('fund-select-page').addEventListener('click', () => {
+    const select = $('fund-select-page').ariaPressed !== 'true';
+    for (const row of visibleFunds().rows) {
+      if (select) state.selected.add(row.code);
+      else state.selected.delete(row.code);
+    }
     renderFunds();
   });
   $('add-basket').addEventListener('click', () => {

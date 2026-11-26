@@ -1,4 +1,21 @@
-/* 界面使用系统字体，数字与代码保持等宽。 */
+@font-face {
+  font-family: 'Inter';
+  src: url('https://cdn.jsdelivr.net/npm/@fontsource-variable/inter@5.3.0/files/inter-latin-wght-normal.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Source Serif 4';
+  src: url('https://cdn.jsdelivr.net/npm/@fontsource-variable/source-serif-4@5.3.1/files/source-serif-4-latin-wght-normal.woff2') format('woff2');
+  font-weight: 200 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('https://cdn.jsdelivr.net/npm/@fontsource-variable/jetbrains-mono@5.3.0/files/jetbrains-mono-latin-wght-normal.woff2') format('woff2');
+  font-weight: 100 800;
+  font-display: swap;
+}
 
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-cjk);
@@ -80,7 +97,7 @@ table.mono-nums th {
   font-family: var(--font-mono);
 }
 
-/* 中文内容优先选用系统中文字体。 */
+/* 中文标题与基金名称优先使用霞鹜文楷。 */
 .top-rail-tab,
 .page-header h1,
 .fund-card .fund-name,

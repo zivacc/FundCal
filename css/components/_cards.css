@@ -4,8 +4,8 @@
 
 .card {
   position: relative;
-  background: var(--bg-raised);
-  border: 1px solid var(--rule);
+  background: var(--surface-glint, none), var(--bg-raised);
+  border: 1px solid color-mix(in srgb, var(--rule) 65%, transparent);
   border-radius: var(--radius-lg);
   padding: 16px 18px;
   transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
@@ -272,7 +272,11 @@
 
 .segments-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--surface-glint, none);
   font-size: 0.8rem;
 }
 

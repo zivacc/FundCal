@@ -32,7 +32,7 @@ export function morningstarChartOption(periods, kind, theme = {}) {
   }
   return {
     animation: false,
-    textStyle: { color: theme.text || '#777', fontFamily: 'sans-serif' },
+    textStyle: { color: theme.text || '#777', fontFamily: theme.fontFamily },
     title: [
       { text: fee ? '费率（%）' : '换手率（%）', left: 8, top: 34, textStyle: { fontSize: 12, fontWeight: 'normal', color: theme.text || '#777' } },
       { text: fee ? '同类排名百分比 · 晨星原值' : '百分位（右轴）', ...(fee ? { left: 8, top: 278 } : { right: 8, top: 34 }), textStyle: { fontSize: 12, fontWeight: 'normal', color: theme.text || '#777' } },

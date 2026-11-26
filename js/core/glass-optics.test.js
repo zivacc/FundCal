@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createGlassField, glassApertureInset, glassLightDirection, glassLightMatrices } from './glass-optics.js';
 
-const zoom = 1.16, width = 120, height = 48, outset = 5;
-const lens = createGlassField(width, height, 24, 8, 18, outset, zoom);
+const zoom = 1.16, width = 120, height = 64, outset = 5;
+const lens = createGlassField(width, height, height / 2, 8, 18, outset, zoom);
 const pixelAt = (x, y) => 4 * ((y + outset) * lens.width + x + outset);
 
 function sourceAt(x, y) {
@@ -23,11 +23,11 @@ test('inverse sampling gives the requested magnification and no dispersion throu
 });
 
 test('the rounded caps bend passing content, the flat bevel samples a centered label just once', () => {
-  const [capX] = sourceAt(3, 24);
+  const [capX] = sourceAt(3, height / 2);
   const centerOnly = width / 2 + (3.5 - width / 2) / zoom;
-  assert.ok(capX > centerOnly + 3, 'ray turns inward near the cap');
+  assert.ok(capX > centerOnly + 2, 'ray turns inward near the cap');
   const flatBevel = lens.refraction[pixelAt(59, 3) + 2];
-  assert.ok(flatBevel > 0 && flatBevel < lens.refraction[pixelAt(3, 24) + 2] / 4);
+  assert.ok(flatBevel > 0 && flatBevel < lens.refraction[pixelAt(3, height / 2) + 2] / 4);
   for (let y = 1; y < height; y += 1) {
     assert.ok(sourceAt(59, y)[1] >= sourceAt(59, y - 1)[1], 'flat bevel has no fold');
   }
@@ -47,8 +47,27 @@ test('a narrow high-density dock shoulder bends successive samples continuously'
   }
 });
 
+test('short controls use a single neutral sample and keep crossing strokes continuous at the seam', () => {
+  for (const h of [26, 34, 40, 48]) {
+    const w = 102;
+    for (const edgeOnly of [false, true]) {
+      const field = createGlassField(w, h, h / 2, 7, 18, 0, edgeOnly ? 1 : zoom, 1, edgeOnly);
+      assert.equal(field.dispersion, null);
+      let previous;
+      for (let col = 0; col < w; col++) {
+        const p = 4 * ((h / 2) * w + col);
+        const offset = (field.refraction[p] / 255 - .5) * field.range;
+        if (col < 3 || col >= w - 3 || edgeOnly) assert.ok(Math.abs(offset) < .1);
+        const sample = col + .5 + offset;
+        if (previous !== undefined) assert.ok(sample > previous && sample - previous < 2);
+        previous = sample;
+      }
+    }
+  }
+});
+
 test('dispersion is confined to the inner shoulder and the padded texture stays neutral', () => {
-  const size = 44, radius = size / 2;
+  const size = 68, radius = size / 2;
   for (const density of [1, 2]) {
     const field = createGlassField(size, size, radius, 5, 14, outset, zoom, density);
     let peak = 0, atDepth = 0;
@@ -90,19 +109,19 @@ test('ring-only optics still sample card and table centers in place, with bounde
   assert.deepEqual([...ring.refraction.slice(p, p + 4)], [128, 128, 0, 255]);
 });
 
-test('interactive row and card edges split light inside the bevel while fee pixels stay still', () => {
+test('tall row and card edges split light inside the bevel while fee pixels stay still', () => {
   // Sample a square-cornered filter field as well as a rounded one. A zero CSS
   // radius still has a normal on each straight side.
   for (const radius of [0, 16]) {
-    const field = createGlassField(640, 42, radius, 7, 14, 5, 1, 2, true);
+    const field = createGlassField(640, 68, radius, 7, 14, 5, 1, 2, true);
     assert.ok(field.width <= 1024 && field.width * field.height < 100000);
     let peak = 0;
     for (let row = 0; row < field.height; row++) {
-      const depth = (row + .5) * 52 / field.height - 5;
+      const depth = (row + .5) * 78 / field.height - 5;
       const p = 4 * (row * field.width + Math.floor(field.width / 2));
       const split = Math.abs(128 - field.dispersion[p + 1]);
-      if (depth <= glassApertureInset || depth >= 7 && depth <= 35) assert.equal(split, 0);
-      if (depth > 8 && depth < 34) assert.deepEqual([...field.refraction.slice(p, p + 2)], [128, 128]);
+      if (depth <= glassApertureInset || depth >= 7 && depth <= 61) assert.equal(split, 0);
+      if (depth > 8 && depth < 60) assert.deepEqual([...field.refraction.slice(p, p + 2)], [128, 128]);
       if (depth > glassApertureInset && depth < 7) peak = Math.max(peak, split);
     }
     assert.ok(peak > 90);

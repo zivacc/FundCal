@@ -66,7 +66,7 @@
   padding: calc(var(--radius-lg) - var(--table-row-radius) - 1px);
   border-radius: var(--radius-lg);
   border: 1px solid var(--glass-stroke);
-  background: var(--glass-fill);
+  background: var(--surface-glint, none), var(--glass-fill);
 }
 
 .index-picker-index-list {
@@ -80,6 +80,11 @@
 }
 
 .index-picker-index-item {
+  width: 100%;
+  color: inherit;
+  text-align: left;
+  background: transparent;
+  border: 0;
   padding: 0.45rem 0.7rem;
   display: flex;
   align-items: center;
@@ -118,7 +123,7 @@
   padding: 0.4rem 0.7rem;
   border-radius: var(--radius-md);
   border: 1px solid var(--glass-stroke);
-  background: var(--glass-fill);
+  background: var(--surface-glint, none), var(--glass-fill);
   box-shadow: var(--glass-frame-shadow);
   font-size: 0.82rem;
   cursor: pointer;
@@ -130,8 +135,8 @@
 }
 
 .index-picker-index-card-active {
-  border-color: var(--accent);
-  background: var(--accent-bg);
+  border-color: color-mix(in srgb, var(--accent) 75%, transparent);
+  background: var(--surface-glint, none), var(--accent-bg);
   color: var(--accent);
 }
 
@@ -202,6 +207,11 @@
 }
 
 .index-picker-fund-main {
+  flex: 1;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  text-align: left;
   display: flex;
   flex-direction: column;
   gap: 0.12rem;
@@ -244,11 +254,6 @@
   background: var(--bg-raised);
 }
 
-.index-picker-toggle-active {
-  background: var(--accent-bg);
-  color: var(--accent);
-  border-color: var(--accent);
-}
 
 /* ═══════════════════════════════════════════════════════════════
    指数独立页面
@@ -263,7 +268,7 @@
   padding: 1.25rem;
   border: 1px solid var(--glass-stroke);
   border-radius: var(--radius-xl);
-  background: var(--glass-fill);
+  background: var(--surface-glint, none), var(--glass-fill);
   box-shadow: var(--glass-frame-shadow);
 }
 
@@ -318,11 +323,9 @@
 .index-page-detail-link {
   color: var(--accent);
   white-space: nowrap;
-  text-decoration: none;
   padding: 0.15rem 0.25rem;
   border-radius: var(--radius-sm);
 }
-.index-page-detail-link:hover { text-decoration: underline; }
 .index-page-detail-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .index-page-chip em {
@@ -468,7 +471,7 @@
 .index-page-panel {
   border: 1px solid var(--glass-stroke);
   border-radius: var(--radius-xl);
-  background: var(--glass-fill);
+  background: var(--surface-glint, none), var(--glass-fill);
   box-shadow: var(--glass-frame-shadow);
   padding: 1rem;
 }
@@ -510,7 +513,7 @@
   align-items: center;
   border: 1px solid var(--glass-stroke);
   border-radius: var(--radius-xl);
-  background: var(--glass-fill);
+  background: var(--surface-glint, none), var(--glass-fill);
   box-shadow: var(--glass-frame-shadow);
 }
 

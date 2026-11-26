@@ -1,5 +1,7 @@
 // Inset of the optical aperture from the nominal control bounds, in local CSS pixels.
 export const glassApertureInset = 2.55;
+export const compactGlassHeight = 48;
+const smoothstep = t => t * t * (3 - 2 * t);
 
 // feDisplacementMap reads a source pixel at P + scale * (RG - 0.5).
 // Each map belongs to the padded filter box; the rounded aperture starts at outset.
@@ -11,14 +13,16 @@ export function createGlassField(width, height, radius, rim, scale, outset, magn
     Math.sqrt(98304 / (filterWidth * filterHeight)));
   const columns = Math.ceil(filterWidth * resolution), rows = Math.ceil(filterHeight * resolution);
   const refraction = new Uint8ClampedArray(rows * columns * 4);
-  const dispersion = edgeOnly || magnification > 1 ? new Uint8ClampedArray(refraction.length) : null;
-  const curvature = 1 - 1 / magnification;
+  const interactive = edgeOnly || magnification > 1;
+  const compact = height <= compactGlassHeight;
+  const dispersion = interactive && !compact ? new Uint8ClampedArray(refraction.length) : null;
+  const curvature = 1 - 1 / (compact ? Math.min(1.10, magnification) : magnification);
   // Spread the bend across several pixels even on the narrow 5px dock rim.
   const bevelWidth = edgeOnly ? rim : Math.min(radius * .58, rim * 1.6, Math.max(8, rim));
   const prismWidth = bevelWidth - glassApertureInset;
-  const deflection = Math.min(scale * .45, bevelWidth * .87);
+  const deflection = compact ? .55 : Math.min(scale * .35, bevelWidth * .65);
   // Allow the encoded vectors to cover the central zoom as well as the edge bend.
-  const range = dispersion ? 2 * (Math.max(filterWidth, filterHeight) * curvature / 2 + deflection + 3) : scale;
+  const range = interactive ? 2 * (Math.max(filterWidth, filterHeight) * curvature / 2 + deflection + 1) : scale;
   for (let row = 0; row < rows; row += 1) {
     const y = (row + .5) * filterHeight / rows - outset;
     for (let col = 0; col < columns; col += 1) {
@@ -33,24 +37,29 @@ export function createGlassField(width, height, radius, rim, scale, outset, magn
       const nx = length ? dx / length : (sideX < sideY ? Math.sign(x - width / 2) : 0);
       const ny = length ? dy / length : (sideY <= sideX ? Math.sign(y - height / 2) : 0);
       const pixel = (row * columns + col) * 4;
-      if (dispersion) {
+      if (interactive) {
         // Inverse magnification keeps the whole image in focus. At the rounded
         // caps the steeper curvature bends passing glyphs. The long, shallow
         // upper/lower bevel must not fold a second copy of a centered label.
         const t = bevelWidth > 0 ? Math.max(0, Math.min(1, depth / bevelWidth)) : 1;
         const shoulder = !edgeOnly && width > height * 1.35 ? .18 + .82 * Math.abs(nx) : 1;
+        // A compact lens can cross a glyph. Match its original pixels at the
+        // seam, then ease into the central zoom so strokes stay connected.
+        const blend = compact ? smoothstep(Math.max(0, Math.min(1, (depth - glassApertureInset - 1) / 7))) : 1;
         const bevel = (1 - t) ** 2 * (1 + 2 * t) * shoulder;
-        refraction[pixel] = 255 * (.5 + ((width / 2 - x) * curvature - nx * deflection * bevel) / range);
-        refraction[pixel + 1] = 255 * (.5 + ((height / 2 - y) * curvature - ny * deflection * bevel) / range);
+        refraction[pixel] = 255 * (.5 + blend * ((width / 2 - x) * curvature - nx * deflection * bevel) / range);
+        refraction[pixel + 1] = 255 * (.5 + blend * ((height / 2 - y) * curvature - ny * deflection * bevel) / range);
         // B carries steering strength; smaller bevels allow proportionally less tilt.
-        refraction[pixel + 2] = 255 * bevel * Math.min(1, rim * .08);
+        refraction[pixel + 2] = compact ? 0 : 255 * bevel * Math.min(1, rim * .08);
         // The color split rises and falls inside the bevel. The padded texture
         // and the outer seam remain neutral, including under interpolation.
-        const u = prismWidth > 0 ? Math.max(0, Math.min(1, (depth - glassApertureInset) / prismWidth)) : 0;
-        const spread = (4 * u * (1 - u)) ** 2 * shoulder;
-        dispersion[pixel] = 255 * (.5 + nx * spread / 2);
-        dispersion[pixel + 1] = 255 * (.5 + ny * spread / 2);
-        dispersion[pixel + 3] = 255;
+        if (dispersion) {
+          const u = prismWidth > 0 ? Math.max(0, Math.min(1, (depth - glassApertureInset) / prismWidth)) : 0;
+          const spread = (4 * u * (1 - u)) ** 2 * shoulder * Math.min(1, (height - compactGlassHeight) / 16);
+          dispersion[pixel] = 255 * (.5 + nx * spread / 2);
+          dispersion[pixel + 1] = 255 * (.5 + ny * spread / 2);
+          dispersion[pixel + 3] = 255;
+        }
       } else {
         // Static card and table rims leave their figures in place.
         const edge = depth > 0 && depth < rim ? Math.sin(Math.PI * depth / rim) : 0;

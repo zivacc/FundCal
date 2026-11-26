@@ -126,7 +126,7 @@
   padding: 10px 13px;
   border: 1px solid var(--glass-stroke);
   border-radius: var(--radius-lg);
-  background: var(--glass-highlight), var(--glass-fill);
+  background: var(--surface-glint, none), var(--glass-highlight), var(--glass-fill);
   box-shadow: inset 0 1px 0 var(--glass-toplight), var(--shadow-sm);
   align-items: center;
   flex-wrap: wrap;
@@ -205,7 +205,7 @@
   align-items: center;
   justify-content: center;
   gap: 7px;
-  padding: 0.48rem 0.7rem 0.48rem 0.56rem;
+  padding: 0.48rem 0.8rem;
   border-radius: var(--radius-pill);
   font-family: var(--font-body);
   font-size: 0.85rem;
@@ -221,65 +221,7 @@
   min-width: 0;
 }
 
-.chart-options .toggle-btn::before {
-  content: '';
-  display: block;
-  width: 29px;
-  height: 17px;
-  flex: 0 0 auto;
-  border: 1px solid var(--rule-strong);
-  border-radius: var(--radius-pill);
-  background: var(--bg-sunk);
-  transition: background-color var(--transition-fast);
-}
-
-.chart-options .toggle-btn::after {
-  content: '';
-  position: absolute;
-  inset: calc(50% - 5.5px) auto auto calc(0.56rem + 3px);
-  width: 11px;
-  height: 11px;
-  border-radius: var(--radius-circle);
-  background: var(--text-tertiary);
-  box-shadow: var(--shadow-sm);
-  transition: transform var(--transition-fast), background-color var(--transition-fast);
-}
-
-.toggle-btn:hover {
-  border-color: var(--border-hover);
-}
-
-.toggle-btn:has(.toggle-btn-input:checked) {
-  border-color: var(--border-glow);
-}
-
-.toggle-btn:has(.toggle-btn-input:checked):hover {
-  border-color: var(--accent-hover);
-}
-
-.chart-options .toggle-btn:has(.toggle-btn-input:checked)::before {
-  background: var(--accent);
-  border-color: var(--accent);
-}
-
-.chart-options .toggle-btn:has(.toggle-btn-input:checked)::after {
-  transform: translateX(12px);
-  background: var(--text-inverse);
-}
-
-.toggle-btn:has(.toggle-btn-input:focus-visible) {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-.toggle-btn-input {
-  position: absolute;
-  width: 0;
-  height: 0;
-  opacity: 0;
-  margin: 0;
-  pointer-events: none;
-}
+.toggle-btn:hover { border-color: var(--border-hover); }
 
 .toggle-btn-inline {
   font-size: 0.8rem;
@@ -299,18 +241,6 @@
   .calc-days-actions-right { margin-left: 0; }
   .calc-discount-wrap { margin-left: 0; }
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .toggle-btn, .chart-options .toggle-btn::before, .chart-options .toggle-btn::after { transition: none; }
-}
-
-@media (forced-colors: active) {
-  .chart-options .toggle-btn::before { border-color: ButtonText; }
-  .chart-options .toggle-btn::after { background: ButtonText; }
-  .chart-options .toggle-btn:has(.toggle-btn-input:checked)::before { border-color: Highlight; }
-  .chart-options .toggle-btn:has(.toggle-btn-input:checked)::after { background: Highlight; }
-}
-
 
 /* ═══════════════════════════════════════════════════════════════
    分段费率表格
@@ -448,7 +378,7 @@
 }
 
 .page-calc .fund-detail-table-wrap {
-  background: var(--glass-highlight), var(--glass-fill);
+  background: var(--surface-glint, none), var(--glass-highlight), var(--glass-fill);
   border-color: var(--glass-stroke);
   box-shadow: var(--glass-shadow);
 }

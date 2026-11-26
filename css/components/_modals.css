@@ -28,7 +28,7 @@
 .modal {
   width: min(640px, 100%);
   max-height: calc(100dvh - 2rem);
-  background: var(--glass-highlight) var(--glass-fill-strong);
+  background: var(--surface-glint, none), var(--glass-highlight) var(--glass-fill-strong);
   border: 1px solid var(--glass-stroke);
   border-radius: var(--radius-xl);
   box-shadow: var(--glass-rim), var(--shadow-xl);
@@ -145,8 +145,8 @@
 }
 
 .modal-json-pre {
-  background: var(--bg-sunk);
-  border: 1px solid var(--rule);
+  background: var(--surface-glint, none), var(--bg-sunk);
+  border: 1px solid color-mix(in srgb, var(--rule) 65%, transparent);
   border-radius: var(--radius-md);
   padding: 14px;
   font-family: var(--font-mono);
@@ -172,8 +172,8 @@
   justify-content: space-between;
   gap: 0.75rem;
   padding: 8px 12px;
-  background: var(--bg-sunk);
-  border: 1px solid var(--rule);
+  background: var(--surface-glint, none), var(--bg-sunk);
+  border: 1px solid color-mix(in srgb, var(--rule) 65%, transparent);
   border-radius: var(--radius-md);
 }
 
@@ -204,7 +204,7 @@
 
 .import-file-wrap {
   border-radius: var(--radius-md);
-  border: 1.5px dashed var(--rule-strong);
+  border: 1px solid var(--rule-strong);
   background: var(--bg-sunk);
   padding: 14px 12px;
   display: flex;

@@ -2,12 +2,12 @@
    表格系统
    ══════════════════════════════════════════════════════════════ */
 
-:is(.table-container, .cached-funds-table-wrap, .fund-detail-table-wrap, .fc-table-wrap,
+:is(.table-container, .modal-json-table, .cached-funds-table-wrap, .fund-detail-table-wrap, .fc-table-wrap,
     .id-table-wrap, .fd-table-wrap, .nav-stats-table-wrap, .nav-range-stats-table-wrap) {
   position: relative;
   border: 1px solid var(--glass-stroke);
   border-radius: var(--table-radius);
-  background: var(--table-fill);
+  background: var(--surface-glint, none), var(--table-fill);
   box-shadow: var(--glass-rim), var(--shadow-sm);
   min-width: 0;
   max-width: 100%;
@@ -291,4 +291,17 @@
 
 .fund-detail-delete-btn:hover {
   opacity: 1;
+}
+
+
+/* Selected fund rows share one outline while the interior column edges stay joined. */
+table.selectable-fund-table { border-collapse: separate; border-spacing: 0; }
+.selectable-fund-table tr[aria-selected] { cursor: pointer; border-radius: var(--table-row-radius); }
+.selectable-fund-table tr[aria-selected="true"] > td { background-color: var(--accent-subtle); }
+.selectable-fund-table tr[aria-selected="true"] > td:first-child {
+  border-radius: var(--table-row-radius) 0 0 var(--table-row-radius);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.selectable-fund-table tr[aria-selected="true"] > td:last-child {
+  border-radius: 0 var(--table-row-radius) var(--table-row-radius) 0;
 }

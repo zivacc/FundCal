@@ -44,8 +44,7 @@ let currentFallback = false;   // 灾备模式 (纯静态部署) 时禁用筛选
 let basketPoolEnabled = false;
 
 function updatePoolUI() {
-  document.getElementById('list-basket-mode').checked = basketPoolEnabled;
-  document.getElementById('list-basket-pool').classList.toggle('is-active', basketPoolEnabled);
+  document.getElementById('list-basket-mode').ariaPressed = String(basketPoolEnabled);
   const n = basket.get().length;
   document.getElementById('list-basket-hint').textContent = basketPoolEnabled
     ? (n ? `范围：篮子中的 ${n} 只基金 · 搜索和筛选仅在池内生效 · 篮子增删自动同步` : '篮子为空 · 加入基金后将自动显示；关闭开关可回到全库')
@@ -488,7 +487,7 @@ function setupEvents() {
 export function pageInit() {
   registerFundSource('list', 'list', () => [...selectedCompare].map(([code, name]) => ({ code, name })));
   registerFundReceiver('list', async () => {
-    // 拖入总是查看整篮，而不是浮窗内勾选的子集；清除旧筛选以展示整池。
+    // 拖入总是查看整篮，而不是浮窗内选中的子集；清除旧筛选以展示整池。
     basketPoolEnabled = true;
     currentQuery = '';
     document.getElementById('cached-funds-search').value = '';
@@ -499,8 +498,8 @@ export function pageInit() {
     await refresh({ throwOnError: true });
     return basket.get().length;
   });
-  document.getElementById('list-basket-mode').addEventListener('change', event => {
-    basketPoolEnabled = event.target.checked;
+  document.getElementById('list-basket-mode').addEventListener('click', () => {
+    basketPoolEnabled = !basketPoolEnabled;
     currentPage = 1;
     updatePoolUI();
     void refresh();

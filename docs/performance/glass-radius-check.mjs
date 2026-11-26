@@ -111,14 +111,17 @@ try {
       await page.mouse.down();
       const box = await row.boundingBox();
       await page.mouse.move(box.x + 10, box.y + 35, { steps: 5 });
-      const target = page.locator('#basket-drop-target');
-      await target.waitFor();
-      const basket = await page.locator('#fund-basket-button').boundingBox();
+      const target = '#fund-basket-button.is-drop-ready';
+      await page.locator(target).waitFor();
+      const basket = await page.locator(target).boundingBox();
       await page.mouse.move(basket.x + basket.width / 2, basket.y + basket.height / 2);
-      await checkLens(page, '#basket-drop-target', '#basket-drop-target .basket-drop-lens');
+      await checkLens(page, target, target + ' .basket-drop-lens');
       await checkLens(page, '#basket-drag-ghost', '#basket-drag-ghost');
-      await page.keyboard.press('Escape');
+      // The old circular target reached this empty strip below the top rail.
+      await page.mouse.move(basket.x + basket.width / 2, basket.y + basket.height + 64);
+      assert.equal(await page.locator(target + '.is-drop-over').count(), 0);
       await page.mouse.up();
+      assert.equal(await page.locator('#basket-live-status').isVisible(), false);
       await page.goto(base + '/#/calc');
       const card = '.fund-card.is-deck-active';
       await page.locator(card).hover();
@@ -132,7 +135,11 @@ try {
       const drop = page.locator(add);
       await drop.waitFor();
       const bounds = await drop.boundingBox();
+      assert.ok(bounds.y > viewport.height * .70, 'basket actions share a compact bottom bar');
       await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+      await checkLens(page, add, add + ' .basket-drop-lens');
+      // Keep the pointer still while a change in label metrics resizes the drop button.
+      await drop.locator('strong').evaluate(label => { label.style.lineHeight = '40px'; });
       await checkLens(page, add, add + ' .basket-drop-lens');
       await page.keyboard.press('Escape');
       await page.mouse.up();

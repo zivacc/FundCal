@@ -194,8 +194,8 @@ function getOrCreateFloatingActions() {
     root.className = 'fund-detail-floating-actions';
     root.hidden = true;
     root.innerHTML = `
-      <button type="button" class="fund-detail-floating-btn fund-detail-floating-compare">去排排网比较</button>
-      <button type="button" class="fund-detail-floating-btn fund-detail-floating-jiuquan">去韭圈儿</button>
+      <button type="button" data-navigation class="fund-detail-floating-btn fund-detail-floating-compare">去排排网比较</button>
+      <button type="button" data-navigation class="fund-detail-floating-btn fund-detail-floating-jiuquan">去韭圈儿</button>
       <button type="button" class="fund-detail-floating-btn fund-detail-floating-delete">删除选中</button>
     `;
     document.body.appendChild(root);

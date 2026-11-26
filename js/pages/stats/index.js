@@ -69,7 +69,7 @@ function getOrCreateFundStatsCompareFab() {
     fab.id = 'fund-stats-compare-fab';
     fab.className = 'cached-funds-compare-fab';
     fab.hidden = true;
-    fab.innerHTML = '<button type="button" id="fund-stats-compare-btn" class="cached-funds-compare-btn">去比较</button><button type="button" id="fund-stats-jiuquan-btn" class="cached-funds-compare-btn cached-funds-jiuquan-btn">去韭圈儿</button>';
+    fab.innerHTML = '<button type="button" id="fund-stats-compare-btn" data-navigation class="cached-funds-compare-btn">去比较</button><button type="button" id="fund-stats-jiuquan-btn" data-navigation class="cached-funds-compare-btn cached-funds-jiuquan-btn">去韭圈儿</button>';
     document.body.appendChild(fab);
   }
   return /** @type {HTMLDivElement} */ (fab);

@@ -1,3 +1,4 @@
+import { bindToggleButton } from '../../components/selection.js';
 import { registerFundSource, registerFundReceiver, notifyFundSelection, fundDragAttrs, fundDragHandle, escapeFundAttribute } from '../../core/fund-transfer.js';
 import { planNavBasketTransfer } from './basket-transfer.js';
 import { seriesColors } from '../../core/chart-palette.js';
@@ -191,7 +192,7 @@ function loadPersistedState() {
 }
 
 /**
- * 把 state 同步到 UI 控件的 active class / checked / value。
+ * 把 state 同步到 UI 控件的 激活样式、按钮按压状态及输入值。
  * setupEvents 之后、fetchAndRender 之前调用，让按钮状态先就位。
  */
 function applyStateToUI() {
@@ -204,15 +205,15 @@ function applyStateToUI() {
   document.querySelectorAll('#nav-axis-scale .nav-toggle-btn').forEach(b => {
     b.classList.toggle('nav-toggle-btn-active', b.dataset.value === state.axisScale);
   });
-  // 指标 checkbox 按注册表同步（回 checked 状态）
+  // 指标按钮按注册表同步
   for (const ind of INDICATORS_LIST) {
-    const el = document.getElementById(ind.ui.checkboxId);
-    if (el) el.checked = !!state[ind.persist.key];
+    const el = document.getElementById(ind.ui.buttonId);
+    if (el) el.ariaPressed = String(!!state[ind.persist.key]);
   }
   // 派生指标控件同步
   for (const ind of DERIVED_INDICATORS_LIST) {
-    const cb = document.getElementById(ind.ui.checkboxId);
-    if (cb) cb.checked = !!state[ind.persist.enabledKey];
+    const button = document.getElementById(ind.ui.buttonId);
+    if (button) button.ariaPressed = String(!!state[ind.persist.enabledKey]);
   }
   refreshExcessSelects();
   syncRangeInputs();
@@ -750,6 +751,7 @@ function readChartTheme() {
     accent:    v('--accent',         '#c47a3d'),
     accentSub: v('--accent-subtle',  'rgba(196,122,61,0.08)'),
     labelRadius: parseFloat(v('--radius-xs', '0')),
+    fontFamily: v('--font-body', 'sans-serif'),
   };
 }
 
@@ -1001,6 +1003,7 @@ function renderChart({ interaction = false } = {}) {
   navFullscreen?.sync();
   const option = {
     backgroundColor: 'transparent',
+    textStyle: { fontFamily: theme.fontFamily },
     animation: false,
     // ECharts 自带 legend 关掉 —— 在暗色模式下它的白圆点 icon 与主题不协调，也难细化样式。
     // 由 renderChartLegend 在 #nav-chart-wrap 内贴同一位置绘制纯 DOM legend，全走 CSS 变量。
@@ -1180,7 +1183,7 @@ function baselineIndex(allDatesYMD, baselineISO) {
 }
 
 /**
- * 基准日视觉 = 图表里一根被动的虚线 + 图表上方一个 DOM 拖动 panel。
+ * 基准日视觉 = 图表里一根基准线 + 图表上方一个 DOM 拖动 panel。
  * 拖动逻辑全部交给 panel 的 DOM 事件（见 ensureBaselinePanel），完全绕开
  * zrender 事件栈，不再与 inside dataZoom 抢鼠标。
  *
@@ -1204,7 +1207,7 @@ function attachBaselineMarker(chart, allDatesYMD, effectiveBaseline, theme) {
   if (!Number.isFinite(pxX) || !gridRect) return;
   const visible = pxX >= gridRect.x - 1 && pxX <= gridRect.x + gridRect.width + 1;
 
-  // 图表里只画一根被动虚线
+  // 图表里只画一根基准线
   try {
     chart.setOption({
       graphic: [{
@@ -1212,7 +1215,7 @@ function attachBaselineMarker(chart, allDatesYMD, effectiveBaseline, theme) {
         type: 'line',
         x: pxX, y: gridRect.y,
         shape: { x1: 0, y1: 0, x2: 0, y2: gridRect.height },
-        style: { stroke: theme.accent, lineWidth: 1.2, lineDash: [4, 4], opacity: 0.85 },
+        style: { stroke: theme.accent, lineWidth: 1, opacity: 0.6 },
         silent: true, z: 100,
         invisible: !visible,
       }],
@@ -1558,10 +1561,10 @@ function setupEvents() {
     renderChart();
   });
 
-  // 派生指标：开关 checkbox + 各自参数控件（目前 EXCESS 有两个 select）
+  // 派生指标：开关按钮 + 各自参数控件（目前 EXCESS 有两个 select）
   for (const ind of DERIVED_INDICATORS_LIST) {
-    document.getElementById(ind.ui.checkboxId)?.addEventListener('change', (e) => {
-      state[ind.persist.enabledKey] = e.target.checked;
+    bindToggleButton(document.getElementById(ind.ui.buttonId), pressed => {
+      state[ind.persist.enabledKey] = pressed;
       persist();
       renderChart();
     });
@@ -1580,10 +1583,11 @@ function setupEvents() {
     renderChart();
   });
 
-  // 指标：按注册表绑 checkbox change，单一代码路径，新增指标此处无需改动。
+  // 指标：按注册表绑定按钮，单一代码路径，新增指标此处无需改动。
   for (const ind of INDICATORS_LIST) {
-    document.getElementById(ind.ui.checkboxId)?.addEventListener('change', (e) => {
-      state[ind.persist.key] = e.target.checked;
+    bindToggleButton(document.getElementById(ind.ui.buttonId), pressed => {
+      state[ind.persist.key] = pressed;
+      persist();
       renderChart();
     });
   }

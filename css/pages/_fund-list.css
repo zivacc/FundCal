@@ -15,7 +15,7 @@
   flex-shrink: 0;
   border: 1px solid var(--glass-stroke);
   border-radius: var(--radius-xl);
-  background: var(--glass-fill);
+  background: var(--surface-glint, none), var(--glass-fill);
   box-shadow: var(--glass-frame-shadow);
   -webkit-backdrop-filter: var(--glass-blur) var(--glass-saturate);
   backdrop-filter: var(--glass-blur) var(--glass-saturate);
@@ -550,11 +550,6 @@
   font-size: 12.5px;
 }
 
-.cf-main .cached-funds-table {
-  border-collapse: separate;
-  border-spacing: 0;
-}
-
 .cached-funds-table .cached-fund-ms-value { text-align: right; font-variant-numeric: tabular-nums; }
 .cached-funds-table .cached-fund-ms-date { color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
 
@@ -574,22 +569,6 @@
   top: 0;
   background-color: var(--table-header);
   z-index: 1;
-}
-
-.cached-funds-table tbody tr.cached-fund-row {
-  cursor: pointer;
-  border-radius: var(--table-row-radius);
-}
-
-.cached-fund-row-selected > td {
-  background-color: var(--accent-subtle);
-}
-.cached-fund-row-selected > td:first-child {
-  border-radius: var(--table-row-radius) 0 0 var(--table-row-radius);
-  box-shadow: inset 3px 0 0 0 var(--accent);
-}
-.cached-fund-row-selected > td:last-child {
-  border-radius: 0 var(--table-row-radius) var(--table-row-radius) 0;
 }
 
 .cached-funds-empty {
@@ -708,6 +687,9 @@
   font-size: 0.8rem;
 }
 .list-basket-pool {
+  text-align: left;
+  color: var(--text-primary);
+  cursor: pointer;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -716,10 +698,9 @@
   margin: 12px 0;
   border: 1px solid var(--glass-stroke);
   border-radius: var(--radius-lg);
-  background: var(--glass-fill);
+  background: var(--surface-glint, none), var(--glass-fill);
   box-shadow: var(--glass-frame-shadow);
 }
-.list-basket-pool.is-active { border-color: var(--accent); background-color: color-mix(in srgb, var(--accent) 10%, var(--glass-fill-strong)); }
-.list-basket-pool label { display: inline-flex; align-items: center; gap: 8px; min-height: 32px; font-size: 14px; font-weight: 600; cursor: pointer; }
-.list-basket-pool input { width: 18px; height: 18px; accent-color: var(--accent); }
+.list-basket-pool[aria-pressed="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--glass-fill-strong)); }
+.list-basket-pool strong { display: inline-flex; align-items: center; min-height: 32px; font-size: 14px; font-weight: 600; }
 .list-basket-pool span { flex: 1 1 240px; color: var(--text-secondary); font-size: 13px; line-height: 1.6; }

@@ -5,7 +5,7 @@
 .fc-toolbar, .fc-empty {
   border: 1px solid var(--glass-stroke);
   border-radius: var(--radius-xl);
-  background: var(--glass-fill);
+  background: var(--surface-glint, none), var(--glass-fill);
   box-shadow: var(--glass-frame-shadow);
 }
 .fc-toolbar { padding: 1rem; }
@@ -29,7 +29,7 @@
 .fc-table .fc-section th { width: auto; background-color: color-mix(in srgb, var(--accent) 10%, var(--table-header)); font-size: .8rem; font-weight: 600; color: var(--accent); }
 .fc-table tr > :last-child { border-right: 0; }
 .fc-fund-heading { display: flex; align-items: flex-start; gap: .5rem; justify-content: space-between; white-space: normal; }
-.fc-fund-heading a { color: var(--text-primary); text-decoration: none; flex: 1; min-width: 0; }
+.fc-fund-heading a { color: var(--text-primary); flex: 1; min-width: 0; }
 .fc-fund-heading span { display: block; font: .8rem var(--font-mono); color: var(--accent); margin-bottom: .5rem; }
 .fc-fund-heading strong { font-size: 1rem; font-weight: 600; line-height: 1.6; }
 .fc-fund-heading a:hover strong { color: var(--accent); }
@@ -37,7 +37,7 @@
 .fc-remove:hover { border-color: var(--glass-lens-edge); color: var(--danger); }
 .fc-index-link { display: block; margin-top: .5rem; font-size: .78rem; }
 .fc-column-status { color: var(--text-secondary); font-size: .8rem; margin-top: .65rem; }
-.fc-column-status button { border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--accent); cursor: pointer; text-decoration: underline; padding: .3rem; }
+.fc-column-status button { border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--accent); cursor: pointer; padding: .3rem; }
 .page-fund-compare :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 @media (max-width: 600px) {
   .fc-toolbar { padding: .75rem; }

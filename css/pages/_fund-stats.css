@@ -14,7 +14,7 @@
   padding: 1rem 1.35rem;
   border-radius: var(--radius-lg);
   border: 1px solid var(--glass-stroke);
-  background: var(--glass-fill);
+  background: var(--surface-glint, none), var(--glass-fill);
   box-shadow: var(--glass-frame-shadow);
 }
 
@@ -112,7 +112,7 @@
   padding: 12px 14px;
   border-radius: var(--radius-lg);
   border: 1px solid var(--glass-stroke);
-  background: var(--glass-fill);
+  background: var(--surface-glint, none), var(--glass-fill);
   box-shadow: var(--glass-frame-shadow);
   transition: border-color var(--transition-fast);
   cursor: pointer;
@@ -249,7 +249,7 @@
 .fund-stats-detail-card {
   border-radius: var(--radius-xl);
   border: 1px solid var(--glass-stroke);
-  background: var(--glass-fill-strong);
+  background: var(--surface-glint, none), var(--glass-fill-strong);
   box-shadow: var(--glass-frame-shadow);
   padding: 0.9rem 1rem;
   display: flex;

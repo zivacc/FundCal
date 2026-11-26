@@ -26,7 +26,7 @@
   padding: 4rem 1.5rem;
   text-align: center;
   color: var(--text-tertiary);
-  background: var(--glass-fill);
+  background: var(--surface-glint, none), var(--glass-fill);
   border: 1px solid var(--glass-stroke);
   border-radius: var(--radius-xl);
   box-shadow: var(--glass-frame-shadow);
@@ -54,7 +54,7 @@
 /* ── 卡片骨架 ── */
 .fd-card {
   min-width: 0;
-  background: var(--glass-fill);
+  background: var(--surface-glint, none), var(--glass-fill);
   border: 1px solid var(--glass-stroke);
   border-radius: var(--radius-xl);
   padding: 1.25rem 1.5rem;
@@ -245,10 +245,8 @@
 /* ── 同指数基金 peer 行 ── */
 .fd-peer-link {
   color: var(--accent);
-  text-decoration: none;
 }
 
-.fd-peer-link:hover { text-decoration: underline; }
 .fd-index-links { display: flex; flex-wrap: wrap; gap: 0.3rem 0.6rem; margin-top: 0.25rem; font-size: 0.82rem; }
 .fd-index-links a { overflow-wrap: anywhere; }
 .fd-peer-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--radius-sm); }
@@ -259,8 +257,8 @@
 .fd-raw-body {
   max-height: 480px;
   overflow: auto;
-  background: var(--bg-sunk);
-  border: 1px solid var(--border);
+  background: var(--surface-glint, none), var(--bg-sunk);
+  border: 1px solid color-mix(in srgb, var(--border) 65%, transparent);
   border-radius: var(--radius-md);
   padding: 0.75rem 1rem;
   font-family: 'JetBrains Mono', 'DM Mono', monospace;

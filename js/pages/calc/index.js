@@ -1,3 +1,4 @@
+import { bindToggleButton } from '../../components/selection.js';
 import { registerFundSource, registerFundReceiver, notifyFundSelection, prepareFundTransfer, fundDragHandle } from '../../core/fund-transfer.js';
 import { normalizeFundRefs } from '../../data/basket-store.js';
 import { readCardImplicitFee } from './implicit-fee.js';
@@ -101,9 +102,9 @@ function getStateFromDOM() {
     calcDaysMin: calcDaysMinEl?.value ?? '',
     calcDaysMax: calcDaysMaxEl?.value ?? '',
     buyFeeDiscount: buyFeeDiscountEl?.value ?? '1',
-    skipFirst7: !!skipFirst7El?.checked,
-    showTooltip: showTooltipEl ? !!showTooltipEl.checked : true,
-    penetrateFeeder: penetrateFeederEl ? !!penetrateFeederEl.checked : false,
+    skipFirst7: skipFirst7El?.ariaPressed === 'true',
+    showTooltip: showTooltipEl?.ariaPressed !== 'false',
+    penetrateFeeder: penetrateFeederEl?.ariaPressed === 'true',
     funds: Array.from(cards).map(card => {
       const f = readFundFromCard(card);
       return { ...f, buyFee: f._rawBuyFee };
@@ -169,18 +170,18 @@ function restoreState(state) {
     buyFeeDiscountFactor = 1;
   }
   const skipFirst7El = document.getElementById('skip-first-7');
-  if (skipFirst7El && state.skipFirst7 != null) skipFirst7El.checked = !!state.skipFirst7;
+  if (skipFirst7El && state.skipFirst7 != null) skipFirst7El.ariaPressed = String(!!state.skipFirst7);
   const showTooltipEl = document.getElementById('show-tooltip');
   // 恢复状态，若无状态则默认：小屏关闭，大屏开启
   if (showTooltipEl) {
     if (state.showTooltip !== undefined) {
-      showTooltipEl.checked = state.showTooltip !== false;
+      showTooltipEl.ariaPressed = String(state.showTooltip !== false);
     } else {
-      showTooltipEl.checked = window.innerWidth >= 900;
+      showTooltipEl.ariaPressed = String(window.innerWidth >= 900);
     }
   }
   const penetrateFeederEl = document.getElementById('penetrate-linked');
-  if (penetrateFeederEl && state.penetrateFeeder != null) penetrateFeederEl.checked = !!state.penetrateFeeder;
+  if (penetrateFeederEl && state.penetrateFeeder != null) penetrateFeederEl.ariaPressed = String(!!state.penetrateFeeder);
   const container = document.getElementById('fund-cards');
   if (!container) return;
   container.innerHTML = '';
@@ -362,14 +363,14 @@ function getDisplayRange() {
   return { min: minVal, max: maxVal };
 }
 
-/** 是否勾选「去除前7天」 */
+/** 是否启用「去除前7天」 */
 function getSkipFirst7() {
-  return !!document.getElementById('skip-first-7')?.checked;
+  return document.getElementById('skip-first-7')?.ariaPressed === 'true';
 }
 
 /** 是否显示数据悬浮窗 */
 function getShowTooltip() {
-  return !!document.getElementById('show-tooltip')?.checked;
+  return document.getElementById('show-tooltip')?.ariaPressed === 'true';
 }
 
 /** 是否开启联接基金穿透（年化费率 = 联接年化 + 母基金年化）。ETF 联接不存在双重收费，功能保留但默认不启用，开关已隐藏。 */
@@ -962,33 +963,17 @@ function init() {
     const el = document.getElementById(id);
     if (el) el.addEventListener('input', debounce(() => { updateChart(); saveState(); }, 300));
   });
-  const skipFirst7El = document.getElementById('skip-first-7');
-  if (skipFirst7El) {
-    skipFirst7El.addEventListener('change', () => {
-      if (!skipFirst7El.checked) {
-        const minEl = document.getElementById('calc-days-min');
-        const maxEl = document.getElementById('calc-days-max');
-        const minVal = parseDaysInput(minEl?.value);
-        const maxVal = parseDaysInput(maxEl?.value);
-        if (minVal === 8 && maxVal != null && maxVal > 7) {
-          if (minEl) minEl.value = '';
-        }
-      }
-      updateChart();
-      saveState();
-    });
-  }
-  const showTooltipEl = document.getElementById('show-tooltip');
-  if (showTooltipEl) {
-    showTooltipEl.addEventListener('change', () => {
-      // 统一控制曲线/交叉点信息窗，更新时清除残留。
-      updateChart();
-      saveState();
-    });
-  }
-  const penetrateFeederEl = document.getElementById('penetrate-linked');
-  if (penetrateFeederEl) {
-    penetrateFeederEl.addEventListener('change', () => {
+  bindToggleButton(document.getElementById('skip-first-7'), pressed => {
+    if (!pressed) {
+      const minEl = document.getElementById('calc-days-min');
+      const maxVal = parseDaysInput(document.getElementById('calc-days-max')?.value);
+      if (parseDaysInput(minEl?.value) === 8 && maxVal > 7) minEl.value = '';
+    }
+    updateChart();
+    saveState();
+  });
+  for (const id of ['show-tooltip', 'penetrate-linked']) {
+    bindToggleButton(document.getElementById(id), () => {
       updateChart();
       saveState();
     });
@@ -1123,13 +1108,13 @@ function init() {
     const appliedCompare = await applyCompareFromCacheSession();
     if (appliedCompare) return;
     const state = loadStateFromStorage();
-    if (state && state.funds && state.funds.length > 0) {
+    if (Array.isArray(state?.funds)) {
       restoreState(state);
     } else {
       // 无缓存状态时，根据屏幕宽度设置默认悬浮窗开关
       const showTooltipEl = document.getElementById('show-tooltip');
       if (showTooltipEl) {
-        showTooltipEl.checked = window.innerWidth >= 900;
+        showTooltipEl.ariaPressed = String(window.innerWidth >= 900);
       }
     }
   })();

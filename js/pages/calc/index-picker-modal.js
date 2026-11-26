@@ -1,3 +1,4 @@
+import { syncSelectAll } from '../../components/selection.js';
 import { registerFundSource, notifyFundSelection, fundDragHandle } from '../../core/fund-transfer.js';
 /**
  * 基金费率计算器 - 指数选择弹窗模块
@@ -10,7 +11,7 @@ import { fetchFundStatsFromAPI, fetchFundFeeFromAPI } from '../../data/fund-api.
 
 let indexPickerStatsCache = null;
 let indexPickerSelectedIndex = null;
-let indexPickerSelectedCodes = new Set();
+const indexPickerSelectedCodes = new Set();
 
 let _pickerToastTimer = null;
 function showPickerToast(msg, duration = 3000) {
@@ -51,16 +52,36 @@ export function setupIndexPickerModal({ addFundCard }) {
   if (!openBtn || !backdrop || !searchInput || !indexListEl || !fundListEl) return;
 
   registerFundSource('calc-index-modal', 'calc', () => backdrop.classList.contains('visible') || backdrop.getAttribute('aria-hidden') === 'false' ? [...fundListEl.querySelectorAll('.index-picker-fund-item-selected')].map(row => ({ code: row.dataset.code, name: row.dataset.fundName })) : [], 30);
-  let selectAllActive = false;
-  let selectLinkedActive = false;
-  let selectEnhancedActive = false;
+  const selectionGroups = [
+    [selectAllBtn, '.index-picker-fund-item'],
+    [selectLinkedBtn, '[data-is-linked="1"]'],
+    [selectEnhancedBtn, '[data-is-enhanced="1"]'],
+  ];
 
+  function syncGroupButtons() {
+    for (const [button, selector] of selectionGroups) {
+      if (!button) continue;
+      const rows = fundListEl.querySelectorAll(selector);
+      const count = [...rows].filter(row => indexPickerSelectedCodes.has(row.dataset.code)).length;
+      syncSelectAll(button, count, rows.length);
+    }
+  }
+  let groupFrame = 0;
+  function scheduleGroupSync() {
+    if (groupFrame) return;
+    groupFrame = requestAnimationFrame(() => { groupFrame = 0; syncGroupButtons(); });
+  }
   const updateHint = () => {
+    for (const row of fundListEl.querySelectorAll('.index-picker-fund-item')) {
+      const selected = indexPickerSelectedCodes.has(row.dataset.code);
+      row.classList.toggle('index-picker-fund-item-selected', selected);
+      row.querySelector('.index-picker-fund-main').ariaPressed = String(selected);
+    }
+    syncGroupButtons();
     notifyFundSelection();
     const count = indexPickerSelectedCodes.size;
-    const text = `已选择 ${count} 只基金。`;
-    if (hintEl) hintEl.textContent = text;
-    if (selectedCountEl) selectedCountEl.textContent = count ? `（已勾选 ${count} 只）` : '';
+    if (hintEl) hintEl.textContent = `已选择 ${count} 只基金。`;
+    if (selectedCountEl) selectedCountEl.textContent = count ? `（已选 ${count} 只）` : '';
   };
 
   const renderIndexList = (items, query = '') => {
@@ -71,32 +92,30 @@ export function setupIndexPickerModal({ addFundCard }) {
       filtered = filterSearchIndex(items, s, { limit: Infinity });
     }
     filtered.forEach(item => {
-      const div = document.createElement('div');
-      div.className = 'index-picker-index-item';
-      div.dataset.label = item.label;
-      div.innerHTML = `
-        <div class="index-picker-index-name">${escapeHtml(item.label || '')}</div>
-        <div class="index-picker-index-meta">${item.count} 只基金</div>
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.ariaPressed = String(item === indexPickerSelectedIndex);
+      button.className = 'index-picker-index-item';
+      button.classList.toggle('index-picker-index-item-active', item === indexPickerSelectedIndex);
+      button.dataset.label = item.label;
+      button.innerHTML = `
+        <span class="index-picker-index-name">${escapeHtml(item.label || '')}</span>
+        <span class="index-picker-index-meta">${item.count} 只基金</span>
       `;
-      div.addEventListener('click', () => {
+      button.addEventListener('click', () => {
         indexPickerSelectedIndex = item;
         indexListEl.querySelectorAll('.index-picker-index-item').forEach(el => {
-          el.classList.toggle('index-picker-index-item-active', el === div);
+          el.classList.toggle('index-picker-index-item-active', el === button);
+          el.ariaPressed = String(el === button);
         });
         if (selectedLabelEl) {
           selectedLabelEl.textContent = item.label || '未选择指数';
         }
-        indexPickerSelectedCodes = new Set();
-        selectAllActive = false;
-        selectLinkedActive = false;
-        selectEnhancedActive = false;
-        if (selectAllBtn) selectAllBtn.classList.remove('index-picker-toggle-active');
-        if (selectLinkedBtn) selectLinkedBtn.classList.remove('index-picker-toggle-active');
-        if (selectEnhancedBtn) selectEnhancedBtn.classList.remove('index-picker-toggle-active');
+        indexPickerSelectedCodes.clear();
         renderFundListForIndex(item);
         updateHint();
       });
-      indexListEl.appendChild(div);
+      indexListEl.appendChild(button);
     });
   };
 
@@ -113,29 +132,22 @@ export function setupIndexPickerModal({ addFundCard }) {
       row.className = 'index-picker-fund-item';
       row.dataset.code = safeCode; row.dataset.fundDrag = safeCode; row.dataset.fundName = safeCode;
       row.innerHTML = `
-        <div class="index-picker-fund-main">
-          <div class="index-picker-fund-name-line">${fundDragHandle()}
+        ${fundDragHandle()}
+        <button type="button" class="index-picker-fund-main" aria-pressed="false">
+          <span class="index-picker-fund-name-line">
             <span class="index-picker-fund-name">基金 ${safeCode}</span>
             <span class="index-picker-fund-code">${safeCode}</span>
-          </div>
-          <div class="index-picker-fund-tags">
+          </span>
+          <span class="index-picker-fund-tags">
             <span class="index-picker-fund-tag index-picker-fund-tag-link" data-code="${safeCode}" hidden>联接基金</span>
             <span class="index-picker-fund-tag">跟踪：${escapeHtml(indexItem.label || '')}</span>
-          </div>
-        </div>
+          </span>
+        </button>
       `;
-      row.addEventListener('click', () => {
-        const code = row.dataset.code;
-        if (!code) return;
-        if (indexPickerSelectedCodes.has(code)) {
-          indexPickerSelectedCodes.delete(code);
-          row.classList.remove('index-picker-fund-item-selected');
-        } else {
-          indexPickerSelectedCodes.add(code);
-          row.classList.add('index-picker-fund-item-selected');
-        }
-        selectAllActive = false;
-        selectLinkedActive = false;
+      row.addEventListener('click', event => {
+        if (event.target.closest('.fund-drag-handle')) return;
+        if (indexPickerSelectedCodes.has(safeCode)) indexPickerSelectedCodes.delete(safeCode);
+        else indexPickerSelectedCodes.add(safeCode);
         updateHint();
       });
       (async () => {
@@ -153,6 +165,7 @@ export function setupIndexPickerModal({ addFundCard }) {
             if (linkTagEl) linkTagEl.hidden = !isLinked;
             row.dataset.isLinked = isLinked ? '1' : '0';
             row.dataset.isEnhanced = isEnhanced ? '1' : '0';
+            if (row.isConnected) scheduleGroupSync();
           }
         } catch {
           // 忽略单个基金失败
@@ -178,10 +191,7 @@ export function setupIndexPickerModal({ addFundCard }) {
       return;
     }
     indexPickerSelectedIndex = null;
-    indexPickerSelectedCodes = new Set();
-    selectAllActive = false;
-    selectLinkedActive = false;
-    selectEnhancedActive = false;
+    indexPickerSelectedCodes.clear();
     if (searchInput) searchInput.value = '';
     if (selectedLabelEl) selectedLabelEl.textContent = '未选择指数';
     if (selectedCountEl) selectedCountEl.textContent = '';
@@ -210,128 +220,24 @@ export function setupIndexPickerModal({ addFundCard }) {
     });
   }
 
-  if (selectAllBtn) {
-    selectAllBtn.addEventListener('click', () => {
-      if (!indexPickerSelectedIndex || !Array.isArray(indexPickerSelectedIndex.codes)) return;
-      if (!selectAllActive) {
-        indexPickerSelectedCodes = new Set(indexPickerSelectedIndex.codes.map(c => String(c).trim()).filter(Boolean));
-        fundListEl.querySelectorAll('.index-picker-fund-item').forEach(row => {
-          const code = row.dataset.code;
-          if (code && indexPickerSelectedCodes.has(code)) {
-            row.classList.add('index-picker-fund-item-selected');
-          } else {
-            row.classList.remove('index-picker-fund-item-selected');
-          }
-        });
-        selectAllActive = true;
-        selectLinkedActive = false;
-        selectEnhancedActive = false;
-      } else {
-        indexPickerSelectedCodes = new Set();
-        fundListEl.querySelectorAll('.index-picker-fund-item').forEach(row => {
-          row.classList.remove('index-picker-fund-item-selected');
-        });
-        selectAllActive = false;
-        selectLinkedActive = false;
-        selectEnhancedActive = false;
+  for (const [button, selector] of selectionGroups) {
+    button?.addEventListener('click', () => {
+      const select = button.ariaPressed !== 'true';
+      for (const row of fundListEl.querySelectorAll(selector)) {
+        if (select) indexPickerSelectedCodes.add(row.dataset.code);
+        else indexPickerSelectedCodes.delete(row.dataset.code);
       }
-      if (selectAllBtn) selectAllBtn.classList.toggle('index-picker-toggle-active', selectAllActive);
-      if (selectLinkedBtn) selectLinkedBtn.classList.remove('index-picker-toggle-active');
-      if (selectEnhancedBtn) selectEnhancedBtn.classList.remove('index-picker-toggle-active');
       updateHint();
     });
   }
-
-  if (selectLinkedBtn) {
-    selectLinkedBtn.addEventListener('click', () => {
-      if (!indexPickerSelectedIndex || !Array.isArray(indexPickerSelectedIndex.codes)) return;
-      if (!selectLinkedActive) {
-        fundListEl.querySelectorAll('.index-picker-fund-item').forEach(row => {
-          const code = row.dataset.code;
-          if (!code) return;
-          if (row.dataset.isLinked === '1') indexPickerSelectedCodes.add(code);
-        });
-        fundListEl.querySelectorAll('.index-picker-fund-item').forEach(row => {
-          const code = row.dataset.code;
-          if (!code) return;
-          row.classList.toggle('index-picker-fund-item-selected', indexPickerSelectedCodes.has(code));
-        });
-        selectLinkedActive = true;
-      } else {
-        fundListEl.querySelectorAll('.index-picker-fund-item').forEach(row => {
-          const code = row.dataset.code;
-          if (!code) return;
-          if (row.dataset.isLinked === '1') indexPickerSelectedCodes.delete(code);
-        });
-        fundListEl.querySelectorAll('.index-picker-fund-item').forEach(row => {
-          const code = row.dataset.code;
-          if (!code) return;
-          if (indexPickerSelectedCodes.has(code)) {
-            row.classList.add('index-picker-fund-item-selected');
-          } else {
-            row.classList.remove('index-picker-fund-item-selected');
-          }
-        });
-        selectLinkedActive = false;
-      }
-      if (selectLinkedBtn) selectLinkedBtn.classList.toggle('index-picker-toggle-active', selectLinkedActive);
-      updateHint();
-    });
-  }
-
-  if (selectEnhancedBtn) {
-    selectEnhancedBtn.addEventListener('click', () => {
-      if (!indexPickerSelectedIndex || !Array.isArray(indexPickerSelectedIndex.codes)) return;
-      if (!selectEnhancedActive) {
-        fundListEl.querySelectorAll('.index-picker-fund-item').forEach(row => {
-          const code = row.dataset.code;
-          if (!code) return;
-          if (row.dataset.isEnhanced === '1') indexPickerSelectedCodes.add(code);
-        });
-        fundListEl.querySelectorAll('.index-picker-fund-item').forEach(row => {
-          const code = row.dataset.code;
-          if (!code) return;
-          row.classList.toggle('index-picker-fund-item-selected', indexPickerSelectedCodes.has(code));
-        });
-        selectEnhancedActive = true;
-      } else {
-        fundListEl.querySelectorAll('.index-picker-fund-item').forEach(row => {
-          const code = row.dataset.code;
-          if (!code) return;
-          if (row.dataset.isEnhanced === '1') indexPickerSelectedCodes.delete(code);
-        });
-        fundListEl.querySelectorAll('.index-picker-fund-item').forEach(row => {
-          const code = row.dataset.code;
-          if (!code) return;
-          if (indexPickerSelectedCodes.has(code)) {
-            row.classList.add('index-picker-fund-item-selected');
-          } else {
-            row.classList.remove('index-picker-fund-item-selected');
-          }
-        });
-        selectEnhancedActive = false;
-      }
-      if (selectEnhancedBtn) selectEnhancedBtn.classList.toggle('index-picker-toggle-active', selectEnhancedActive);
-      updateHint();
-    });
-  }
-
-  if (invertBtn) {
-    invertBtn.addEventListener('click', () => {
-      fundListEl.querySelectorAll('.index-picker-fund-item').forEach(row => {
-        const code = row.dataset.code;
-        if (!code) return;
-        if (indexPickerSelectedCodes.has(code)) {
-          indexPickerSelectedCodes.delete(code);
-          row.classList.remove('index-picker-fund-item-selected');
-        } else {
-          indexPickerSelectedCodes.add(code);
-          row.classList.add('index-picker-fund-item-selected');
-        }
-      });
-      updateHint();
-    });
-  }
+  invertBtn?.addEventListener('click', () => {
+    for (const row of fundListEl.querySelectorAll('.index-picker-fund-item')) {
+      const code = row.dataset.code;
+      if (indexPickerSelectedCodes.has(code)) indexPickerSelectedCodes.delete(code);
+      else indexPickerSelectedCodes.add(code);
+    }
+    updateHint();
+  });
 
   if (applyBtn) {
     applyBtn.addEventListener('click', async () => {
@@ -346,8 +252,6 @@ export function setupIndexPickerModal({ addFundCard }) {
         }
         // 清空选中状态
         indexPickerSelectedCodes.clear();
-        fundListEl.querySelectorAll('.index-picker-fund-item-selected')
-          .forEach(el => el.classList.remove('index-picker-fund-item-selected'));
         updateHint();
         showPickerToast(`已添加 ${codes.length} 只基金`);
       } finally {

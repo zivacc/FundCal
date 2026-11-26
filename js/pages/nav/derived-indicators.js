@@ -126,7 +126,7 @@ export const DERIVED_INDICATORS = {
       excessDenRef: REF_BENCHMARK,
     },
     ui: {
-      checkboxId: 'nav-ind-excess',
+      buttonId: 'nav-ind-excess',
       numSelectId: 'nav-ind-excess-num',
       denSelectId: 'nav-ind-excess-den',
     },

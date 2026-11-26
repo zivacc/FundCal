@@ -62,7 +62,7 @@ export const SUBPLOTS = {
  *   label:        UI 展示文本（区间统计 panel 里的列头 / 单基金 cell 标签）
  *   defaultEnabled: 首次访问的默认状态
  *   persist.key:  state 上的字段名（保持向后兼容，不换名以避免迁移）
- *   ui.checkboxId: 控件 id（HTML 里现有按钮）
+ *   ui.buttonId: 控件 id（HTML 里现有按钮）
  *   panel:        'main' | subplot id —— 决定该指标画到主图还是哪个副图
  *
  *   build(ctx):    产出 ECharts series entries 数组。主图指标返回 1 条线；
@@ -89,7 +89,7 @@ export const INDICATOR_REGISTRY = {
     label: 'MA20',
     defaultEnabled: false,
     persist: { key: 'showMA20' },
-    ui: { checkboxId: 'nav-ind-ma20' },
+    ui: { buttonId: 'nav-ind-ma20' },
     panel: 'main',
     build(ctx) {
       return [{
@@ -113,7 +113,7 @@ export const INDICATOR_REGISTRY = {
     label: 'MA60',
     defaultEnabled: false,
     persist: { key: 'showMA60' },
-    ui: { checkboxId: 'nav-ind-ma60' },
+    ui: { buttonId: 'nav-ind-ma60' },
     panel: 'main',
     build(ctx) {
       return [{
@@ -137,7 +137,7 @@ export const INDICATOR_REGISTRY = {
     label: '回撤副图',
     defaultEnabled: true,
     persist: { key: 'showDD' },
-    ui: { checkboxId: 'nav-ind-dd' },
+    ui: { buttonId: 'nav-ind-dd' },
     panel: 'drawdown',
     build(ctx) {
       let ddArr = drawdownCache.get(ctx.aligned);

@@ -114,19 +114,21 @@ try {
  await page.evaluate(() => scrollTo({ top: document.getElementById('fund-card-stage').getBoundingClientRect().bottom + scrollY + 20, behavior: 'instant' }));
  await page.waitForFunction(() => document.getElementById('fund-card-stage').getBoundingClientRect().bottom < 0);
  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
- const offscreenReads = await page.locator('.fund-card').first().evaluate(async card => {
+ const finishMeasurement = await page.locator('.fund-card').first().evaluateHandle(card => {
    let reads = 0;
    const measure = card.getBoundingClientRect;
    card.getBoundingClientRect = () => { reads++; return measure.call(card); };
-   try {
-     for (let i = 0; i < 5; i++) {
-       window.dispatchEvent(new PointerEvent('pointermove', { pointerType: 'mouse', clientX: 201 + i, clientY: 85 }));
-       await new Promise(requestAnimationFrame);
-     }
+   return () => {
+     delete card.getBoundingClientRect;
      return reads;
-   } finally { delete card.getBoundingClientRect; }
+   };
  });
- assert.equal(offscreenReads, 0);
+ // A scroll can generate a native pointer event. Keep the actual cursor at the
+ // last tested position so WebKit's hit testing uses the same coordinates.
+ await page.mouse.move(205, 85, { steps: 5 });
+ await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+ assert.equal(await finishMeasurement.evaluate(finish => finish()), 0);
+ await finishMeasurement.dispose();
  await page.evaluate(() => scrollTo({ top: 0, behavior: 'instant' }));
  await page.waitForFunction(() => {
    const el = document.getElementById('fund-card-stage'), bounds = el.getBoundingClientRect();

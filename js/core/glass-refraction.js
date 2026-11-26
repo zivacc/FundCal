@@ -1,5 +1,6 @@
 import { createGlassField, glassLightMatrices } from './glass-optics.js';
 
+const maxColorSpread = 1.75;
 const svgNamespace = 'http://www.w3.org/2000/svg';
 const bindings = new WeakMap();
 const sharedRims = new Map();
@@ -53,8 +54,8 @@ function addFilter(maps, edgeOnly) {
     displace(filter, 'SourceGraphic', 'lit-surface', maps.range, 'bent');
     primitive(filter, 'feImage', { href: maps.dispersion, preserveAspectRatio: 'none', result: 'normals' });
     record.color = primitive(filter, 'feColorMatrix', { in: 'normals', type: 'matrix', result: 'lit-edge' });
-    record.red = displace(filter, 'bent', 'lit-edge', 2.8, 'red-rays');
-    record.blue = displace(filter, 'bent', 'lit-edge', -2.8, 'blue-rays');
+    record.red = displace(filter, 'bent', 'lit-edge', maxColorSpread, 'red-rays');
+    record.blue = displace(filter, 'bent', 'lit-edge', -maxColorSpread, 'blue-rays');
     // Reassemble the three samples, retaining the original refracted alpha for
     // translucent foreground glyphs. All channel filters work in sRGB.
     for (const [channel, input] of ['red-rays', 'bent', 'blue-rays'].entries()) {
@@ -66,21 +67,22 @@ function addFilter(maps, edgeOnly) {
     primitive(filter, 'feComposite', { in: 'channel-0', in2: 'channel-1', operator: 'arithmetic', k2: 1, k3: 1, result: 'rg' });
     primitive(filter, 'feComposite', { in: 'rg', in2: 'channel-2', operator: 'arithmetic', k2: 1, k3: 1, result: 'rgb' });
     primitive(filter, 'feComposite', { in: 'rgb', in2: 'bent', operator: 'in', result: 'glass' });
-    if (edgeOnly) {
-      // A translucent backdrop painted a second time shows its entire clip as
-      // a dark stripe. Paint only the rays whose sampled colour actually changed.
-      primitive(filter, 'feColorMatrix', { in: 'SourceGraphic', result: 'original-color',
-        values: '1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0 1' });
-      primitive(filter, 'feBlend', { in: 'rgb', in2: 'original-color', mode: 'difference', result: 'difference' });
-      // A smooth alpha ramp over the first ~2% of luminance change also
-      // preserves antialiased strokes passing through the inner shoulder.
-      primitive(filter, 'feColorMatrix', { in: 'difference', result: 'coverage',
-        values: '0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  15 30 5 0 0' });
-      primitive(filter, 'feComposite', { in: 'glass', in2: 'coverage', operator: 'in' });
-    }
     steer(record, null, null);
   } else {
     displace(filter, 'SourceGraphic', 'surface', maps.range, 'bent');
+  }
+  if (edgeOnly) {
+    // A translucent backdrop painted a second time shows its entire clip as
+    // a dark stripe. Paint only the rays whose sampled colour actually changed.
+    const opaque = '1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0 1';
+    primitive(filter, 'feColorMatrix', { in: 'SourceGraphic', result: 'original-color', values: opaque });
+    if (!maps.dispersion) primitive(filter, 'feColorMatrix', { in: 'bent', result: 'rgb', values: opaque });
+    primitive(filter, 'feBlend', { in: 'rgb', in2: 'original-color', mode: 'difference', result: 'difference' });
+    // A smooth alpha ramp over the first ~2% of luminance change also
+    // preserves antialiased strokes passing through the inner shoulder.
+    primitive(filter, 'feColorMatrix', { in: 'difference', result: 'coverage',
+      values: '0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  15 30 5 0 0' });
+    primitive(filter, 'feComposite', { in: maps.dispersion ? 'glass' : 'bent', in2: 'coverage', operator: 'in' });
   }
   document.getElementById('glass-filter-definitions').append(filter);
   return record;
@@ -101,7 +103,7 @@ export function setGlassLight(element, x, y, intensity = 1) {
   const record = bindings.get(element);
   if (!record?.bend) return;
   steer(record, x, y);
-  const spread = Math.round(intensity * 2.8 * 16) / 16;
+  const spread = Math.round(intensity * maxColorSpread * 16) / 16;
   if (record.spread !== spread) {
     record.spread = spread;
     record.red.setAttribute('scale', spread);

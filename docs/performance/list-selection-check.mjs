@@ -25,6 +25,28 @@ async function checkTranslucentFilterChip(page) {
   assert.ok(glass.equals(bare), 'the glass edge preserves the flat color of a translucent sidebar');
 }
 
+async function checkIndexPageSelection(page) {
+  const code = '399300.SZ';
+  await page.route('**/api/index/' + code, route => route.fulfill({ json: {
+    index: { ts_code: code, name: '测试指数' }, history: { count: 0 }, returnLinks: [],
+    trackingFunds: funds.slice(0, 22), snapshots: [], constituents: { snapshot: null, rows: [] },
+  } }));
+  await page.evaluate(code => { location.hash = '#/index-detail/' + code; }, code);
+  const first = page.locator('#id-fund-rows tr[data-fund-drag]').first();
+  const all = page.locator('#id-fund-select-page');
+  await first.press('Space');
+  assert.equal(await first.getAttribute('aria-selected'), 'true');
+  assert.equal(await all.getAttribute('aria-pressed'), 'mixed');
+  await all.click();
+  assert.equal(await page.locator('#id-fund-rows tr[aria-selected="true"]').count(), 20);
+  await page.locator('#id-fund-pages button').last().click();
+  assert.equal(await all.getAttribute('aria-pressed'), 'false');
+  await first.press('Enter');
+  await page.locator('#id-fund-pages button').first().click();
+  await all.click();
+  assert.match(await page.locator('#id-add-basket').textContent(), /（1）/);
+}
+
 try {
   for (const touch of [false, true]) {
     const context = await browser.newContext({ viewport: touch ? { width: 390, height: 844 } : { width: 1440, height: 960 }, hasTouch: touch });
@@ -69,7 +91,7 @@ try {
     await cell(3).click(); assert.deepEqual(await selection(), before);
     await row(4).locator('.fund-drag-handle').focus();
     await page.keyboard.press('Enter');
-    await page.locator('#basket-drop-target').waitFor();
+    await page.locator('#fund-basket-button.is-drop-ready').waitFor();
     assert.deepEqual(await selection(), before);
     await page.keyboard.press('Escape');
     await choose(10, ['Meta']);
@@ -77,13 +99,25 @@ try {
     await page.locator('#fund-basket-button').click();
     await page.locator('[data-basket-action="collect"]').click();
     assert.equal(await page.locator('#fund-basket-list [data-basket-row]').count(), selectedCount);
+    assert.equal(await page.locator('input[type="checkbox"]').count(), 0);
+    const firstFund = page.locator('#fund-basket-list .basket-fund-name').first();
+    await firstFund.focus();
+    await page.keyboard.press('Space');
+    assert.equal(await firstFund.getAttribute('aria-pressed'), 'true');
+    assert.equal(await page.locator('.basket-fund-row.is-selected').count(), 1);
+    const all = page.getByRole('button', { name: '全选', exact: true });
+    assert.equal(await all.getAttribute('aria-pressed'), selectedCount > 1 ? 'mixed' : 'true');
+    if (selectedCount > 1) await all.click();
+    assert.equal(await page.locator('.basket-fund-row.is-selected').count(), selectedCount);
+    await all.click();
+    assert.equal(await page.locator('.basket-fund-row.is-selected').count(), 0);
     await page.locator('[data-basket-action="close"]').click();
     // Drag an already selected row: the entire selection must remain intact.
     await cell(10).scrollIntoViewIfNeeded();
     const box = await cell(10).boundingBox();
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await page.mouse.down(); await page.mouse.move(box.x + 50, box.y + 30, { steps: 5 });
-    await page.locator('#basket-drop-target').waitFor();
+    await page.locator('#fund-basket-button.is-drop-ready').waitFor();
     assert.ok((await page.locator('#basket-drag-ghost').textContent()).includes(String(selectedCount)));
     await page.keyboard.press('Escape'); await page.mouse.up();
     assert.equal((await selection()).length, selectedCount);
@@ -107,6 +141,7 @@ try {
       await row(119).waitFor();
       await choose(116, ['Shift']); assert.deepEqual(await selection(), [116]);
     }
+    if (!touch) await checkIndexPageSelection(page);
     assert.deepEqual(errors, []);
     console.log(`PASS ${touch ? 'touch' : 'desktop'} selection, basket, drag${touch ? '' : ', page/sort/search anchor reset'}`);
     await context.close();

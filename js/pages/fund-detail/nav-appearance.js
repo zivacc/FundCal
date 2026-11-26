@@ -4,7 +4,7 @@ import { seriesColors } from '../../core/chart-palette.js';
 export function navAppearance(theme, dark) {
   return {
     color: seriesColors(dark).slice(0, 2),
-    textStyle: { color: theme.textSecondary },
+    textStyle: { color: theme.textSecondary, fontFamily: theme.fontFamily },
     tooltip: { backgroundColor: theme.bgElevated, borderColor: theme.ruleStrong,
       textStyle: { color: theme.textPrimary }, confine: true },
     legend: { textStyle: { color: theme.textSecondary } },

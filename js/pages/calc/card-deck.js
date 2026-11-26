@@ -163,6 +163,7 @@ export function setupCardDeck() {
   window.addEventListener('scroll', () => {
     if (pointer && !reduced.matches) light();
   }, { passive: true });
+  let measureFrame = 0;
   const resize = new ResizeObserver(entries => {
     for (const { target: card, borderBoxSize } of entries) {
       const surface = cardSurfaces.get(card);
@@ -173,7 +174,12 @@ export function setupCardDeck() {
       surface.radius = glassCornerRadius(card, surface.width, surface.height);
       surface.scale = null;
     }
-    measure();
+    // The rail is observed too. Apply its new height on the next frame, after
+    // all cards have reported their size (including late-loading web fonts).
+    if (!measureFrame) measureFrame = requestAnimationFrame(() => {
+      measureFrame = 0;
+      measure();
+    });
   });
   function measure() {
     width = rail.clientWidth;

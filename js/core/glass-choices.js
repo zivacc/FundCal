@@ -206,6 +206,8 @@ export function bindGlassChoices(group, lens, { itemSelector, activeClass, activ
     schedule();
   }
   new ResizeObserver(updateLayout).observe(group);
+  // A web font can change every label width without resizing a full-width rail.
+  document.fonts.addEventListener('loadingdone', updateLayout);
   document.addEventListener('scroll', event => {
     if (!pointer || (event.target !== document && event.target !== group && !event.target.contains?.(group))) return;
     snapToLayout = true;

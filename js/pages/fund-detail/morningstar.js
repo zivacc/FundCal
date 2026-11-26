@@ -16,7 +16,8 @@ export function createMorningstarHistory(root) {
   }
   function draw() {
     const css = getComputedStyle(document.documentElement);
-    const colors = { text: css.getPropertyValue('--text-secondary').trim(), grid: css.getPropertyValue('--border').trim() };
+    const colors = { text: css.getPropertyValue('--text-secondary').trim(), grid: css.getPropertyValue('--border').trim(),
+      fontFamily: css.getPropertyValue('--font-body').trim() };
     charts.forEach((chart, i) => chart.setOption(morningstarChartOption(periods, i ? 'turnover' : 'fee', colors), true));
   }
   async function load(code) {

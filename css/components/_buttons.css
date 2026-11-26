@@ -132,3 +132,23 @@
   .btn-chip { transition: none; }
   .btn:active:not(:disabled) { transform: none; }
 }
+
+.toggle-btn[aria-pressed="true"],
+.select-all-btn[aria-pressed="true"] {
+  color: var(--text-inverse);
+  background: var(--gradient-primary);
+  border-color: var(--accent);
+}
+
+.select-all-btn[aria-pressed="mixed"] {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+@media (forced-colors: active) {
+  :is(.toggle-btn, .select-all-btn, .list-basket-pool, .basket-fund-name)[aria-pressed="true"],
+  .selectable-fund-table tr[aria-selected="true"] {
+    outline: 2px solid Highlight;
+    outline-offset: -3px;
+  }
+}
